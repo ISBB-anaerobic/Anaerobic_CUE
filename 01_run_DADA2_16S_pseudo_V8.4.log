@@ -1,0 +1,2769 @@
+Run DADA2 V8.4 on 16S dataset with pseudo option  
+
+Will process reads from the following folder:
+../../Data/16S/noPrimers/
+Starting R script 
+
+Loading required package: tidyverse
+── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+✔ ggplot2 3.2.1     ✔ purrr   0.3.3
+✔ tibble  2.1.3     ✔ dplyr   0.8.4
+✔ tidyr   1.0.2     ✔ stringr 1.4.0
+✔ readr   1.3.1     ✔ forcats 0.4.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+Loading required package: broom
+Loading required package: magrittr
+
+Attaching package: ‘magrittr’
+
+The following object is masked from ‘package:purrr’:
+
+    set_names
+
+The following object is masked from ‘package:tidyr’:
+
+    extract
+
+Loading required package: scales
+
+Attaching package: ‘scales’
+
+The following object is masked from ‘package:purrr’:
+
+    discard
+
+The following object is masked from ‘package:readr’:
+
+    col_factor
+
+Loading required package: svglite
+Loading required package: seqinr
+
+Attaching package: ‘seqinr’
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+Loading required package: Biostrings
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Loading required package: S4Vectors
+Loading required package: stats4
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+The following object is masked from ‘package:tidyr’:
+
+    expand
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+The following object is masked from ‘package:purrr’:
+
+    reduce
+
+Loading required package: XVector
+
+Attaching package: ‘XVector’
+
+The following object is masked from ‘package:purrr’:
+
+    compact
+
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:seqinr’:
+
+    translate
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+Loading required package: dada2
+Loading required package: Rcpp
+Loading required package: ShortRead
+Loading required package: BiocParallel
+Loading required package: Rsamtools
+Loading required package: GenomeInfoDb
+Loading required package: GenomicRanges
+Loading required package: GenomicAlignments
+Loading required package: SummarizedExperiment
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: DelayedArray
+Loading required package: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+The following object is masked from ‘package:seqinr’:
+
+    count
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+
+Attaching package: ‘DelayedArray’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following object is masked from ‘package:purrr’:
+
+    simplify
+
+The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+
+Attaching package: ‘GenomicAlignments’
+
+The following object is masked from ‘package:dplyr’:
+
+    last
+
+
+Attaching package: ‘ShortRead’
+
+The following object is masked from ‘package:magrittr’:
+
+    functions
+
+The following object is masked from ‘package:dplyr’:
+
+    id
+
+The following object is masked from ‘package:purrr’:
+
+    compose
+
+The following object is masked from ‘package:tibble’:
+
+    view
+
+Loading required package: microseq
+Loading required package: rlang
+
+Attaching package: ‘rlang’
+
+The following object is masked from ‘package:Biobase’:
+
+    exprs
+
+The following object is masked from ‘package:magrittr’:
+
+    set_names
+
+The following objects are masked from ‘package:purrr’:
+
+    %@%, as_function, flatten, flatten_chr, flatten_dbl, flatten_int,
+    flatten_lgl, flatten_raw, invoke, list_along, modify, prepend,
+    splice
+
+
+Attaching package: ‘microseq’
+
+The following objects are masked from ‘package:ShortRead’:
+
+    readFasta, readFastq, reverseComplement, writeFasta, writeFastq
+
+The following objects are masked from ‘package:Biostrings’:
+
+    reverseComplement, translate
+
+The following object is masked from ‘package:seqinr’:
+
+    translate
+
+The following object is masked from ‘package:base’:
+
+    gregexpr
+
+Loading required package: DECIPHER
+Loading required package: RSQLite
+$tidyverse
+[1] 1 3 0
+
+$broom
+[1] 0 5 4
+
+$magrittr
+[1] 1 5
+
+$scales
+[1] 1 1 0
+
+$svglite
+[1] 1 2 2
+
+$seqinr
+[1] 3 6 1
+
+$Biostrings
+[1]  2 54  0
+
+$dada2
+[1]  1 14  0
+
+$ShortRead
+[1]  1 44  1
+
+$microseq
+[1] 2 0
+
+$DECIPHER
+[1]  2 14  0
+
+[1] "~/Resources/"
+  [1] "Roey-001-AP3-3_S134"    "Roey-002-AP3-4_S135"    "Roey-003-AP3-5_S136"   
+  [4] "Roey-004-AP3-6_S137"    "Roey-005-AP3-7_S138"    "Roey-006-AP3-8_S139"   
+  [7] "Roey-007-AP3-9_S140"    "Roey-008-AP3-10_S141"   "Roey-009-AP3-11_S142"  
+ [10] "Roey-010-AP3-12_S143"   "Roey-011-AP3-13_S144"   "Roey-012-AP3-14_S145"  
+ [13] "Roey-013-AP3-15_S146"   "Roey-014-AP3-16_S147"   "Roey-015-AP3-17_S148"  
+ [16] "Roey-016-AP5-4_S149"    "Roey-017-AP5-5_S150"    "Roey-018-AP5-6_S151"   
+ [19] "Roey-019-AP5-7_S152"    "Roey-020-AP5-8_S153"    "Roey-021-AP5-9_S154"   
+ [22] "Roey-022-AP5-10_S155"   "Roey-023-AP5-11_S156"   "Roey-024-AP5-12_S157"  
+ [25] "Roey-025-AP5-13_S158"   "Roey-026-AP5-14_S159"   "Roey-027-AP5-15_S160"  
+ [28] "Roey-028-AP5-16_S161"   "Roey-029-AP5-17_S162"   "Roey-030-AP5-18_S163"  
+ [31] "Roey-031-AP7-2_S164"    "Roey-032-AP7-3_S165"    "Roey-033-AP7-4_S166"   
+ [34] "Roey-034-AP7-5_S167"    "Roey-035-AP7-6_S168"    "Roey-036-AP7-7_S169"   
+ [37] "Roey-037-AP7-8_S170"    "Roey-038-AP7-9_S171"    "Roey-039-AP7-10_S172"  
+ [40] "Roey-040-AP7-11_S173"   "Roey-041-AP7-12_S174"   "Roey-042-AP7-13_S175"  
+ [43] "Roey-043-AP7-14_S176"   "Roey-044-AP7-15_S177"   "Roey-045-AP7-16_S178"  
+ [46] "Roey-046-AP9-4_S179"    "Roey-047-AP9-5_S180"    "Roey-048-AP9-6_S181"   
+ [49] "Roey-049-AP9-7_S182"    "Roey-050-AP9-8_S183"    "Roey-051-AP9-9_S184"   
+ [52] "Roey-052-AP9-10_S185"   "Roey-053-AP9-11_S186"   "Roey-054-AP9-12_S187"  
+ [55] "Roey-055-AP9-13_S188"   "Roey-056-AP9-14_S189"   "Roey-057-AP9-15_S190"  
+ [58] "Roey-058-AP9-16_S191"   "Roey-059-AP9-17_S192"   "Roey-060-AP9-18_S193"  
+ [61] "Roey-061-AP12-3_S194"   "Roey-062-AP12-4_S195"   "Roey-063-AP12-5_S196"  
+ [64] "Roey-064-AP12-6_S197"   "Roey-065-AP12-7_S198"   "Roey-066-AP12-8_S199"  
+ [67] "Roey-067-AP12-9_S200"   "Roey-068-AP12-10_S201"  "Roey-069-AP12-11_S202" 
+ [70] "Roey-070-AP12-12_S203"  "Roey-071-AP12-13_S204"  "Roey-072-AP12-14_S205" 
+ [73] "Roey-073-AP12-15_S206"  "Roey-074-AP12-16_S207"  "Roey-075-AP12-17_S208" 
+ [76] "Roey-076-AC1-3_S209"    "Roey-077-AC1-4_S210"    "Roey-078-AC1-5_S211"   
+ [79] "Roey-079-AC1-6_S212"    "Roey-080-AC1-7_S213"    "Roey-081-AC1-8_S214"   
+ [82] "Roey-082-AC1-9_S215"    "Roey-083-AC1-10_S216"   "Roey-084-AC1-11_S217"  
+ [85] "Roey-085-AC1-12_S218"   "Roey-086-AC1-13_S219"   "Roey-087-AC1-14_S220"  
+ [88] "Roey-088-AC1-15_S221"   "Roey-089-AC1-16_S222"   "Roey-090-AC1-17_S223"  
+ [91] "Roey-091-AC3-3_S224"    "Roey-092-AC3-4_S225"    "Roey-093-AC3-5_S226"   
+ [94] "Roey-094-AC3-6_S227"    "Roey-095-AC3-7_S228"    "Roey-096-AC3-8_S229"   
+ [97] "Roey-097-AC3-9_S1"      "Roey-098-AC3-10_S2"     "Roey-099-AC3-11_S3"    
+[100] "Roey-100-AC3-12_S4"     "Roey-101-AC3-13_S5"     "Roey-102-AC3-14_S6"    
+[103] "Roey-103-AC3-15_S7"     "Roey-104-AC3-16_S8"     "Roey-105-AC3-17_S9"    
+[106] "Roey-106-AC5-3_S10"     "Roey-107-AC5-4_S11"     "Roey-108-AC5-5_S12"    
+[109] "Roey-109-AC5-6_S13"     "Roey-110-AC5-7_S14"     "Roey-111-AC5-8_S15"    
+[112] "Roey-112-AC5-9_S16"     "Roey-113-AC5-10_S17"    "Roey-114-AC5-11_S18"   
+[115] "Roey-115-AC5-12_S19"    "Roey-116-AC5-13_S20"    "Roey-117-AC5-14_S21"   
+[118] "Roey-118-AC5-15_S22"    "Roey-119-AC5-16_S23"    "Roey-120-AC5-17_S24"   
+[121] "Roey-121-AC7-2_S25"     "Roey-122-AC7-3_S26"     "Roey-123-AC7-4_S27"    
+[124] "Roey-124-AC7-5_S28"     "Roey-125-AC7-6_S29"     "Roey-126-AC7-7_S30"    
+[127] "Roey-127-AC7-8_S31"     "Roey-128-AC7-9_S32"     "Roey-129-AC7-10_S33"   
+[130] "Roey-130-AC7-11_S34"    "Roey-131-AC7-12_S35"    "Roey-132-AC7-13_S36"   
+[133] "Roey-133-AC7-14_S37"    "Roey-134-AC7-15_S38"    "Roey-135-AC7-16_S39"   
+[136] "Roey-136-AC10-2_S40"    "Roey-137-AC10-3_S41"    "Roey-138-AC10-4_S42"   
+[139] "Roey-139-AC10-5_S43"    "Roey-140-AC10-6_S44"    "Roey-141-AC10-7_S45"   
+[142] "Roey-142-AC10-8_S46"    "Roey-143-AC10-9_S47"    "Roey-144-AC10-10_S48"  
+[145] "Roey-145-AC10-11_S49"   "Roey-146-AC10-12_S50"   "Roey-147-AC10-13_S51"  
+[148] "Roey-148-AC10-14_S52"   "Roey-149-AC10-15_S53"   "Roey-150-AC10-16_S54"  
+[151] "Roey-151-AC11-2_S55"    "Roey-152-AC11-3_S56"    "Roey-153-AC11-4_S57"   
+[154] "Roey-154-AC11-5_S58"    "Roey-155-AC11-6_S59"    "Roey-156-AC11-7_S60"   
+[157] "Roey-157-AC11-8_S61"    "Roey-158-AC11-9_S62"    "Roey-159-AC11-10_S63"  
+[160] "Roey-160-AC11-11_S64"   "Roey-161-AC11-12_S65"   "Roey-162-AC11-13_S66"  
+[163] "Roey-163-AC11-14_S67"   "Roey-164-AC11-15_S68"   "Roey-165-AC11-16_S69"  
+[166] "Roey-166-NP3-2_S70"     "Roey-167-NP3-3_S71"     "Roey-168-NP3-4_S72"    
+[169] "Roey-169-NP3-5_S73"     "Roey-170-NP3-6_S74"     "Roey-171-NP3-7_S75"    
+[172] "Roey-172-NP3-8_S76"     "Roey-173-NP3-9_S77"     "Roey-174-NP3-10_S78"   
+[175] "Roey-175-NP3-11_S79"    "Roey-176-NP3-12_S80"    "Roey-177-NP3-13_S81"   
+[178] "Roey-178-NP3-14_S82"    "Roey-179-NP3-15_S83"    "Roey-180-NP3-16_S84"   
+[181] "Roey-181-NP5-2_S85"     "Roey-182-NP5-3_S86"     "Roey-183-NP5-4_S87"    
+[184] "Roey-184-NP5-5_S88"     "Roey-185-NP5-6_S89"     "Roey-186-NP5-7_S90"    
+[187] "Roey-187-NP5-8_S91"     "Roey-188-NP5-9_S92"     "Roey-189-NP5-10_S93"   
+[190] "Roey-190-NP5-11_S94"    "Roey-191-NP5-12_S95"    "Roey-192-NP5-13_S96"   
+[193] "Roey-193-NP5-14_S230"   "Roey-194-NP5-15_S231"   "Roey-195-NP5-16_S232"  
+[196] "Roey-196-NP7-2_S233"    "Roey-197-NP7-3_S234"    "Roey-198-NP7-4_S235"   
+[199] "Roey-199-NP7-5_S236"    "Roey-200-NP7-6_S237"    "Roey-201-NP7-7_S238"   
+[202] "Roey-202-NP7-8_S239"    "Roey-203-NP7-9_S240"    "Roey-204-NP7-10_S241"  
+[205] "Roey-205-NP7-11_S242"   "Roey-206-NP7-12_S243"   "Roey-207-NP7-13_S244"  
+[208] "Roey-208-NP7-14_S245"   "Roey-209-NP7-15_S246"   "Roey-210-NP7-16_S247"  
+[211] "Roey-211-NP10-5_S248"   "Roey-212-NP10-6_S249"   "Roey-213-NP10-7_S250"  
+[214] "Roey-214-NP10-8_S251"   "Roey-215-NP10-9_S252"   "Roey-216-NP10-10_S253" 
+[217] "Roey-217-NP10-11_S254"  "Roey-218-NP10-12_S255"  "Roey-219-NP10-13_S256" 
+[220] "Roey-220-NP10-14_S257"  "Roey-221-NP10-15_S258"  "Roey-222-NP10-16_S259" 
+[223] "Roey-223-NP10-17_S260"  "Roey-224-NP10-18_S261"  "Roey-225-NP10-19_S262" 
+[226] "Roey-226-NP12-5_S263"   "Roey-227-NP12-6_S264"   "Roey-228-NP12-7_S265"  
+[229] "Roey-229-NP12-8_S266"   "Roey-230-NP12-9_S267"   "Roey-231-NP12-10_S268" 
+[232] "Roey-232-NP12-11_S269"  "Roey-233-NP12-12_S270"  "Roey-234-NP12-13_S271" 
+[235] "Roey-235-NP12-14_S272"  "Roey-236-NP12-15_S273"  "Roey-237-NP12-16_S274" 
+[238] "Roey-238-NP12-17_S275"  "Roey-239-NP12-18_S276"  "Roey-240-NP12-19_S277" 
+[241] "Roey-241-NC3-2_S278"    "Roey-242-NC3-3_S279"    "Roey-243-NC3-4_S280"   
+[244] "Roey-244-NC3-5_S281"    "Roey-245-NC3-6_S282"    "Roey-246-NC3-7_S283"   
+[247] "Roey-247-NC3-8_S284"    "Roey-248-NC3-9_S285"    "Roey-249-NC3-10_S286"  
+[250] "Roey-250-NC3-11_S287"   "Roey-251-NC3-12_S288"   "Roey-252-NC3-13_S289"  
+[253] "Roey-253-NC3-14_S290"   "Roey-254-NC3-15_S291"   "Roey-255-NC3-16_S292"  
+[256] "Roey-256-NC5-5_S293"    "Roey-257-NC5-6_S294"    "Roey-258-NC5-7_S295"   
+[259] "Roey-259-NC5-8_S296"    "Roey-260-NC5-9_S297"    "Roey-261-NC5-10_S298"  
+[262] "Roey-262-NC5-11_S299"   "Roey-263-NC5-12_S300"   "Roey-264-NC5-13_S301"  
+[265] "Roey-265-NC5-14_S302"   "Roey-266-NC5-15_S303"   "Roey-267-NC5-16_S304"  
+[268] "Roey-268-NC5-17_S305"   "Roey-269-NC5-18_S306"   "Roey-270-NC5-19_S307"  
+[271] "Roey-271-NC8-5_S308"    "Roey-272-NC8-6_S309"    "Roey-273-NC8-7_S310"   
+[274] "Roey-274-NC8-8_S311"    "Roey-275-NC8-9_S312"    "Roey-276-NC8-10_S313"  
+[277] "Roey-277-NC8-11_S314"   "Roey-278-NC8-12_S315"   "Roey-279-NC8-13_S316"  
+[280] "Roey-280-NC8-14_S317"   "Roey-281-NC8-15_S318"   "Roey-282-NC8-16_S319"  
+[283] "Roey-283-NC8-17_S320"   "Roey-284-NC8-18_S321"   "Roey-285-NC8-19_S322"  
+[286] "Roey-286-NC10-4_S323"   "Roey-287-NC10-5_S324"   "Roey-288-NC10-6_S325"  
+[289] "Roey-289-NC10-7_S97"    "Roey-290-NC10-8_S98"    "Roey-291-NC10-9_S99"   
+[292] "Roey-292-NC10-10_S100"  "Roey-293-NC10-11_S101"  "Roey-294-NC10-12_S102" 
+[295] "Roey-295-NC10-13_S103"  "Roey-296-NC10-14_S104"  "Roey-297-NC10-15_S105" 
+[298] "Roey-298-NC10-16_S106"  "Roey-299-NC10-17_S107"  "Roey-300-NC10-18_S108" 
+[301] "Roey-301-NC12-4_S109"   "Roey-302-NC12-5_S110"   "Roey-303-NC12-6_S111"  
+[304] "Roey-304-NC12-7_S112"   "Roey-305-NC12-8_S113"   "Roey-306-NC12-9_S114"  
+[307] "Roey-307-NC12-10_S115"  "Roey-308-NC12-11_S116"  "Roey-309-NC12-12_S117" 
+[310] "Roey-310-NC12-13_S118"  "Roey-311-NC12-14_S119"  "Roey-312-NC12-15_S120" 
+[313] "Roey-313-NC12-16_S121"  "Roey-314-NC12-17_S122"  "Roey-315-NC12-18_S123" 
+[316] "Roey-316-Mock-NC_S124"  "Roey-317-SIP-1-NC_S125" "Roey-318-SIP-2-NC_S126"
+[319] "Roey-319-28X-NC_S127"   "Roey-320-30X-NC_S128"   "Roey-321-32X-NC_S129"  
+Scale for 'y' is already present. Adding another scale for 'y', which will
+replace the existing scale.
+Scale for 'y' is already present. Adding another scale for 'y', which will
+replace the existing scale.
+null device 
+          1 
+# A tibble: 321 x 4
+   sample_name        file_name                               reads.in reads.out
+   <chr>              <chr>                                      <dbl>     <dbl>
+ 1 Roey-001-AP3-3_S1… Roey-001-AP3-3_S134_L001_R1_001_noPrim…    14975     14681
+ 2 Roey-002-AP3-4_S1… Roey-002-AP3-4_S135_L001_R1_001_noPrim…    13411     13051
+ 3 Roey-003-AP3-5_S1… Roey-003-AP3-5_S136_L001_R1_001_noPrim…    24724     24248
+ 4 Roey-004-AP3-6_S1… Roey-004-AP3-6_S137_L001_R1_001_noPrim…    26743     26240
+ 5 Roey-005-AP3-7_S1… Roey-005-AP3-7_S138_L001_R1_001_noPrim…    24061     23580
+ 6 Roey-006-AP3-8_S1… Roey-006-AP3-8_S139_L001_R1_001_noPrim…    27975     27463
+ 7 Roey-007-AP3-9_S1… Roey-007-AP3-9_S140_L001_R1_001_noPrim…    31538     30979
+ 8 Roey-008-AP3-10_S… Roey-008-AP3-10_S141_L001_R1_001_noPri…    27521     27037
+ 9 Roey-009-AP3-11_S… Roey-009-AP3-11_S142_L001_R1_001_noPri…    32436     31870
+10 Roey-010-AP3-12_S… Roey-010-AP3-12_S143_L001_R1_001_noPri…    29822     29320
+# … with 311 more rows
+[1] "No sample was filtered out"
+101667673 total bases in 758839 reads from 15 samples will be used for learning the error rates.
+102678494 total bases in 772306 reads from 15 samples will be used for learning the error rates.
+Saving 7 x 7 in image
+Warning messages:
+1: Transformation introduced infinite values in continuous y-axis 
+2: Transformation introduced infinite values in continuous y-axis 
+Saving 7 x 7 in image
+Warning messages:
+1: Transformation introduced infinite values in continuous y-axis 
+2: Transformation introduced infinite values in continuous y-axis 
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-001-AP3-3_S134_R1_filt.fastq.gz
+Encountered 7049 unique sequences from 14681 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-002-AP3-4_S135_R1_filt.fastq.gz
+Encountered 6712 unique sequences from 13051 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-003-AP3-5_S136_R1_filt.fastq.gz
+Encountered 11034 unique sequences from 24248 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-004-AP3-6_S137_R1_filt.fastq.gz
+Encountered 12127 unique sequences from 26240 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-005-AP3-7_S138_R1_filt.fastq.gz
+Encountered 11583 unique sequences from 23580 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-006-AP3-8_S139_R1_filt.fastq.gz
+Encountered 13401 unique sequences from 27463 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-007-AP3-9_S140_R1_filt.fastq.gz
+Encountered 15963 unique sequences from 30979 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-008-AP3-10_S141_R1_filt.fastq.gz
+Encountered 14194 unique sequences from 27037 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-009-AP3-11_S142_R1_filt.fastq.gz
+Encountered 16768 unique sequences from 31870 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-010-AP3-12_S143_R1_filt.fastq.gz
+Encountered 15283 unique sequences from 29320 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-011-AP3-13_S144_R1_filt.fastq.gz
+Encountered 14427 unique sequences from 27937 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-012-AP3-14_S145_R1_filt.fastq.gz
+Encountered 2284 unique sequences from 3181 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-013-AP3-15_S146_R1_filt.fastq.gz
+Encountered 12173 unique sequences from 22335 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-014-AP3-16_S147_R1_filt.fastq.gz
+Encountered 14144 unique sequences from 25589 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-015-AP3-17_S148_R1_filt.fastq.gz
+Encountered 14965 unique sequences from 28436 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-016-AP5-4_S149_R1_filt.fastq.gz
+Encountered 12454 unique sequences from 25576 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-017-AP5-5_S150_R1_filt.fastq.gz
+Encountered 11805 unique sequences from 24435 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-018-AP5-6_S151_R1_filt.fastq.gz
+Encountered 10583 unique sequences from 21869 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-019-AP5-7_S152_R1_filt.fastq.gz
+Encountered 12318 unique sequences from 24182 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-020-AP5-8_S153_R1_filt.fastq.gz
+Encountered 11992 unique sequences from 23025 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-021-AP5-9_S154_R1_filt.fastq.gz
+Encountered 14009 unique sequences from 27351 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-022-AP5-10_S155_R1_filt.fastq.gz
+Encountered 10182 unique sequences from 18007 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-023-AP5-11_S156_R1_filt.fastq.gz
+Encountered 15751 unique sequences from 29046 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-024-AP5-12_S157_R1_filt.fastq.gz
+Encountered 17941 unique sequences from 33345 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-025-AP5-13_S158_R1_filt.fastq.gz
+Encountered 13843 unique sequences from 23532 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-026-AP5-14_S159_R1_filt.fastq.gz
+Encountered 15517 unique sequences from 28192 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-027-AP5-15_S160_R1_filt.fastq.gz
+Encountered 13554 unique sequences from 24326 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-028-AP5-16_S161_R1_filt.fastq.gz
+Encountered 13531 unique sequences from 24051 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-029-AP5-17_S162_R1_filt.fastq.gz
+Encountered 11329 unique sequences from 19594 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-030-AP5-18_S163_R1_filt.fastq.gz
+Encountered 9898 unique sequences from 15769 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-031-AP7-2_S164_R1_filt.fastq.gz
+Encountered 9727 unique sequences from 20338 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-032-AP7-3_S165_R1_filt.fastq.gz
+Encountered 10040 unique sequences from 19121 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-033-AP7-4_S166_R1_filt.fastq.gz
+Encountered 12681 unique sequences from 24677 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-034-AP7-5_S167_R1_filt.fastq.gz
+Encountered 11852 unique sequences from 22654 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-035-AP7-6_S168_R1_filt.fastq.gz
+Encountered 15655 unique sequences from 29884 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-036-AP7-7_S169_R1_filt.fastq.gz
+Encountered 12158 unique sequences from 22567 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-037-AP7-8_S170_R1_filt.fastq.gz
+Encountered 10943 unique sequences from 19751 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-038-AP7-9_S171_R1_filt.fastq.gz
+Encountered 13451 unique sequences from 24601 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-039-AP7-10_S172_R1_filt.fastq.gz
+Encountered 12780 unique sequences from 23561 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-040-AP7-11_S173_R1_filt.fastq.gz
+Encountered 12036 unique sequences from 21450 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-041-AP7-12_S174_R1_filt.fastq.gz
+Encountered 11893 unique sequences from 23302 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-042-AP7-13_S175_R1_filt.fastq.gz
+Encountered 10803 unique sequences from 18931 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-043-AP7-14_S176_R1_filt.fastq.gz
+Encountered 12753 unique sequences from 23734 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-044-AP7-15_S177_R1_filt.fastq.gz
+Encountered 13977 unique sequences from 25914 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-045-AP7-16_S178_R1_filt.fastq.gz
+Encountered 14507 unique sequences from 26870 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-046-AP9-4_S179_R1_filt.fastq.gz
+Encountered 10178 unique sequences from 21171 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-047-AP9-5_S180_R1_filt.fastq.gz
+Encountered 10682 unique sequences from 22426 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-048-AP9-6_S181_R1_filt.fastq.gz
+Encountered 15090 unique sequences from 31797 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-049-AP9-7_S182_R1_filt.fastq.gz
+Encountered 9184 unique sequences from 18220 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-050-AP9-8_S183_R1_filt.fastq.gz
+Encountered 11326 unique sequences from 21793 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-051-AP9-9_S184_R1_filt.fastq.gz
+Encountered 12637 unique sequences from 24388 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-052-AP9-10_S185_R1_filt.fastq.gz
+Encountered 12374 unique sequences from 23622 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-053-AP9-11_S186_R1_filt.fastq.gz
+Encountered 12002 unique sequences from 22243 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-054-AP9-12_S187_R1_filt.fastq.gz
+Encountered 9830 unique sequences from 17928 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-055-AP9-13_S188_R1_filt.fastq.gz
+Encountered 12144 unique sequences from 23507 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-056-AP9-14_S189_R1_filt.fastq.gz
+Encountered 13637 unique sequences from 26675 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-057-AP9-15_S190_R1_filt.fastq.gz
+Encountered 4042 unique sequences from 6618 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-058-AP9-16_S191_R1_filt.fastq.gz
+Encountered 9783 unique sequences from 18044 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-059-AP9-17_S192_R1_filt.fastq.gz
+Encountered 15556 unique sequences from 29259 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-060-AP9-18_S193_R1_filt.fastq.gz
+Encountered 14692 unique sequences from 28627 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-061-AP12-3_S194_R1_filt.fastq.gz
+Encountered 32 unique sequences from 32 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-062-AP12-4_S195_R1_filt.fastq.gz
+Encountered 31 unique sequences from 33 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-063-AP12-5_S196_R1_filt.fastq.gz
+Encountered 48 unique sequences from 48 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-064-AP12-6_S197_R1_filt.fastq.gz
+Encountered 12 unique sequences from 12 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-065-AP12-7_S198_R1_filt.fastq.gz
+Encountered 33 unique sequences from 33 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-066-AP12-8_S199_R1_filt.fastq.gz
+Encountered 60 unique sequences from 60 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-067-AP12-9_S200_R1_filt.fastq.gz
+Encountered 14 unique sequences from 14 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-068-AP12-10_S201_R1_filt.fastq.gz
+Encountered 9 unique sequences from 9 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-069-AP12-11_S202_R1_filt.fastq.gz
+Encountered 11600 unique sequences from 21651 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-070-AP12-12_S203_R1_filt.fastq.gz
+Encountered 136 unique sequences from 144 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-071-AP12-13_S204_R1_filt.fastq.gz
+Encountered 13891 unique sequences from 25230 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-072-AP12-14_S205_R1_filt.fastq.gz
+Encountered 19206 unique sequences from 34181 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-073-AP12-15_S206_R1_filt.fastq.gz
+Encountered 13858 unique sequences from 25642 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-074-AP12-16_S207_R1_filt.fastq.gz
+Encountered 17154 unique sequences from 33089 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-075-AP12-17_S208_R1_filt.fastq.gz
+Encountered 17096 unique sequences from 28586 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-076-AC1-3_S209_R1_filt.fastq.gz
+Encountered 13875 unique sequences from 24637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-077-AC1-4_S210_R1_filt.fastq.gz
+Encountered 10928 unique sequences from 20712 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-078-AC1-5_S211_R1_filt.fastq.gz
+Encountered 9324 unique sequences from 17111 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-079-AC1-6_S212_R1_filt.fastq.gz
+Encountered 13609 unique sequences from 27654 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-080-AC1-7_S213_R1_filt.fastq.gz
+Encountered 11802 unique sequences from 24646 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-081-AC1-8_S214_R1_filt.fastq.gz
+Encountered 13119 unique sequences from 27718 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-082-AC1-9_S215_R1_filt.fastq.gz
+Encountered 11689 unique sequences from 23112 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-083-AC1-10_S216_R1_filt.fastq.gz
+Encountered 15533 unique sequences from 32967 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-084-AC1-11_S217_R1_filt.fastq.gz
+Encountered 13489 unique sequences from 29449 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-085-AC1-12_S218_R1_filt.fastq.gz
+Encountered 17727 unique sequences from 38781 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-086-AC1-13_S219_R1_filt.fastq.gz
+Encountered 14709 unique sequences from 31795 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-087-AC1-14_S220_R1_filt.fastq.gz
+Encountered 14462 unique sequences from 29451 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-088-AC1-15_S221_R1_filt.fastq.gz
+Encountered 14735 unique sequences from 30538 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-089-AC1-16_S222_R1_filt.fastq.gz
+Encountered 8154 unique sequences from 18668 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-090-AC1-17_S223_R1_filt.fastq.gz
+Encountered 13219 unique sequences from 25475 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-091-AC3-3_S224_R1_filt.fastq.gz
+Encountered 9107 unique sequences from 18475 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-092-AC3-4_S225_R1_filt.fastq.gz
+Encountered 8310 unique sequences from 16058 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-093-AC3-5_S226_R1_filt.fastq.gz
+Encountered 994 unique sequences from 2020 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-094-AC3-6_S227_R1_filt.fastq.gz
+Encountered 10973 unique sequences from 23768 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-095-AC3-7_S228_R1_filt.fastq.gz
+Encountered 13791 unique sequences from 34898 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-096-AC3-8_S229_R1_filt.fastq.gz
+Encountered 17124 unique sequences from 39238 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-097-AC3-9_S1_R1_filt.fastq.gz
+Encountered 25556 unique sequences from 66860 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-098-AC3-10_S2_R1_filt.fastq.gz
+Encountered 27389 unique sequences from 62731 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-099-AC3-11_S3_R1_filt.fastq.gz
+Encountered 31617 unique sequences from 65157 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-100-AC3-12_S4_R1_filt.fastq.gz
+Encountered 27702 unique sequences from 63174 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-101-AC3-13_S5_R1_filt.fastq.gz
+Encountered 27043 unique sequences from 64152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-102-AC3-14_S6_R1_filt.fastq.gz
+Encountered 26886 unique sequences from 69146 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-103-AC3-15_S7_R1_filt.fastq.gz
+Encountered 26560 unique sequences from 68471 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-104-AC3-16_S8_R1_filt.fastq.gz
+Encountered 26805 unique sequences from 69522 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-105-AC3-17_S9_R1_filt.fastq.gz
+Encountered 23161 unique sequences from 66283 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-106-AC5-3_S10_R1_filt.fastq.gz
+Encountered 26697 unique sequences from 66225 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-107-AC5-4_S11_R1_filt.fastq.gz
+Encountered 23464 unique sequences from 59538 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-108-AC5-5_S12_R1_filt.fastq.gz
+Encountered 26222 unique sequences from 63297 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-109-AC5-6_S13_R1_filt.fastq.gz
+Encountered 30031 unique sequences from 72958 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-110-AC5-7_S14_R1_filt.fastq.gz
+Encountered 36811 unique sequences from 87544 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-111-AC5-8_S15_R1_filt.fastq.gz
+Encountered 40464 unique sequences from 92931 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-112-AC5-9_S16_R1_filt.fastq.gz
+Encountered 31302 unique sequences from 67035 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-113-AC5-10_S17_R1_filt.fastq.gz
+Encountered 30397 unique sequences from 64988 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-114-AC5-11_S18_R1_filt.fastq.gz
+Encountered 29119 unique sequences from 59829 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-115-AC5-12_S19_R1_filt.fastq.gz
+Encountered 28805 unique sequences from 59678 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-116-AC5-13_S20_R1_filt.fastq.gz
+Encountered 29747 unique sequences from 61511 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-117-AC5-14_S21_R1_filt.fastq.gz
+Encountered 29911 unique sequences from 61730 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-118-AC5-15_S22_R1_filt.fastq.gz
+Encountered 31696 unique sequences from 67232 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-119-AC5-16_S23_R1_filt.fastq.gz
+Encountered 27206 unique sequences from 57189 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-120-AC5-17_S24_R1_filt.fastq.gz
+Encountered 27594 unique sequences from 58377 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-121-AC7-2_S25_R1_filt.fastq.gz
+Encountered 26227 unique sequences from 76373 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-122-AC7-3_S26_R1_filt.fastq.gz
+Encountered 21637 unique sequences from 61450 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-123-AC7-4_S27_R1_filt.fastq.gz
+Encountered 20825 unique sequences from 58857 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-124-AC7-5_S28_R1_filt.fastq.gz
+Encountered 24710 unique sequences from 67048 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-125-AC7-6_S29_R1_filt.fastq.gz
+Encountered 25950 unique sequences from 66774 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-126-AC7-7_S30_R1_filt.fastq.gz
+Encountered 28959 unique sequences from 71254 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-127-AC7-8_S31_R1_filt.fastq.gz
+Encountered 26763 unique sequences from 64708 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-128-AC7-9_S32_R1_filt.fastq.gz
+Encountered 29262 unique sequences from 67289 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-129-AC7-10_S33_R1_filt.fastq.gz
+Encountered 28350 unique sequences from 59525 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-130-AC7-11_S34_R1_filt.fastq.gz
+Encountered 30996 unique sequences from 69206 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-131-AC7-12_S35_R1_filt.fastq.gz
+Encountered 26838 unique sequences from 62600 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-132-AC7-13_S36_R1_filt.fastq.gz
+Encountered 27640 unique sequences from 60637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-133-AC7-14_S37_R1_filt.fastq.gz
+Encountered 32722 unique sequences from 75254 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-134-AC7-15_S38_R1_filt.fastq.gz
+Encountered 27553 unique sequences from 62995 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-135-AC7-16_S39_R1_filt.fastq.gz
+Encountered 26422 unique sequences from 62681 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-136-AC10-2_S40_R1_filt.fastq.gz
+Encountered 25944 unique sequences from 61310 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-137-AC10-3_S41_R1_filt.fastq.gz
+Encountered 25813 unique sequences from 62775 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-138-AC10-4_S42_R1_filt.fastq.gz
+Encountered 23854 unique sequences from 61285 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-139-AC10-5_S43_R1_filt.fastq.gz
+Encountered 23508 unique sequences from 58745 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-140-AC10-6_S44_R1_filt.fastq.gz
+Encountered 24467 unique sequences from 63325 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-141-AC10-7_S45_R1_filt.fastq.gz
+Encountered 26668 unique sequences from 59305 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-142-AC10-8_S46_R1_filt.fastq.gz
+Encountered 27471 unique sequences from 64561 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-143-AC10-9_S47_R1_filt.fastq.gz
+Encountered 25918 unique sequences from 63731 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-144-AC10-10_S48_R1_filt.fastq.gz
+Encountered 22306 unique sequences from 55961 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-145-AC10-11_S49_R1_filt.fastq.gz
+Encountered 26238 unique sequences from 63808 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-146-AC10-12_S50_R1_filt.fastq.gz
+Encountered 27141 unique sequences from 63897 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-147-AC10-13_S51_R1_filt.fastq.gz
+Encountered 26773 unique sequences from 62909 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-148-AC10-14_S52_R1_filt.fastq.gz
+Encountered 27904 unique sequences from 65455 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-149-AC10-15_S53_R1_filt.fastq.gz
+Encountered 24261 unique sequences from 56879 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-150-AC10-16_S54_R1_filt.fastq.gz
+Encountered 27860 unique sequences from 65680 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-151-AC11-2_S55_R1_filt.fastq.gz
+Encountered 28361 unique sequences from 65229 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-152-AC11-3_S56_R1_filt.fastq.gz
+Encountered 25967 unique sequences from 63637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-153-AC11-4_S57_R1_filt.fastq.gz
+Encountered 25047 unique sequences from 60392 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-154-AC11-5_S58_R1_filt.fastq.gz
+Encountered 32598 unique sequences from 69152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-155-AC11-6_S59_R1_filt.fastq.gz
+Encountered 27889 unique sequences from 62623 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-156-AC11-7_S60_R1_filt.fastq.gz
+Encountered 1857 unique sequences from 2952 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-157-AC11-8_S61_R1_filt.fastq.gz
+Encountered 29649 unique sequences from 69888 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-158-AC11-9_S62_R1_filt.fastq.gz
+Encountered 27864 unique sequences from 65299 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-159-AC11-10_S63_R1_filt.fastq.gz
+Encountered 27138 unique sequences from 64348 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-160-AC11-11_S64_R1_filt.fastq.gz
+Encountered 24301 unique sequences from 57275 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-161-AC11-12_S65_R1_filt.fastq.gz
+Encountered 23507 unique sequences from 54675 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-162-AC11-13_S66_R1_filt.fastq.gz
+Encountered 23295 unique sequences from 55893 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-163-AC11-14_S67_R1_filt.fastq.gz
+Encountered 27237 unique sequences from 60603 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-164-AC11-15_S68_R1_filt.fastq.gz
+Encountered 27246 unique sequences from 61721 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-165-AC11-16_S69_R1_filt.fastq.gz
+Encountered 24462 unique sequences from 57471 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-166-NP3-2_S70_R1_filt.fastq.gz
+Encountered 12397 unique sequences from 30828 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-167-NP3-3_S71_R1_filt.fastq.gz
+Encountered 24179 unique sequences from 62284 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-168-NP3-4_S72_R1_filt.fastq.gz
+Encountered 24569 unique sequences from 58805 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-169-NP3-5_S73_R1_filt.fastq.gz
+Encountered 29728 unique sequences from 72669 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-170-NP3-6_S74_R1_filt.fastq.gz
+Encountered 26647 unique sequences from 61832 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-171-NP3-7_S75_R1_filt.fastq.gz
+Encountered 37478 unique sequences from 85251 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-172-NP3-8_S76_R1_filt.fastq.gz
+Encountered 34155 unique sequences from 82818 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-173-NP3-9_S77_R1_filt.fastq.gz
+Encountered 28039 unique sequences from 60117 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-174-NP3-10_S78_R1_filt.fastq.gz
+Encountered 33727 unique sequences from 75982 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-175-NP3-11_S79_R1_filt.fastq.gz
+Encountered 28779 unique sequences from 62669 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-176-NP3-12_S80_R1_filt.fastq.gz
+Encountered 28604 unique sequences from 63629 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-177-NP3-13_S81_R1_filt.fastq.gz
+Encountered 28027 unique sequences from 64152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-178-NP3-14_S82_R1_filt.fastq.gz
+Encountered 30280 unique sequences from 73385 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-179-NP3-15_S83_R1_filt.fastq.gz
+Encountered 27555 unique sequences from 60773 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-180-NP3-16_S84_R1_filt.fastq.gz
+Encountered 25147 unique sequences from 54321 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-181-NP5-2_S85_R1_filt.fastq.gz
+Encountered 26957 unique sequences from 71986 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-182-NP5-3_S86_R1_filt.fastq.gz
+Encountered 24832 unique sequences from 61610 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-183-NP5-4_S87_R1_filt.fastq.gz
+Encountered 24887 unique sequences from 65803 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-184-NP5-5_S88_R1_filt.fastq.gz
+Encountered 27923 unique sequences from 62397 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-185-NP5-6_S89_R1_filt.fastq.gz
+Encountered 26689 unique sequences from 61180 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-186-NP5-7_S90_R1_filt.fastq.gz
+Encountered 25986 unique sequences from 56281 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-187-NP5-8_S91_R1_filt.fastq.gz
+Encountered 20601 unique sequences from 50375 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-188-NP5-9_S92_R1_filt.fastq.gz
+Encountered 30988 unique sequences from 67012 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-189-NP5-10_S93_R1_filt.fastq.gz
+Encountered 33713 unique sequences from 77790 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-190-NP5-11_S94_R1_filt.fastq.gz
+Encountered 36724 unique sequences from 83252 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-191-NP5-12_S95_R1_filt.fastq.gz
+Encountered 31162 unique sequences from 69112 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-192-NP5-13_S96_R1_filt.fastq.gz
+Encountered 26493 unique sequences from 57084 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-193-NP5-14_S230_R1_filt.fastq.gz
+Encountered 32186 unique sequences from 70433 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-194-NP5-15_S231_R1_filt.fastq.gz
+Encountered 26618 unique sequences from 58370 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-195-NP5-16_S232_R1_filt.fastq.gz
+Encountered 24548 unique sequences from 58378 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-196-NP7-2_S233_R1_filt.fastq.gz
+Encountered 5047 unique sequences from 10756 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-197-NP7-3_S234_R1_filt.fastq.gz
+Encountered 18706 unique sequences from 49083 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-198-NP7-4_S235_R1_filt.fastq.gz
+Encountered 2213 unique sequences from 5255 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-199-NP7-5_S236_R1_filt.fastq.gz
+Encountered 951 unique sequences from 2046 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-200-NP7-6_S237_R1_filt.fastq.gz
+Encountered 24268 unique sequences from 60555 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-201-NP7-7_S238_R1_filt.fastq.gz
+Encountered 26362 unique sequences from 61602 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-202-NP7-8_S239_R1_filt.fastq.gz
+Encountered 28757 unique sequences from 63782 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-203-NP7-9_S240_R1_filt.fastq.gz
+Encountered 28054 unique sequences from 59401 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-204-NP7-10_S241_R1_filt.fastq.gz
+Encountered 28914 unique sequences from 63999 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-205-NP7-11_S242_R1_filt.fastq.gz
+Encountered 30310 unique sequences from 69660 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-206-NP7-12_S243_R1_filt.fastq.gz
+Encountered 25380 unique sequences from 61432 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-207-NP7-13_S244_R1_filt.fastq.gz
+Encountered 28527 unique sequences from 62840 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-208-NP7-14_S245_R1_filt.fastq.gz
+Encountered 5934 unique sequences from 11159 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-209-NP7-15_S246_R1_filt.fastq.gz
+Encountered 30514 unique sequences from 73307 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-210-NP7-16_S247_R1_filt.fastq.gz
+Encountered 8622 unique sequences from 16868 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-211-NP10-5_S248_R1_filt.fastq.gz
+Encountered 24318 unique sequences from 65184 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-212-NP10-6_S249_R1_filt.fastq.gz
+Encountered 30420 unique sequences from 73784 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-213-NP10-7_S250_R1_filt.fastq.gz
+Encountered 28458 unique sequences from 61380 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-214-NP10-8_S251_R1_filt.fastq.gz
+Encountered 32370 unique sequences from 76322 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-215-NP10-9_S252_R1_filt.fastq.gz
+Encountered 26947 unique sequences from 67005 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-216-NP10-10_S253_R1_filt.fastq.gz
+Encountered 27056 unique sequences from 59195 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-217-NP10-11_S254_R1_filt.fastq.gz
+Encountered 29212 unique sequences from 62796 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-218-NP10-12_S255_R1_filt.fastq.gz
+Encountered 30993 unique sequences from 65907 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-219-NP10-13_S256_R1_filt.fastq.gz
+Encountered 26070 unique sequences from 60820 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-220-NP10-14_S257_R1_filt.fastq.gz
+Encountered 28580 unique sequences from 67997 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-221-NP10-15_S258_R1_filt.fastq.gz
+Encountered 32014 unique sequences from 79420 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-222-NP10-16_S259_R1_filt.fastq.gz
+Encountered 28586 unique sequences from 70244 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-223-NP10-17_S260_R1_filt.fastq.gz
+Encountered 29090 unique sequences from 71893 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-224-NP10-18_S261_R1_filt.fastq.gz
+Encountered 22889 unique sequences from 58385 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-225-NP10-19_S262_R1_filt.fastq.gz
+Encountered 25742 unique sequences from 62367 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-226-NP12-5_S263_R1_filt.fastq.gz
+Encountered 24859 unique sequences from 66214 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-227-NP12-6_S264_R1_filt.fastq.gz
+Encountered 27335 unique sequences from 69376 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-228-NP12-7_S265_R1_filt.fastq.gz
+Encountered 25805 unique sequences from 62431 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-229-NP12-8_S266_R1_filt.fastq.gz
+Encountered 25904 unique sequences from 63033 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-230-NP12-9_S267_R1_filt.fastq.gz
+Encountered 25226 unique sequences from 60589 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-231-NP12-10_S268_R1_filt.fastq.gz
+Encountered 27085 unique sequences from 62434 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-232-NP12-11_S269_R1_filt.fastq.gz
+Encountered 25400 unique sequences from 59899 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-233-NP12-12_S270_R1_filt.fastq.gz
+Encountered 24356 unique sequences from 62209 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-234-NP12-13_S271_R1_filt.fastq.gz
+Encountered 16088 unique sequences from 34545 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-235-NP12-14_S272_R1_filt.fastq.gz
+Encountered 31954 unique sequences from 69789 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-236-NP12-15_S273_R1_filt.fastq.gz
+Encountered 27167 unique sequences from 64260 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-237-NP12-16_S274_R1_filt.fastq.gz
+Encountered 23042 unique sequences from 64050 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-238-NP12-17_S275_R1_filt.fastq.gz
+Encountered 27477 unique sequences from 67795 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-239-NP12-18_S276_R1_filt.fastq.gz
+Encountered 26664 unique sequences from 69563 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-240-NP12-19_S277_R1_filt.fastq.gz
+Encountered 26354 unique sequences from 66979 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-241-NC3-2_S278_R1_filt.fastq.gz
+Encountered 23820 unique sequences from 64188 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-242-NC3-3_S279_R1_filt.fastq.gz
+Encountered 26122 unique sequences from 67049 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-243-NC3-4_S280_R1_filt.fastq.gz
+Encountered 22216 unique sequences from 58956 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-244-NC3-5_S281_R1_filt.fastq.gz
+Encountered 24670 unique sequences from 59409 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-245-NC3-6_S282_R1_filt.fastq.gz
+Encountered 29243 unique sequences from 71232 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-246-NC3-7_S283_R1_filt.fastq.gz
+Encountered 29505 unique sequences from 71460 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-247-NC3-8_S284_R1_filt.fastq.gz
+Encountered 29898 unique sequences from 67200 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-248-NC3-9_S285_R1_filt.fastq.gz
+Encountered 26498 unique sequences from 59324 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-249-NC3-10_S286_R1_filt.fastq.gz
+Encountered 27910 unique sequences from 63619 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-250-NC3-11_S287_R1_filt.fastq.gz
+Encountered 29601 unique sequences from 61507 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-251-NC3-12_S288_R1_filt.fastq.gz
+Encountered 27710 unique sequences from 60644 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-252-NC3-13_S289_R1_filt.fastq.gz
+Encountered 28310 unique sequences from 63380 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-253-NC3-14_S290_R1_filt.fastq.gz
+Encountered 26966 unique sequences from 64642 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-254-NC3-15_S291_R1_filt.fastq.gz
+Encountered 24837 unique sequences from 63823 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-255-NC3-16_S292_R1_filt.fastq.gz
+Encountered 1096 unique sequences from 1754 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-256-NC5-5_S293_R1_filt.fastq.gz
+Encountered 26391 unique sequences from 73223 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-257-NC5-6_S294_R1_filt.fastq.gz
+Encountered 22799 unique sequences from 61211 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-258-NC5-7_S295_R1_filt.fastq.gz
+Encountered 29045 unique sequences from 65012 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-259-NC5-8_S296_R1_filt.fastq.gz
+Encountered 30732 unique sequences from 72276 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-260-NC5-9_S297_R1_filt.fastq.gz
+Encountered 27391 unique sequences from 62720 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-261-NC5-10_S298_R1_filt.fastq.gz
+Encountered 23243 unique sequences from 63159 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-262-NC5-11_S299_R1_filt.fastq.gz
+Encountered 26379 unique sequences from 59671 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-263-NC5-12_S300_R1_filt.fastq.gz
+Encountered 31184 unique sequences from 72757 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-264-NC5-13_S301_R1_filt.fastq.gz
+Encountered 26603 unique sequences from 60047 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-265-NC5-14_S302_R1_filt.fastq.gz
+Encountered 25991 unique sequences from 54920 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-266-NC5-15_S303_R1_filt.fastq.gz
+Encountered 29038 unique sequences from 65598 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-267-NC5-16_S304_R1_filt.fastq.gz
+Encountered 28333 unique sequences from 68894 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-268-NC5-17_S305_R1_filt.fastq.gz
+Encountered 13391 unique sequences from 32225 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-269-NC5-18_S306_R1_filt.fastq.gz
+Encountered 22151 unique sequences from 60035 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-270-NC5-19_S307_R1_filt.fastq.gz
+Encountered 25001 unique sequences from 59317 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-271-NC8-5_S308_R1_filt.fastq.gz
+Encountered 23900 unique sequences from 56442 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-272-NC8-6_S309_R1_filt.fastq.gz
+Encountered 27187 unique sequences from 61490 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-273-NC8-7_S310_R1_filt.fastq.gz
+Encountered 24716 unique sequences from 52185 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-274-NC8-8_S311_R1_filt.fastq.gz
+Encountered 28334 unique sequences from 56984 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-275-NC8-9_S312_R1_filt.fastq.gz
+Encountered 26323 unique sequences from 56335 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-276-NC8-10_S313_R1_filt.fastq.gz
+Encountered 24602 unique sequences from 60153 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-277-NC8-11_S314_R1_filt.fastq.gz
+Encountered 28516 unique sequences from 66204 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-278-NC8-12_S315_R1_filt.fastq.gz
+Encountered 27183 unique sequences from 68282 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-279-NC8-13_S316_R1_filt.fastq.gz
+Encountered 29565 unique sequences from 79977 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-280-NC8-14_S317_R1_filt.fastq.gz
+Encountered 27796 unique sequences from 71145 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-281-NC8-15_S318_R1_filt.fastq.gz
+Encountered 24029 unique sequences from 56186 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-282-NC8-16_S319_R1_filt.fastq.gz
+Encountered 27442 unique sequences from 57598 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-283-NC8-17_S320_R1_filt.fastq.gz
+Encountered 27201 unique sequences from 61004 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-284-NC8-18_S321_R1_filt.fastq.gz
+Encountered 26251 unique sequences from 64508 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-285-NC8-19_S322_R1_filt.fastq.gz
+Encountered 23553 unique sequences from 59632 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-286-NC10-4_S323_R1_filt.fastq.gz
+Encountered 29384 unique sequences from 68756 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-287-NC10-5_S324_R1_filt.fastq.gz
+Encountered 25705 unique sequences from 57083 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-288-NC10-6_S325_R1_filt.fastq.gz
+Encountered 24507 unique sequences from 54878 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-289-NC10-7_S97_R1_filt.fastq.gz
+Encountered 27698 unique sequences from 60706 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-290-NC10-8_S98_R1_filt.fastq.gz
+Encountered 5939 unique sequences from 10420 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-291-NC10-9_S99_R1_filt.fastq.gz
+Encountered 20537 unique sequences from 42089 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-292-NC10-10_S100_R1_filt.fastq.gz
+Encountered 24830 unique sequences from 59692 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-293-NC10-11_S101_R1_filt.fastq.gz
+Encountered 25303 unique sequences from 60986 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-294-NC10-12_S102_R1_filt.fastq.gz
+Encountered 24478 unique sequences from 57733 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-295-NC10-13_S103_R1_filt.fastq.gz
+Encountered 23724 unique sequences from 57660 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-296-NC10-14_S104_R1_filt.fastq.gz
+Encountered 19817 unique sequences from 46267 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-297-NC10-15_S105_R1_filt.fastq.gz
+Encountered 23686 unique sequences from 54003 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-298-NC10-16_S106_R1_filt.fastq.gz
+Encountered 29642 unique sequences from 64865 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-299-NC10-17_S107_R1_filt.fastq.gz
+Encountered 24347 unique sequences from 52790 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-300-NC10-18_S108_R1_filt.fastq.gz
+Encountered 23211 unique sequences from 52777 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-301-NC12-4_S109_R1_filt.fastq.gz
+Encountered 25487 unique sequences from 60998 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-302-NC12-5_S110_R1_filt.fastq.gz
+Encountered 27313 unique sequences from 66989 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-303-NC12-6_S111_R1_filt.fastq.gz
+Encountered 27595 unique sequences from 64633 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-304-NC12-7_S112_R1_filt.fastq.gz
+Encountered 25947 unique sequences from 59516 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-305-NC12-8_S113_R1_filt.fastq.gz
+Encountered 24760 unique sequences from 56271 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-306-NC12-9_S114_R1_filt.fastq.gz
+Encountered 29593 unique sequences from 68520 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-307-NC12-10_S115_R1_filt.fastq.gz
+Encountered 28410 unique sequences from 67376 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-308-NC12-11_S116_R1_filt.fastq.gz
+Encountered 30585 unique sequences from 73101 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-309-NC12-12_S117_R1_filt.fastq.gz
+Encountered 25554 unique sequences from 65064 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-310-NC12-13_S118_R1_filt.fastq.gz
+Encountered 30383 unique sequences from 80518 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-311-NC12-14_S119_R1_filt.fastq.gz
+Encountered 23351 unique sequences from 60556 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-312-NC12-15_S120_R1_filt.fastq.gz
+Encountered 23244 unique sequences from 59723 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-313-NC12-16_S121_R1_filt.fastq.gz
+Encountered 22134 unique sequences from 58132 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-314-NC12-17_S122_R1_filt.fastq.gz
+Encountered 20290 unique sequences from 51045 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-315-NC12-18_S123_R1_filt.fastq.gz
+Encountered 22667 unique sequences from 57090 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-316-Mock-NC_S124_R1_filt.fastq.gz
+Encountered 7449 unique sequences from 62982 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-317-SIP-1-NC_S125_R1_filt.fastq.gz
+Encountered 19505 unique sequences from 27285 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-318-SIP-2-NC_S126_R1_filt.fastq.gz
+Encountered 14539 unique sequences from 22932 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-319-28X-NC_S127_R1_filt.fastq.gz
+Encountered 22359 unique sequences from 57472 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-320-30X-NC_S128_R1_filt.fastq.gz
+Encountered 22154 unique sequences from 32975 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-321-32X-NC_S129_R1_filt.fastq.gz
+Encountered 9724 unique sequences from 10286 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-001-AP3-3_S134_R2_filt.fastq.gz
+Encountered 7099 unique sequences from 14681 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-002-AP3-4_S135_R2_filt.fastq.gz
+Encountered 6613 unique sequences from 13051 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-003-AP3-5_S136_R2_filt.fastq.gz
+Encountered 11080 unique sequences from 24248 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-004-AP3-6_S137_R2_filt.fastq.gz
+Encountered 12318 unique sequences from 26240 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-005-AP3-7_S138_R2_filt.fastq.gz
+Encountered 11780 unique sequences from 23580 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-006-AP3-8_S139_R2_filt.fastq.gz
+Encountered 13670 unique sequences from 27463 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-007-AP3-9_S140_R2_filt.fastq.gz
+Encountered 16322 unique sequences from 30979 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-008-AP3-10_S141_R2_filt.fastq.gz
+Encountered 14748 unique sequences from 27037 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-009-AP3-11_S142_R2_filt.fastq.gz
+Encountered 17592 unique sequences from 31870 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-010-AP3-12_S143_R2_filt.fastq.gz
+Encountered 16116 unique sequences from 29320 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-011-AP3-13_S144_R2_filt.fastq.gz
+Encountered 14988 unique sequences from 27937 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-012-AP3-14_S145_R2_filt.fastq.gz
+Encountered 2205 unique sequences from 3181 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-013-AP3-15_S146_R2_filt.fastq.gz
+Encountered 12343 unique sequences from 22335 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-014-AP3-16_S147_R2_filt.fastq.gz
+Encountered 14568 unique sequences from 25589 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-015-AP3-17_S148_R2_filt.fastq.gz
+Encountered 15916 unique sequences from 28436 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-016-AP5-4_S149_R2_filt.fastq.gz
+Encountered 12860 unique sequences from 25576 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-017-AP5-5_S150_R2_filt.fastq.gz
+Encountered 11847 unique sequences from 24435 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-018-AP5-6_S151_R2_filt.fastq.gz
+Encountered 10738 unique sequences from 21869 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-019-AP5-7_S152_R2_filt.fastq.gz
+Encountered 12593 unique sequences from 24182 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-020-AP5-8_S153_R2_filt.fastq.gz
+Encountered 12323 unique sequences from 23025 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-021-AP5-9_S154_R2_filt.fastq.gz
+Encountered 14559 unique sequences from 27351 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-022-AP5-10_S155_R2_filt.fastq.gz
+Encountered 10436 unique sequences from 18007 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-023-AP5-11_S156_R2_filt.fastq.gz
+Encountered 16498 unique sequences from 29046 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-024-AP5-12_S157_R2_filt.fastq.gz
+Encountered 18549 unique sequences from 33345 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-025-AP5-13_S158_R2_filt.fastq.gz
+Encountered 14448 unique sequences from 23532 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-026-AP5-14_S159_R2_filt.fastq.gz
+Encountered 16065 unique sequences from 28192 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-027-AP5-15_S160_R2_filt.fastq.gz
+Encountered 14039 unique sequences from 24326 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-028-AP5-16_S161_R2_filt.fastq.gz
+Encountered 13854 unique sequences from 24051 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-029-AP5-17_S162_R2_filt.fastq.gz
+Encountered 11614 unique sequences from 19594 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-030-AP5-18_S163_R2_filt.fastq.gz
+Encountered 9844 unique sequences from 15769 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-031-AP7-2_S164_R2_filt.fastq.gz
+Encountered 9946 unique sequences from 20338 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-032-AP7-3_S165_R2_filt.fastq.gz
+Encountered 10063 unique sequences from 19121 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-033-AP7-4_S166_R2_filt.fastq.gz
+Encountered 13228 unique sequences from 24677 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-034-AP7-5_S167_R2_filt.fastq.gz
+Encountered 12193 unique sequences from 22654 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-035-AP7-6_S168_R2_filt.fastq.gz
+Encountered 16291 unique sequences from 29884 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-036-AP7-7_S169_R2_filt.fastq.gz
+Encountered 12737 unique sequences from 22567 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-037-AP7-8_S170_R2_filt.fastq.gz
+Encountered 11251 unique sequences from 19751 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-038-AP7-9_S171_R2_filt.fastq.gz
+Encountered 14179 unique sequences from 24601 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-039-AP7-10_S172_R2_filt.fastq.gz
+Encountered 13246 unique sequences from 23561 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-040-AP7-11_S173_R2_filt.fastq.gz
+Encountered 12401 unique sequences from 21450 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-041-AP7-12_S174_R2_filt.fastq.gz
+Encountered 12451 unique sequences from 23302 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-042-AP7-13_S175_R2_filt.fastq.gz
+Encountered 11101 unique sequences from 18931 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-043-AP7-14_S176_R2_filt.fastq.gz
+Encountered 13235 unique sequences from 23734 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-044-AP7-15_S177_R2_filt.fastq.gz
+Encountered 14568 unique sequences from 25914 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-045-AP7-16_S178_R2_filt.fastq.gz
+Encountered 15237 unique sequences from 26870 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-046-AP9-4_S179_R2_filt.fastq.gz
+Encountered 10347 unique sequences from 21171 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-047-AP9-5_S180_R2_filt.fastq.gz
+Encountered 10902 unique sequences from 22426 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-048-AP9-6_S181_R2_filt.fastq.gz
+Encountered 15543 unique sequences from 31797 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-049-AP9-7_S182_R2_filt.fastq.gz
+Encountered 9384 unique sequences from 18220 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-050-AP9-8_S183_R2_filt.fastq.gz
+Encountered 11539 unique sequences from 21793 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-051-AP9-9_S184_R2_filt.fastq.gz
+Encountered 12939 unique sequences from 24388 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-052-AP9-10_S185_R2_filt.fastq.gz
+Encountered 12956 unique sequences from 23622 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-053-AP9-11_S186_R2_filt.fastq.gz
+Encountered 12482 unique sequences from 22243 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-054-AP9-12_S187_R2_filt.fastq.gz
+Encountered 10196 unique sequences from 17928 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-055-AP9-13_S188_R2_filt.fastq.gz
+Encountered 12746 unique sequences from 23507 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-056-AP9-14_S189_R2_filt.fastq.gz
+Encountered 14215 unique sequences from 26675 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-057-AP9-15_S190_R2_filt.fastq.gz
+Encountered 3949 unique sequences from 6618 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-058-AP9-16_S191_R2_filt.fastq.gz
+Encountered 10135 unique sequences from 18044 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-059-AP9-17_S192_R2_filt.fastq.gz
+Encountered 16283 unique sequences from 29259 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-060-AP9-18_S193_R2_filt.fastq.gz
+Encountered 15647 unique sequences from 28627 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-061-AP12-3_S194_R2_filt.fastq.gz
+Encountered 30 unique sequences from 32 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-062-AP12-4_S195_R2_filt.fastq.gz
+Encountered 33 unique sequences from 33 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-063-AP12-5_S196_R2_filt.fastq.gz
+Encountered 48 unique sequences from 48 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-064-AP12-6_S197_R2_filt.fastq.gz
+Encountered 12 unique sequences from 12 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-065-AP12-7_S198_R2_filt.fastq.gz
+Encountered 32 unique sequences from 33 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-066-AP12-8_S199_R2_filt.fastq.gz
+Encountered 55 unique sequences from 60 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-067-AP12-9_S200_R2_filt.fastq.gz
+Encountered 14 unique sequences from 14 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-068-AP12-10_S201_R2_filt.fastq.gz
+Encountered 9 unique sequences from 9 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-069-AP12-11_S202_R2_filt.fastq.gz
+Encountered 11512 unique sequences from 21651 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-070-AP12-12_S203_R2_filt.fastq.gz
+Encountered 135 unique sequences from 144 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-071-AP12-13_S204_R2_filt.fastq.gz
+Encountered 14213 unique sequences from 25230 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-072-AP12-14_S205_R2_filt.fastq.gz
+Encountered 19788 unique sequences from 34181 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-073-AP12-15_S206_R2_filt.fastq.gz
+Encountered 14194 unique sequences from 25642 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-074-AP12-16_S207_R2_filt.fastq.gz
+Encountered 17605 unique sequences from 33089 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-075-AP12-17_S208_R2_filt.fastq.gz
+Encountered 17728 unique sequences from 28586 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-076-AC1-3_S209_R2_filt.fastq.gz
+Encountered 13992 unique sequences from 24637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-077-AC1-4_S210_R2_filt.fastq.gz
+Encountered 10768 unique sequences from 20712 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-078-AC1-5_S211_R2_filt.fastq.gz
+Encountered 9129 unique sequences from 17111 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-079-AC1-6_S212_R2_filt.fastq.gz
+Encountered 13736 unique sequences from 27654 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-080-AC1-7_S213_R2_filt.fastq.gz
+Encountered 12054 unique sequences from 24646 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-081-AC1-8_S214_R2_filt.fastq.gz
+Encountered 13574 unique sequences from 27718 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-082-AC1-9_S215_R2_filt.fastq.gz
+Encountered 11761 unique sequences from 23112 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-083-AC1-10_S216_R2_filt.fastq.gz
+Encountered 16079 unique sequences from 32967 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-084-AC1-11_S217_R2_filt.fastq.gz
+Encountered 13716 unique sequences from 29449 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-085-AC1-12_S218_R2_filt.fastq.gz
+Encountered 18330 unique sequences from 38781 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-086-AC1-13_S219_R2_filt.fastq.gz
+Encountered 15161 unique sequences from 31795 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-087-AC1-14_S220_R2_filt.fastq.gz
+Encountered 14994 unique sequences from 29451 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-088-AC1-15_S221_R2_filt.fastq.gz
+Encountered 15019 unique sequences from 30538 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-089-AC1-16_S222_R2_filt.fastq.gz
+Encountered 7998 unique sequences from 18668 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-090-AC1-17_S223_R2_filt.fastq.gz
+Encountered 12909 unique sequences from 25475 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-091-AC3-3_S224_R2_filt.fastq.gz
+Encountered 8847 unique sequences from 18475 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-092-AC3-4_S225_R2_filt.fastq.gz
+Encountered 8016 unique sequences from 16058 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-093-AC3-5_S226_R2_filt.fastq.gz
+Encountered 1097 unique sequences from 2020 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-094-AC3-6_S227_R2_filt.fastq.gz
+Encountered 11261 unique sequences from 23768 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-095-AC3-7_S228_R2_filt.fastq.gz
+Encountered 14008 unique sequences from 34898 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-096-AC3-8_S229_R2_filt.fastq.gz
+Encountered 18054 unique sequences from 39238 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-097-AC3-9_S1_R2_filt.fastq.gz
+Encountered 24082 unique sequences from 66860 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-098-AC3-10_S2_R2_filt.fastq.gz
+Encountered 26397 unique sequences from 62731 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-099-AC3-11_S3_R2_filt.fastq.gz
+Encountered 30005 unique sequences from 65157 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-100-AC3-12_S4_R2_filt.fastq.gz
+Encountered 25868 unique sequences from 63174 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-101-AC3-13_S5_R2_filt.fastq.gz
+Encountered 25062 unique sequences from 64152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-102-AC3-14_S6_R2_filt.fastq.gz
+Encountered 23538 unique sequences from 69146 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-103-AC3-15_S7_R2_filt.fastq.gz
+Encountered 22883 unique sequences from 68471 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-104-AC3-16_S8_R2_filt.fastq.gz
+Encountered 23255 unique sequences from 69522 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-105-AC3-17_S9_R2_filt.fastq.gz
+Encountered 20521 unique sequences from 66283 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-106-AC5-3_S10_R2_filt.fastq.gz
+Encountered 25152 unique sequences from 66225 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-107-AC5-4_S11_R2_filt.fastq.gz
+Encountered 22769 unique sequences from 59538 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-108-AC5-5_S12_R2_filt.fastq.gz
+Encountered 24601 unique sequences from 63297 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-109-AC5-6_S13_R2_filt.fastq.gz
+Encountered 28284 unique sequences from 72958 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-110-AC5-7_S14_R2_filt.fastq.gz
+Encountered 34177 unique sequences from 87544 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-111-AC5-8_S15_R2_filt.fastq.gz
+Encountered 37537 unique sequences from 92931 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-112-AC5-9_S16_R2_filt.fastq.gz
+Encountered 30093 unique sequences from 67035 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-113-AC5-10_S17_R2_filt.fastq.gz
+Encountered 29396 unique sequences from 64988 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-114-AC5-11_S18_R2_filt.fastq.gz
+Encountered 28853 unique sequences from 59829 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-115-AC5-12_S19_R2_filt.fastq.gz
+Encountered 29431 unique sequences from 59678 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-116-AC5-13_S20_R2_filt.fastq.gz
+Encountered 29363 unique sequences from 61511 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-117-AC5-14_S21_R2_filt.fastq.gz
+Encountered 29150 unique sequences from 61730 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-118-AC5-15_S22_R2_filt.fastq.gz
+Encountered 30272 unique sequences from 67232 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-119-AC5-16_S23_R2_filt.fastq.gz
+Encountered 26901 unique sequences from 57189 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-120-AC5-17_S24_R2_filt.fastq.gz
+Encountered 26873 unique sequences from 58377 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-121-AC7-2_S25_R2_filt.fastq.gz
+Encountered 24429 unique sequences from 76373 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-122-AC7-3_S26_R2_filt.fastq.gz
+Encountered 20638 unique sequences from 61450 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-123-AC7-4_S27_R2_filt.fastq.gz
+Encountered 20741 unique sequences from 58857 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-124-AC7-5_S28_R2_filt.fastq.gz
+Encountered 23489 unique sequences from 67048 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-125-AC7-6_S29_R2_filt.fastq.gz
+Encountered 25148 unique sequences from 66774 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-126-AC7-7_S30_R2_filt.fastq.gz
+Encountered 27568 unique sequences from 71254 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-127-AC7-8_S31_R2_filt.fastq.gz
+Encountered 26120 unique sequences from 64708 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-128-AC7-9_S32_R2_filt.fastq.gz
+Encountered 28379 unique sequences from 67289 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-129-AC7-10_S33_R2_filt.fastq.gz
+Encountered 27928 unique sequences from 59525 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-130-AC7-11_S34_R2_filt.fastq.gz
+Encountered 29607 unique sequences from 69206 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-131-AC7-12_S35_R2_filt.fastq.gz
+Encountered 26250 unique sequences from 62600 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-132-AC7-13_S36_R2_filt.fastq.gz
+Encountered 27551 unique sequences from 60637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-133-AC7-14_S37_R2_filt.fastq.gz
+Encountered 30675 unique sequences from 75254 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-134-AC7-15_S38_R2_filt.fastq.gz
+Encountered 26778 unique sequences from 62995 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-135-AC7-16_S39_R2_filt.fastq.gz
+Encountered 25491 unique sequences from 62681 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-136-AC10-2_S40_R2_filt.fastq.gz
+Encountered 25012 unique sequences from 61310 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-137-AC10-3_S41_R2_filt.fastq.gz
+Encountered 24821 unique sequences from 62775 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-138-AC10-4_S42_R2_filt.fastq.gz
+Encountered 23158 unique sequences from 61285 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-139-AC10-5_S43_R2_filt.fastq.gz
+Encountered 22947 unique sequences from 58745 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-140-AC10-6_S44_R2_filt.fastq.gz
+Encountered 22623 unique sequences from 63325 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-141-AC10-7_S45_R2_filt.fastq.gz
+Encountered 25934 unique sequences from 59305 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-142-AC10-8_S46_R2_filt.fastq.gz
+Encountered 25886 unique sequences from 64561 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-143-AC10-9_S47_R2_filt.fastq.gz
+Encountered 25012 unique sequences from 63731 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-144-AC10-10_S48_R2_filt.fastq.gz
+Encountered 22443 unique sequences from 55961 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-145-AC10-11_S49_R2_filt.fastq.gz
+Encountered 26080 unique sequences from 63808 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-146-AC10-12_S50_R2_filt.fastq.gz
+Encountered 26513 unique sequences from 63897 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-147-AC10-13_S51_R2_filt.fastq.gz
+Encountered 26413 unique sequences from 62909 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-148-AC10-14_S52_R2_filt.fastq.gz
+Encountered 27271 unique sequences from 65455 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-149-AC10-15_S53_R2_filt.fastq.gz
+Encountered 24086 unique sequences from 56879 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-150-AC10-16_S54_R2_filt.fastq.gz
+Encountered 26330 unique sequences from 65680 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-151-AC11-2_S55_R2_filt.fastq.gz
+Encountered 25079 unique sequences from 65229 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-152-AC11-3_S56_R2_filt.fastq.gz
+Encountered 24818 unique sequences from 63637 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-153-AC11-4_S57_R2_filt.fastq.gz
+Encountered 23815 unique sequences from 60392 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-154-AC11-5_S58_R2_filt.fastq.gz
+Encountered 26664 unique sequences from 69152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-155-AC11-6_S59_R2_filt.fastq.gz
+Encountered 25101 unique sequences from 62623 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-156-AC11-7_S60_R2_filt.fastq.gz
+Encountered 1572 unique sequences from 2952 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-157-AC11-8_S61_R2_filt.fastq.gz
+Encountered 27917 unique sequences from 69888 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-158-AC11-9_S62_R2_filt.fastq.gz
+Encountered 27025 unique sequences from 65299 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-159-AC11-10_S63_R2_filt.fastq.gz
+Encountered 25554 unique sequences from 64348 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-160-AC11-11_S64_R2_filt.fastq.gz
+Encountered 24347 unique sequences from 57275 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-161-AC11-12_S65_R2_filt.fastq.gz
+Encountered 24022 unique sequences from 54675 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-162-AC11-13_S66_R2_filt.fastq.gz
+Encountered 23518 unique sequences from 55893 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-163-AC11-14_S67_R2_filt.fastq.gz
+Encountered 26879 unique sequences from 60603 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-164-AC11-15_S68_R2_filt.fastq.gz
+Encountered 26284 unique sequences from 61721 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-165-AC11-16_S69_R2_filt.fastq.gz
+Encountered 24344 unique sequences from 57471 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-166-NP3-2_S70_R2_filt.fastq.gz
+Encountered 10966 unique sequences from 30828 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-167-NP3-3_S71_R2_filt.fastq.gz
+Encountered 21745 unique sequences from 62284 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-168-NP3-4_S72_R2_filt.fastq.gz
+Encountered 23061 unique sequences from 58805 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-169-NP3-5_S73_R2_filt.fastq.gz
+Encountered 27186 unique sequences from 72669 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-170-NP3-6_S74_R2_filt.fastq.gz
+Encountered 25287 unique sequences from 61832 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-171-NP3-7_S75_R2_filt.fastq.gz
+Encountered 34345 unique sequences from 85251 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-172-NP3-8_S76_R2_filt.fastq.gz
+Encountered 30724 unique sequences from 82818 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-173-NP3-9_S77_R2_filt.fastq.gz
+Encountered 27888 unique sequences from 60117 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-174-NP3-10_S78_R2_filt.fastq.gz
+Encountered 32021 unique sequences from 75982 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-175-NP3-11_S79_R2_filt.fastq.gz
+Encountered 27773 unique sequences from 62669 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-176-NP3-12_S80_R2_filt.fastq.gz
+Encountered 27134 unique sequences from 63629 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-177-NP3-13_S81_R2_filt.fastq.gz
+Encountered 26941 unique sequences from 64152 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-178-NP3-14_S82_R2_filt.fastq.gz
+Encountered 28160 unique sequences from 73385 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-179-NP3-15_S83_R2_filt.fastq.gz
+Encountered 26901 unique sequences from 60773 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-180-NP3-16_S84_R2_filt.fastq.gz
+Encountered 25169 unique sequences from 54321 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-181-NP5-2_S85_R2_filt.fastq.gz
+Encountered 23824 unique sequences from 71986 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-182-NP5-3_S86_R2_filt.fastq.gz
+Encountered 23094 unique sequences from 61610 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-183-NP5-4_S87_R2_filt.fastq.gz
+Encountered 21911 unique sequences from 65803 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-184-NP5-5_S88_R2_filt.fastq.gz
+Encountered 26477 unique sequences from 62397 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-185-NP5-6_S89_R2_filt.fastq.gz
+Encountered 25707 unique sequences from 61180 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-186-NP5-7_S90_R2_filt.fastq.gz
+Encountered 25994 unique sequences from 56281 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-187-NP5-8_S91_R2_filt.fastq.gz
+Encountered 17596 unique sequences from 50375 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-188-NP5-9_S92_R2_filt.fastq.gz
+Encountered 28929 unique sequences from 67012 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-189-NP5-10_S93_R2_filt.fastq.gz
+Encountered 30167 unique sequences from 77790 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-190-NP5-11_S94_R2_filt.fastq.gz
+Encountered 33612 unique sequences from 83252 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-191-NP5-12_S95_R2_filt.fastq.gz
+Encountered 29653 unique sequences from 69112 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-192-NP5-13_S96_R2_filt.fastq.gz
+Encountered 26791 unique sequences from 57084 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-193-NP5-14_S230_R2_filt.fastq.gz
+Encountered 31737 unique sequences from 70433 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-194-NP5-15_S231_R2_filt.fastq.gz
+Encountered 26718 unique sequences from 58370 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-195-NP5-16_S232_R2_filt.fastq.gz
+Encountered 23771 unique sequences from 58378 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-196-NP7-2_S233_R2_filt.fastq.gz
+Encountered 4363 unique sequences from 10756 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-197-NP7-3_S234_R2_filt.fastq.gz
+Encountered 16568 unique sequences from 49083 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-198-NP7-4_S235_R2_filt.fastq.gz
+Encountered 2043 unique sequences from 5255 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-199-NP7-5_S236_R2_filt.fastq.gz
+Encountered 865 unique sequences from 2046 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-200-NP7-6_S237_R2_filt.fastq.gz
+Encountered 22693 unique sequences from 60555 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-201-NP7-7_S238_R2_filt.fastq.gz
+Encountered 25169 unique sequences from 61602 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-202-NP7-8_S239_R2_filt.fastq.gz
+Encountered 27804 unique sequences from 63782 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-203-NP7-9_S240_R2_filt.fastq.gz
+Encountered 28779 unique sequences from 59401 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-204-NP7-10_S241_R2_filt.fastq.gz
+Encountered 28487 unique sequences from 63999 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-205-NP7-11_S242_R2_filt.fastq.gz
+Encountered 29647 unique sequences from 69660 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-206-NP7-12_S243_R2_filt.fastq.gz
+Encountered 24553 unique sequences from 61432 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-207-NP7-13_S244_R2_filt.fastq.gz
+Encountered 28820 unique sequences from 62840 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-208-NP7-14_S245_R2_filt.fastq.gz
+Encountered 5441 unique sequences from 11159 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-209-NP7-15_S246_R2_filt.fastq.gz
+Encountered 28464 unique sequences from 73307 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-210-NP7-16_S247_R2_filt.fastq.gz
+Encountered 7781 unique sequences from 16868 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-211-NP10-5_S248_R2_filt.fastq.gz
+Encountered 21838 unique sequences from 65184 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-212-NP10-6_S249_R2_filt.fastq.gz
+Encountered 26736 unique sequences from 73784 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-213-NP10-7_S250_R2_filt.fastq.gz
+Encountered 27137 unique sequences from 61380 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-214-NP10-8_S251_R2_filt.fastq.gz
+Encountered 28457 unique sequences from 76322 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-215-NP10-9_S252_R2_filt.fastq.gz
+Encountered 23269 unique sequences from 67005 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-216-NP10-10_S253_R2_filt.fastq.gz
+Encountered 25961 unique sequences from 59195 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-217-NP10-11_S254_R2_filt.fastq.gz
+Encountered 29074 unique sequences from 62796 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-218-NP10-12_S255_R2_filt.fastq.gz
+Encountered 30848 unique sequences from 65907 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-219-NP10-13_S256_R2_filt.fastq.gz
+Encountered 24038 unique sequences from 60820 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-220-NP10-14_S257_R2_filt.fastq.gz
+Encountered 26026 unique sequences from 67997 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-221-NP10-15_S258_R2_filt.fastq.gz
+Encountered 29397 unique sequences from 79420 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-222-NP10-16_S259_R2_filt.fastq.gz
+Encountered 25989 unique sequences from 70244 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-223-NP10-17_S260_R2_filt.fastq.gz
+Encountered 25532 unique sequences from 71893 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-224-NP10-18_S261_R2_filt.fastq.gz
+Encountered 19328 unique sequences from 58385 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-225-NP10-19_S262_R2_filt.fastq.gz
+Encountered 23826 unique sequences from 62367 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-226-NP12-5_S263_R2_filt.fastq.gz
+Encountered 22154 unique sequences from 66214 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-227-NP12-6_S264_R2_filt.fastq.gz
+Encountered 24450 unique sequences from 69376 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-228-NP12-7_S265_R2_filt.fastq.gz
+Encountered 22920 unique sequences from 62431 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-229-NP12-8_S266_R2_filt.fastq.gz
+Encountered 23713 unique sequences from 63033 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-230-NP12-9_S267_R2_filt.fastq.gz
+Encountered 23836 unique sequences from 60589 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-231-NP12-10_S268_R2_filt.fastq.gz
+Encountered 25683 unique sequences from 62434 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-232-NP12-11_S269_R2_filt.fastq.gz
+Encountered 24532 unique sequences from 59899 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-233-NP12-12_S270_R2_filt.fastq.gz
+Encountered 22142 unique sequences from 62209 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-234-NP12-13_S271_R2_filt.fastq.gz
+Encountered 14313 unique sequences from 34545 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-235-NP12-14_S272_R2_filt.fastq.gz
+Encountered 31021 unique sequences from 69789 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-236-NP12-15_S273_R2_filt.fastq.gz
+Encountered 26141 unique sequences from 64260 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-237-NP12-16_S274_R2_filt.fastq.gz
+Encountered 20140 unique sequences from 64050 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-238-NP12-17_S275_R2_filt.fastq.gz
+Encountered 24914 unique sequences from 67795 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-239-NP12-18_S276_R2_filt.fastq.gz
+Encountered 23005 unique sequences from 69563 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-240-NP12-19_S277_R2_filt.fastq.gz
+Encountered 23562 unique sequences from 66979 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-241-NC3-2_S278_R2_filt.fastq.gz
+Encountered 23142 unique sequences from 64188 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-242-NC3-3_S279_R2_filt.fastq.gz
+Encountered 24234 unique sequences from 67049 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-243-NC3-4_S280_R2_filt.fastq.gz
+Encountered 22060 unique sequences from 58956 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-244-NC3-5_S281_R2_filt.fastq.gz
+Encountered 24679 unique sequences from 59409 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-245-NC3-6_S282_R2_filt.fastq.gz
+Encountered 26700 unique sequences from 71232 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-246-NC3-7_S283_R2_filt.fastq.gz
+Encountered 26753 unique sequences from 71460 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-247-NC3-8_S284_R2_filt.fastq.gz
+Encountered 28453 unique sequences from 67200 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-248-NC3-9_S285_R2_filt.fastq.gz
+Encountered 25847 unique sequences from 59324 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-249-NC3-10_S286_R2_filt.fastq.gz
+Encountered 25713 unique sequences from 63619 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-250-NC3-11_S287_R2_filt.fastq.gz
+Encountered 28169 unique sequences from 61507 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-251-NC3-12_S288_R2_filt.fastq.gz
+Encountered 26484 unique sequences from 60644 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-252-NC3-13_S289_R2_filt.fastq.gz
+Encountered 26102 unique sequences from 63380 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-253-NC3-14_S290_R2_filt.fastq.gz
+Encountered 24626 unique sequences from 64642 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-254-NC3-15_S291_R2_filt.fastq.gz
+Encountered 22162 unique sequences from 63823 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-255-NC3-16_S292_R2_filt.fastq.gz
+Encountered 935 unique sequences from 1754 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-256-NC5-5_S293_R2_filt.fastq.gz
+Encountered 22910 unique sequences from 73223 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-257-NC5-6_S294_R2_filt.fastq.gz
+Encountered 20549 unique sequences from 61211 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-258-NC5-7_S295_R2_filt.fastq.gz
+Encountered 26310 unique sequences from 65012 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-259-NC5-8_S296_R2_filt.fastq.gz
+Encountered 28505 unique sequences from 72276 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-260-NC5-9_S297_R2_filt.fastq.gz
+Encountered 27199 unique sequences from 62720 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-261-NC5-10_S298_R2_filt.fastq.gz
+Encountered 19471 unique sequences from 63159 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-262-NC5-11_S299_R2_filt.fastq.gz
+Encountered 26885 unique sequences from 59671 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-263-NC5-12_S300_R2_filt.fastq.gz
+Encountered 29095 unique sequences from 72757 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-264-NC5-13_S301_R2_filt.fastq.gz
+Encountered 27521 unique sequences from 60047 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-265-NC5-14_S302_R2_filt.fastq.gz
+Encountered 26924 unique sequences from 54920 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-266-NC5-15_S303_R2_filt.fastq.gz
+Encountered 27778 unique sequences from 65598 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-267-NC5-16_S304_R2_filt.fastq.gz
+Encountered 28082 unique sequences from 68894 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-268-NC5-17_S305_R2_filt.fastq.gz
+Encountered 10767 unique sequences from 32225 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-269-NC5-18_S306_R2_filt.fastq.gz
+Encountered 19633 unique sequences from 60035 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-270-NC5-19_S307_R2_filt.fastq.gz
+Encountered 23249 unique sequences from 59317 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-271-NC8-5_S308_R2_filt.fastq.gz
+Encountered 20617 unique sequences from 56442 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-272-NC8-6_S309_R2_filt.fastq.gz
+Encountered 25895 unique sequences from 61490 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-273-NC8-7_S310_R2_filt.fastq.gz
+Encountered 23650 unique sequences from 52185 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-274-NC8-8_S311_R2_filt.fastq.gz
+Encountered 27606 unique sequences from 56984 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-275-NC8-9_S312_R2_filt.fastq.gz
+Encountered 26177 unique sequences from 56335 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-276-NC8-10_S313_R2_filt.fastq.gz
+Encountered 22612 unique sequences from 60153 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-277-NC8-11_S314_R2_filt.fastq.gz
+Encountered 28710 unique sequences from 66204 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-278-NC8-12_S315_R2_filt.fastq.gz
+Encountered 25901 unique sequences from 68282 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-279-NC8-13_S316_R2_filt.fastq.gz
+Encountered 25501 unique sequences from 79977 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-280-NC8-14_S317_R2_filt.fastq.gz
+Encountered 26216 unique sequences from 71145 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-281-NC8-15_S318_R2_filt.fastq.gz
+Encountered 24221 unique sequences from 56186 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-282-NC8-16_S319_R2_filt.fastq.gz
+Encountered 28037 unique sequences from 57598 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-283-NC8-17_S320_R2_filt.fastq.gz
+Encountered 28048 unique sequences from 61004 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-284-NC8-18_S321_R2_filt.fastq.gz
+Encountered 25446 unique sequences from 64508 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-285-NC8-19_S322_R2_filt.fastq.gz
+Encountered 22141 unique sequences from 59632 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-286-NC10-4_S323_R2_filt.fastq.gz
+Encountered 27014 unique sequences from 68756 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-287-NC10-5_S324_R2_filt.fastq.gz
+Encountered 25501 unique sequences from 57083 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-288-NC10-6_S325_R2_filt.fastq.gz
+Encountered 24806 unique sequences from 54878 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-289-NC10-7_S97_R2_filt.fastq.gz
+Encountered 27328 unique sequences from 60706 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-290-NC10-8_S98_R2_filt.fastq.gz
+Encountered 5303 unique sequences from 10420 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-291-NC10-9_S99_R2_filt.fastq.gz
+Encountered 18468 unique sequences from 42089 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-292-NC10-10_S100_R2_filt.fastq.gz
+Encountered 25082 unique sequences from 59692 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-293-NC10-11_S101_R2_filt.fastq.gz
+Encountered 24361 unique sequences from 60986 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-294-NC10-12_S102_R2_filt.fastq.gz
+Encountered 23789 unique sequences from 57733 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-295-NC10-13_S103_R2_filt.fastq.gz
+Encountered 22709 unique sequences from 57660 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-296-NC10-14_S104_R2_filt.fastq.gz
+Encountered 19789 unique sequences from 46267 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-297-NC10-15_S105_R2_filt.fastq.gz
+Encountered 23147 unique sequences from 54003 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-298-NC10-16_S106_R2_filt.fastq.gz
+Encountered 26591 unique sequences from 64865 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-299-NC10-17_S107_R2_filt.fastq.gz
+Encountered 22783 unique sequences from 52790 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-300-NC10-18_S108_R2_filt.fastq.gz
+Encountered 23002 unique sequences from 52777 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-301-NC12-4_S109_R2_filt.fastq.gz
+Encountered 23357 unique sequences from 60998 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-302-NC12-5_S110_R2_filt.fastq.gz
+Encountered 24379 unique sequences from 66989 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-303-NC12-6_S111_R2_filt.fastq.gz
+Encountered 25028 unique sequences from 64633 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-304-NC12-7_S112_R2_filt.fastq.gz
+Encountered 24245 unique sequences from 59516 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-305-NC12-8_S113_R2_filt.fastq.gz
+Encountered 24904 unique sequences from 56271 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-306-NC12-9_S114_R2_filt.fastq.gz
+Encountered 29952 unique sequences from 68520 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-307-NC12-10_S115_R2_filt.fastq.gz
+Encountered 28499 unique sequences from 67376 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-308-NC12-11_S116_R2_filt.fastq.gz
+Encountered 31099 unique sequences from 73101 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-309-NC12-12_S117_R2_filt.fastq.gz
+Encountered 26941 unique sequences from 65064 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-310-NC12-13_S118_R2_filt.fastq.gz
+Encountered 31059 unique sequences from 80518 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-311-NC12-14_S119_R2_filt.fastq.gz
+Encountered 24079 unique sequences from 60556 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-312-NC12-15_S120_R2_filt.fastq.gz
+Encountered 23711 unique sequences from 59723 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-313-NC12-16_S121_R2_filt.fastq.gz
+Encountered 21225 unique sequences from 58132 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-314-NC12-17_S122_R2_filt.fastq.gz
+Encountered 20665 unique sequences from 51045 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-315-NC12-18_S123_R2_filt.fastq.gz
+Encountered 21352 unique sequences from 57090 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-316-Mock-NC_S124_R2_filt.fastq.gz
+Encountered 10114 unique sequences from 62982 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-317-SIP-1-NC_S125_R2_filt.fastq.gz
+Encountered 10770 unique sequences from 27285 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-318-SIP-2-NC_S126_R2_filt.fastq.gz
+Encountered 8718 unique sequences from 22932 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-319-28X-NC_S127_R2_filt.fastq.gz
+Encountered 20902 unique sequences from 57472 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-320-30X-NC_S128_R2_filt.fastq.gz
+Encountered 11795 unique sequences from 32975 total sequences read.
+Dereplicating sequence entries in Fastq file: ..//filtered/Roey-321-32X-NC_S129_R2_filt.fastq.gz
+Encountered 4116 unique sequences from 10286 total sequences read.
+Sample 1 - 14681 reads in 7049 unique sequences.
+Sample 2 - 13051 reads in 6712 unique sequences.
+Sample 3 - 24248 reads in 11034 unique sequences.
+Sample 4 - 26240 reads in 12127 unique sequences.
+Sample 5 - 23580 reads in 11583 unique sequences.
+Sample 6 - 27463 reads in 13401 unique sequences.
+Sample 7 - 30979 reads in 15963 unique sequences.
+Sample 8 - 27037 reads in 14194 unique sequences.
+Sample 9 - 31870 reads in 16768 unique sequences.
+Sample 10 - 29320 reads in 15283 unique sequences.
+Sample 11 - 27937 reads in 14427 unique sequences.
+Sample 12 - 3181 reads in 2284 unique sequences.
+Sample 13 - 22335 reads in 12173 unique sequences.
+Sample 14 - 25589 reads in 14144 unique sequences.
+Sample 15 - 28436 reads in 14965 unique sequences.
+Sample 16 - 25576 reads in 12454 unique sequences.
+Sample 17 - 24435 reads in 11805 unique sequences.
+Sample 18 - 21869 reads in 10583 unique sequences.
+Sample 19 - 24182 reads in 12318 unique sequences.
+Sample 20 - 23025 reads in 11992 unique sequences.
+Sample 21 - 27351 reads in 14009 unique sequences.
+Sample 22 - 18007 reads in 10182 unique sequences.
+Sample 23 - 29046 reads in 15751 unique sequences.
+Sample 24 - 33345 reads in 17941 unique sequences.
+Sample 25 - 23532 reads in 13843 unique sequences.
+Sample 26 - 28192 reads in 15517 unique sequences.
+Sample 27 - 24326 reads in 13554 unique sequences.
+Sample 28 - 24051 reads in 13531 unique sequences.
+Sample 29 - 19594 reads in 11329 unique sequences.
+Sample 30 - 15769 reads in 9898 unique sequences.
+Sample 31 - 20338 reads in 9727 unique sequences.
+Sample 32 - 19121 reads in 10040 unique sequences.
+Sample 33 - 24677 reads in 12681 unique sequences.
+Sample 34 - 22654 reads in 11852 unique sequences.
+Sample 35 - 29884 reads in 15655 unique sequences.
+Sample 36 - 22567 reads in 12158 unique sequences.
+Sample 37 - 19751 reads in 10943 unique sequences.
+Sample 38 - 24601 reads in 13451 unique sequences.
+Sample 39 - 23561 reads in 12780 unique sequences.
+Sample 40 - 21450 reads in 12036 unique sequences.
+Sample 41 - 23302 reads in 11893 unique sequences.
+Sample 42 - 18931 reads in 10803 unique sequences.
+Sample 43 - 23734 reads in 12753 unique sequences.
+Sample 44 - 25914 reads in 13977 unique sequences.
+Sample 45 - 26870 reads in 14507 unique sequences.
+Sample 46 - 21171 reads in 10178 unique sequences.
+Sample 47 - 22426 reads in 10682 unique sequences.
+Sample 48 - 31797 reads in 15090 unique sequences.
+Sample 49 - 18220 reads in 9184 unique sequences.
+Sample 50 - 21793 reads in 11326 unique sequences.
+Sample 51 - 24388 reads in 12637 unique sequences.
+Sample 52 - 23622 reads in 12374 unique sequences.
+Sample 53 - 22243 reads in 12002 unique sequences.
+Sample 54 - 17928 reads in 9830 unique sequences.
+Sample 55 - 23507 reads in 12144 unique sequences.
+Sample 56 - 26675 reads in 13637 unique sequences.
+Sample 57 - 6618 reads in 4042 unique sequences.
+Sample 58 - 18044 reads in 9783 unique sequences.
+Sample 59 - 29259 reads in 15556 unique sequences.
+Sample 60 - 28627 reads in 14692 unique sequences.
+Sample 61 - 32 reads in 32 unique sequences.
+Sample 62 - 33 reads in 31 unique sequences.
+Sample 63 - 48 reads in 48 unique sequences.
+Sample 64 - 12 reads in 12 unique sequences.
+Sample 65 - 33 reads in 33 unique sequences.
+Sample 66 - 60 reads in 60 unique sequences.
+Sample 67 - 14 reads in 14 unique sequences.
+Sample 68 - 9 reads in 9 unique sequences.
+Sample 69 - 21651 reads in 11600 unique sequences.
+Sample 70 - 144 reads in 136 unique sequences.
+Sample 71 - 25230 reads in 13891 unique sequences.
+Sample 72 - 34181 reads in 19206 unique sequences.
+Sample 73 - 25642 reads in 13858 unique sequences.
+Sample 74 - 33089 reads in 17154 unique sequences.
+Sample 75 - 28586 reads in 17096 unique sequences.
+Sample 76 - 24637 reads in 13875 unique sequences.
+Sample 77 - 20712 reads in 10928 unique sequences.
+Sample 78 - 17111 reads in 9324 unique sequences.
+Sample 79 - 27654 reads in 13609 unique sequences.
+Sample 80 - 24646 reads in 11802 unique sequences.
+Sample 81 - 27718 reads in 13119 unique sequences.
+Sample 82 - 23112 reads in 11689 unique sequences.
+Sample 83 - 32967 reads in 15533 unique sequences.
+Sample 84 - 29449 reads in 13489 unique sequences.
+Sample 85 - 38781 reads in 17727 unique sequences.
+Sample 86 - 31795 reads in 14709 unique sequences.
+Sample 87 - 29451 reads in 14462 unique sequences.
+Sample 88 - 30538 reads in 14735 unique sequences.
+Sample 89 - 18668 reads in 8154 unique sequences.
+Sample 90 - 25475 reads in 13219 unique sequences.
+Sample 91 - 18475 reads in 9107 unique sequences.
+Sample 92 - 16058 reads in 8310 unique sequences.
+Sample 93 - 2020 reads in 994 unique sequences.
+Sample 94 - 23768 reads in 10973 unique sequences.
+Sample 95 - 34898 reads in 13791 unique sequences.
+Sample 96 - 39238 reads in 17124 unique sequences.
+Sample 97 - 66860 reads in 25556 unique sequences.
+Sample 98 - 62731 reads in 27389 unique sequences.
+Sample 99 - 65157 reads in 31617 unique sequences.
+Sample 100 - 63174 reads in 27702 unique sequences.
+Sample 101 - 64152 reads in 27043 unique sequences.
+Sample 102 - 69146 reads in 26886 unique sequences.
+Sample 103 - 68471 reads in 26560 unique sequences.
+Sample 104 - 69522 reads in 26805 unique sequences.
+Sample 105 - 66283 reads in 23161 unique sequences.
+Sample 106 - 66225 reads in 26697 unique sequences.
+Sample 107 - 59538 reads in 23464 unique sequences.
+Sample 108 - 63297 reads in 26222 unique sequences.
+Sample 109 - 72958 reads in 30031 unique sequences.
+Sample 110 - 87544 reads in 36811 unique sequences.
+Sample 111 - 92931 reads in 40464 unique sequences.
+Sample 112 - 67035 reads in 31302 unique sequences.
+Sample 113 - 64988 reads in 30397 unique sequences.
+Sample 114 - 59829 reads in 29119 unique sequences.
+Sample 115 - 59678 reads in 28805 unique sequences.
+Sample 116 - 61511 reads in 29747 unique sequences.
+Sample 117 - 61730 reads in 29911 unique sequences.
+Sample 118 - 67232 reads in 31696 unique sequences.
+Sample 119 - 57189 reads in 27206 unique sequences.
+Sample 120 - 58377 reads in 27594 unique sequences.
+Sample 121 - 76373 reads in 26227 unique sequences.
+Sample 122 - 61450 reads in 21637 unique sequences.
+Sample 123 - 58857 reads in 20825 unique sequences.
+Sample 124 - 67048 reads in 24710 unique sequences.
+Sample 125 - 66774 reads in 25950 unique sequences.
+Sample 126 - 71254 reads in 28959 unique sequences.
+Sample 127 - 64708 reads in 26763 unique sequences.
+Sample 128 - 67289 reads in 29262 unique sequences.
+Sample 129 - 59525 reads in 28350 unique sequences.
+Sample 130 - 69206 reads in 30996 unique sequences.
+Sample 131 - 62600 reads in 26838 unique sequences.
+Sample 132 - 60637 reads in 27640 unique sequences.
+Sample 133 - 75254 reads in 32722 unique sequences.
+Sample 134 - 62995 reads in 27553 unique sequences.
+Sample 135 - 62681 reads in 26422 unique sequences.
+Sample 136 - 61310 reads in 25944 unique sequences.
+Sample 137 - 62775 reads in 25813 unique sequences.
+Sample 138 - 61285 reads in 23854 unique sequences.
+Sample 139 - 58745 reads in 23508 unique sequences.
+Sample 140 - 63325 reads in 24467 unique sequences.
+Sample 141 - 59305 reads in 26668 unique sequences.
+Sample 142 - 64561 reads in 27471 unique sequences.
+Sample 143 - 63731 reads in 25918 unique sequences.
+Sample 144 - 55961 reads in 22306 unique sequences.
+Sample 145 - 63808 reads in 26238 unique sequences.
+Sample 146 - 63897 reads in 27141 unique sequences.
+Sample 147 - 62909 reads in 26773 unique sequences.
+Sample 148 - 65455 reads in 27904 unique sequences.
+Sample 149 - 56879 reads in 24261 unique sequences.
+Sample 150 - 65680 reads in 27860 unique sequences.
+Sample 151 - 65229 reads in 28361 unique sequences.
+Sample 152 - 63637 reads in 25967 unique sequences.
+Sample 153 - 60392 reads in 25047 unique sequences.
+Sample 154 - 69152 reads in 32598 unique sequences.
+Sample 155 - 62623 reads in 27889 unique sequences.
+Sample 156 - 2952 reads in 1857 unique sequences.
+Sample 157 - 69888 reads in 29649 unique sequences.
+Sample 158 - 65299 reads in 27864 unique sequences.
+Sample 159 - 64348 reads in 27138 unique sequences.
+Sample 160 - 57275 reads in 24301 unique sequences.
+Sample 161 - 54675 reads in 23507 unique sequences.
+Sample 162 - 55893 reads in 23295 unique sequences.
+Sample 163 - 60603 reads in 27237 unique sequences.
+Sample 164 - 61721 reads in 27246 unique sequences.
+Sample 165 - 57471 reads in 24462 unique sequences.
+Sample 166 - 30828 reads in 12397 unique sequences.
+Sample 167 - 62284 reads in 24179 unique sequences.
+Sample 168 - 58805 reads in 24569 unique sequences.
+Sample 169 - 72669 reads in 29728 unique sequences.
+Sample 170 - 61832 reads in 26647 unique sequences.
+Sample 171 - 85251 reads in 37478 unique sequences.
+Sample 172 - 82818 reads in 34155 unique sequences.
+Sample 173 - 60117 reads in 28039 unique sequences.
+Sample 174 - 75982 reads in 33727 unique sequences.
+Sample 175 - 62669 reads in 28779 unique sequences.
+Sample 176 - 63629 reads in 28604 unique sequences.
+Sample 177 - 64152 reads in 28027 unique sequences.
+Sample 178 - 73385 reads in 30280 unique sequences.
+Sample 179 - 60773 reads in 27555 unique sequences.
+Sample 180 - 54321 reads in 25147 unique sequences.
+Sample 181 - 71986 reads in 26957 unique sequences.
+Sample 182 - 61610 reads in 24832 unique sequences.
+Sample 183 - 65803 reads in 24887 unique sequences.
+Sample 184 - 62397 reads in 27923 unique sequences.
+Sample 185 - 61180 reads in 26689 unique sequences.
+Sample 186 - 56281 reads in 25986 unique sequences.
+Sample 187 - 50375 reads in 20601 unique sequences.
+Sample 188 - 67012 reads in 30988 unique sequences.
+Sample 189 - 77790 reads in 33713 unique sequences.
+Sample 190 - 83252 reads in 36724 unique sequences.
+Sample 191 - 69112 reads in 31162 unique sequences.
+Sample 192 - 57084 reads in 26493 unique sequences.
+Sample 193 - 70433 reads in 32186 unique sequences.
+Sample 194 - 58370 reads in 26618 unique sequences.
+Sample 195 - 58378 reads in 24548 unique sequences.
+Sample 196 - 10756 reads in 5047 unique sequences.
+Sample 197 - 49083 reads in 18706 unique sequences.
+Sample 198 - 5255 reads in 2213 unique sequences.
+Sample 199 - 2046 reads in 951 unique sequences.
+Sample 200 - 60555 reads in 24268 unique sequences.
+Sample 201 - 61602 reads in 26362 unique sequences.
+Sample 202 - 63782 reads in 28757 unique sequences.
+Sample 203 - 59401 reads in 28054 unique sequences.
+Sample 204 - 63999 reads in 28914 unique sequences.
+Sample 205 - 69660 reads in 30310 unique sequences.
+Sample 206 - 61432 reads in 25380 unique sequences.
+Sample 207 - 62840 reads in 28527 unique sequences.
+Sample 208 - 11159 reads in 5934 unique sequences.
+Sample 209 - 73307 reads in 30514 unique sequences.
+Sample 210 - 16868 reads in 8622 unique sequences.
+Sample 211 - 65184 reads in 24318 unique sequences.
+Sample 212 - 73784 reads in 30420 unique sequences.
+Sample 213 - 61380 reads in 28458 unique sequences.
+Sample 214 - 76322 reads in 32370 unique sequences.
+Sample 215 - 67005 reads in 26947 unique sequences.
+Sample 216 - 59195 reads in 27056 unique sequences.
+Sample 217 - 62796 reads in 29212 unique sequences.
+Sample 218 - 65907 reads in 30993 unique sequences.
+Sample 219 - 60820 reads in 26070 unique sequences.
+Sample 220 - 67997 reads in 28580 unique sequences.
+Sample 221 - 79420 reads in 32014 unique sequences.
+Sample 222 - 70244 reads in 28586 unique sequences.
+Sample 223 - 71893 reads in 29090 unique sequences.
+Sample 224 - 58385 reads in 22889 unique sequences.
+Sample 225 - 62367 reads in 25742 unique sequences.
+Sample 226 - 66214 reads in 24859 unique sequences.
+Sample 227 - 69376 reads in 27335 unique sequences.
+Sample 228 - 62431 reads in 25805 unique sequences.
+Sample 229 - 63033 reads in 25904 unique sequences.
+Sample 230 - 60589 reads in 25226 unique sequences.
+Sample 231 - 62434 reads in 27085 unique sequences.
+Sample 232 - 59899 reads in 25400 unique sequences.
+Sample 233 - 62209 reads in 24356 unique sequences.
+Sample 234 - 34545 reads in 16088 unique sequences.
+Sample 235 - 69789 reads in 31954 unique sequences.
+Sample 236 - 64260 reads in 27167 unique sequences.
+Sample 237 - 64050 reads in 23042 unique sequences.
+Sample 238 - 67795 reads in 27477 unique sequences.
+Sample 239 - 69563 reads in 26664 unique sequences.
+Sample 240 - 66979 reads in 26354 unique sequences.
+Sample 241 - 64188 reads in 23820 unique sequences.
+Sample 242 - 67049 reads in 26122 unique sequences.
+Sample 243 - 58956 reads in 22216 unique sequences.
+Sample 244 - 59409 reads in 24670 unique sequences.
+Sample 245 - 71232 reads in 29243 unique sequences.
+Sample 246 - 71460 reads in 29505 unique sequences.
+Sample 247 - 67200 reads in 29898 unique sequences.
+Sample 248 - 59324 reads in 26498 unique sequences.
+Sample 249 - 63619 reads in 27910 unique sequences.
+Sample 250 - 61507 reads in 29601 unique sequences.
+Sample 251 - 60644 reads in 27710 unique sequences.
+Sample 252 - 63380 reads in 28310 unique sequences.
+Sample 253 - 64642 reads in 26966 unique sequences.
+Sample 254 - 63823 reads in 24837 unique sequences.
+Sample 255 - 1754 reads in 1096 unique sequences.
+Sample 256 - 73223 reads in 26391 unique sequences.
+Sample 257 - 61211 reads in 22799 unique sequences.
+Sample 258 - 65012 reads in 29045 unique sequences.
+Sample 259 - 72276 reads in 30732 unique sequences.
+Sample 260 - 62720 reads in 27391 unique sequences.
+Sample 261 - 63159 reads in 23243 unique sequences.
+Sample 262 - 59671 reads in 26379 unique sequences.
+Sample 263 - 72757 reads in 31184 unique sequences.
+Sample 264 - 60047 reads in 26603 unique sequences.
+Sample 265 - 54920 reads in 25991 unique sequences.
+Sample 266 - 65598 reads in 29038 unique sequences.
+Sample 267 - 68894 reads in 28333 unique sequences.
+Sample 268 - 32225 reads in 13391 unique sequences.
+Sample 269 - 60035 reads in 22151 unique sequences.
+Sample 270 - 59317 reads in 25001 unique sequences.
+Sample 271 - 56442 reads in 23900 unique sequences.
+Sample 272 - 61490 reads in 27187 unique sequences.
+Sample 273 - 52185 reads in 24716 unique sequences.
+Sample 274 - 56984 reads in 28334 unique sequences.
+Sample 275 - 56335 reads in 26323 unique sequences.
+Sample 276 - 60153 reads in 24602 unique sequences.
+Sample 277 - 66204 reads in 28516 unique sequences.
+Sample 278 - 68282 reads in 27183 unique sequences.
+Sample 279 - 79977 reads in 29565 unique sequences.
+Sample 280 - 71145 reads in 27796 unique sequences.
+Sample 281 - 56186 reads in 24029 unique sequences.
+Sample 282 - 57598 reads in 27442 unique sequences.
+Sample 283 - 61004 reads in 27201 unique sequences.
+Sample 284 - 64508 reads in 26251 unique sequences.
+Sample 285 - 59632 reads in 23553 unique sequences.
+Sample 286 - 68756 reads in 29384 unique sequences.
+Sample 287 - 57083 reads in 25705 unique sequences.
+Sample 288 - 54878 reads in 24507 unique sequences.
+Sample 289 - 60706 reads in 27698 unique sequences.
+Sample 290 - 10420 reads in 5939 unique sequences.
+Sample 291 - 42089 reads in 20537 unique sequences.
+Sample 292 - 59692 reads in 24830 unique sequences.
+Sample 293 - 60986 reads in 25303 unique sequences.
+Sample 294 - 57733 reads in 24478 unique sequences.
+Sample 295 - 57660 reads in 23724 unique sequences.
+Sample 296 - 46267 reads in 19817 unique sequences.
+Sample 297 - 54003 reads in 23686 unique sequences.
+Sample 298 - 64865 reads in 29642 unique sequences.
+Sample 299 - 52790 reads in 24347 unique sequences.
+Sample 300 - 52777 reads in 23211 unique sequences.
+Sample 301 - 60998 reads in 25487 unique sequences.
+Sample 302 - 66989 reads in 27313 unique sequences.
+Sample 303 - 64633 reads in 27595 unique sequences.
+Sample 304 - 59516 reads in 25947 unique sequences.
+Sample 305 - 56271 reads in 24760 unique sequences.
+Sample 306 - 68520 reads in 29593 unique sequences.
+Sample 307 - 67376 reads in 28410 unique sequences.
+Sample 308 - 73101 reads in 30585 unique sequences.
+Sample 309 - 65064 reads in 25554 unique sequences.
+Sample 310 - 80518 reads in 30383 unique sequences.
+Sample 311 - 60556 reads in 23351 unique sequences.
+Sample 312 - 59723 reads in 23244 unique sequences.
+Sample 313 - 58132 reads in 22134 unique sequences.
+Sample 314 - 51045 reads in 20290 unique sequences.
+Sample 315 - 57090 reads in 22667 unique sequences.
+Sample 316 - 62982 reads in 7449 unique sequences.
+Sample 317 - 27285 reads in 19505 unique sequences.
+Sample 318 - 22932 reads in 14539 unique sequences.
+Sample 319 - 57472 reads in 22359 unique sequences.
+Sample 320 - 32975 reads in 22154 unique sequences.
+Sample 321 - 10286 reads in 9724 unique sequences.
+
+   selfConsist step 2Sample 1 - 14681 reads in 7099 unique sequences.
+Sample 2 - 13051 reads in 6613 unique sequences.
+Sample 3 - 24248 reads in 11080 unique sequences.
+Sample 4 - 26240 reads in 12318 unique sequences.
+Sample 5 - 23580 reads in 11780 unique sequences.
+Sample 6 - 27463 reads in 13670 unique sequences.
+Sample 7 - 30979 reads in 16322 unique sequences.
+Sample 8 - 27037 reads in 14748 unique sequences.
+Sample 9 - 31870 reads in 17592 unique sequences.
+Sample 10 - 29320 reads in 16116 unique sequences.
+Sample 11 - 27937 reads in 14988 unique sequences.
+Sample 12 - 3181 reads in 2205 unique sequences.
+Sample 13 - 22335 reads in 12343 unique sequences.
+Sample 14 - 25589 reads in 14568 unique sequences.
+Sample 15 - 28436 reads in 15916 unique sequences.
+Sample 16 - 25576 reads in 12860 unique sequences.
+Sample 17 - 24435 reads in 11847 unique sequences.
+Sample 18 - 21869 reads in 10738 unique sequences.
+Sample 19 - 24182 reads in 12593 unique sequences.
+Sample 20 - 23025 reads in 12323 unique sequences.
+Sample 21 - 27351 reads in 14559 unique sequences.
+Sample 22 - 18007 reads in 10436 unique sequences.
+Sample 23 - 29046 reads in 16498 unique sequences.
+Sample 24 - 33345 reads in 18549 unique sequences.
+Sample 25 - 23532 reads in 14448 unique sequences.
+Sample 26 - 28192 reads in 16065 unique sequences.
+Sample 27 - 24326 reads in 14039 unique sequences.
+Sample 28 - 24051 reads in 13854 unique sequences.
+Sample 29 - 19594 reads in 11614 unique sequences.
+Sample 30 - 15769 reads in 9844 unique sequences.
+Sample 31 - 20338 reads in 9946 unique sequences.
+Sample 32 - 19121 reads in 10063 unique sequences.
+Sample 33 - 24677 reads in 13228 unique sequences.
+Sample 34 - 22654 reads in 12193 unique sequences.
+Sample 35 - 29884 reads in 16291 unique sequences.
+Sample 36 - 22567 reads in 12737 unique sequences.
+Sample 37 - 19751 reads in 11251 unique sequences.
+Sample 38 - 24601 reads in 14179 unique sequences.
+Sample 39 - 23561 reads in 13246 unique sequences.
+Sample 40 - 21450 reads in 12401 unique sequences.
+Sample 41 - 23302 reads in 12451 unique sequences.
+Sample 42 - 18931 reads in 11101 unique sequences.
+Sample 43 - 23734 reads in 13235 unique sequences.
+Sample 44 - 25914 reads in 14568 unique sequences.
+Sample 45 - 26870 reads in 15237 unique sequences.
+Sample 46 - 21171 reads in 10347 unique sequences.
+Sample 47 - 22426 reads in 10902 unique sequences.
+Sample 48 - 31797 reads in 15543 unique sequences.
+Sample 49 - 18220 reads in 9384 unique sequences.
+Sample 50 - 21793 reads in 11539 unique sequences.
+Sample 51 - 24388 reads in 12939 unique sequences.
+Sample 52 - 23622 reads in 12956 unique sequences.
+Sample 53 - 22243 reads in 12482 unique sequences.
+Sample 54 - 17928 reads in 10196 unique sequences.
+Sample 55 - 23507 reads in 12746 unique sequences.
+Sample 56 - 26675 reads in 14215 unique sequences.
+Sample 57 - 6618 reads in 3949 unique sequences.
+Sample 58 - 18044 reads in 10135 unique sequences.
+Sample 59 - 29259 reads in 16283 unique sequences.
+Sample 60 - 28627 reads in 15647 unique sequences.
+Sample 61 - 32 reads in 30 unique sequences.
+Sample 62 - 33 reads in 33 unique sequences.
+Sample 63 - 48 reads in 48 unique sequences.
+Sample 64 - 12 reads in 12 unique sequences.
+Sample 65 - 33 reads in 32 unique sequences.
+Sample 66 - 60 reads in 55 unique sequences.
+Sample 67 - 14 reads in 14 unique sequences.
+Sample 68 - 9 reads in 9 unique sequences.
+Sample 69 - 21651 reads in 11512 unique sequences.
+Sample 70 - 144 reads in 135 unique sequences.
+Sample 71 - 25230 reads in 14213 unique sequences.
+Sample 72 - 34181 reads in 19788 unique sequences.
+Sample 73 - 25642 reads in 14194 unique sequences.
+Sample 74 - 33089 reads in 17605 unique sequences.
+Sample 75 - 28586 reads in 17728 unique sequences.
+Sample 76 - 24637 reads in 13992 unique sequences.
+Sample 77 - 20712 reads in 10768 unique sequences.
+Sample 78 - 17111 reads in 9129 unique sequences.
+Sample 79 - 27654 reads in 13736 unique sequences.
+Sample 80 - 24646 reads in 12054 unique sequences.
+Sample 81 - 27718 reads in 13574 unique sequences.
+Sample 82 - 23112 reads in 11761 unique sequences.
+Sample 83 - 32967 reads in 16079 unique sequences.
+Sample 84 - 29449 reads in 13716 unique sequences.
+Sample 85 - 38781 reads in 18330 unique sequences.
+Sample 86 - 31795 reads in 15161 unique sequences.
+Sample 87 - 29451 reads in 14994 unique sequences.
+Sample 88 - 30538 reads in 15019 unique sequences.
+Sample 89 - 18668 reads in 7998 unique sequences.
+Sample 90 - 25475 reads in 12909 unique sequences.
+Sample 91 - 18475 reads in 8847 unique sequences.
+Sample 92 - 16058 reads in 8016 unique sequences.
+Sample 93 - 2020 reads in 1097 unique sequences.
+Sample 94 - 23768 reads in 11261 unique sequences.
+Sample 95 - 34898 reads in 14008 unique sequences.
+Sample 96 - 39238 reads in 18054 unique sequences.
+Sample 97 - 66860 reads in 24082 unique sequences.
+Sample 98 - 62731 reads in 26397 unique sequences.
+Sample 99 - 65157 reads in 30005 unique sequences.
+Sample 100 - 63174 reads in 25868 unique sequences.
+Sample 101 - 64152 reads in 25062 unique sequences.
+Sample 102 - 69146 reads in 23538 unique sequences.
+Sample 103 - 68471 reads in 22883 unique sequences.
+Sample 104 - 69522 reads in 23255 unique sequences.
+Sample 105 - 66283 reads in 20521 unique sequences.
+Sample 106 - 66225 reads in 25152 unique sequences.
+Sample 107 - 59538 reads in 22769 unique sequences.
+Sample 108 - 63297 reads in 24601 unique sequences.
+Sample 109 - 72958 reads in 28284 unique sequences.
+Sample 110 - 87544 reads in 34177 unique sequences.
+Sample 111 - 92931 reads in 37537 unique sequences.
+Sample 112 - 67035 reads in 30093 unique sequences.
+Sample 113 - 64988 reads in 29396 unique sequences.
+Sample 114 - 59829 reads in 28853 unique sequences.
+Sample 115 - 59678 reads in 29431 unique sequences.
+Sample 116 - 61511 reads in 29363 unique sequences.
+Sample 117 - 61730 reads in 29150 unique sequences.
+Sample 118 - 67232 reads in 30272 unique sequences.
+Sample 119 - 57189 reads in 26901 unique sequences.
+Sample 120 - 58377 reads in 26873 unique sequences.
+Sample 121 - 76373 reads in 24429 unique sequences.
+Sample 122 - 61450 reads in 20638 unique sequences.
+Sample 123 - 58857 reads in 20741 unique sequences.
+Sample 124 - 67048 reads in 23489 unique sequences.
+Sample 125 - 66774 reads in 25148 unique sequences.
+Sample 126 - 71254 reads in 27568 unique sequences.
+Sample 127 - 64708 reads in 26120 unique sequences.
+Sample 128 - 67289 reads in 28379 unique sequences.
+Sample 129 - 59525 reads in 27928 unique sequences.
+Sample 130 - 69206 reads in 29607 unique sequences.
+Sample 131 - 62600 reads in 26250 unique sequences.
+Sample 132 - 60637 reads in 27551 unique sequences.
+Sample 133 - 75254 reads in 30675 unique sequences.
+Sample 134 - 62995 reads in 26778 unique sequences.
+Sample 135 - 62681 reads in 25491 unique sequences.
+Sample 136 - 61310 reads in 25012 unique sequences.
+Sample 137 - 62775 reads in 24821 unique sequences.
+Sample 138 - 61285 reads in 23158 unique sequences.
+Sample 139 - 58745 reads in 22947 unique sequences.
+Sample 140 - 63325 reads in 22623 unique sequences.
+Sample 141 - 59305 reads in 25934 unique sequences.
+Sample 142 - 64561 reads in 25886 unique sequences.
+Sample 143 - 63731 reads in 25012 unique sequences.
+Sample 144 - 55961 reads in 22443 unique sequences.
+Sample 145 - 63808 reads in 26080 unique sequences.
+Sample 146 - 63897 reads in 26513 unique sequences.
+Sample 147 - 62909 reads in 26413 unique sequences.
+Sample 148 - 65455 reads in 27271 unique sequences.
+Sample 149 - 56879 reads in 24086 unique sequences.
+Sample 150 - 65680 reads in 26330 unique sequences.
+Sample 151 - 65229 reads in 25079 unique sequences.
+Sample 152 - 63637 reads in 24818 unique sequences.
+Sample 153 - 60392 reads in 23815 unique sequences.
+Sample 154 - 69152 reads in 26664 unique sequences.
+Sample 155 - 62623 reads in 25101 unique sequences.
+Sample 156 - 2952 reads in 1572 unique sequences.
+Sample 157 - 69888 reads in 27917 unique sequences.
+Sample 158 - 65299 reads in 27025 unique sequences.
+Sample 159 - 64348 reads in 25554 unique sequences.
+Sample 160 - 57275 reads in 24347 unique sequences.
+Sample 161 - 54675 reads in 24022 unique sequences.
+Sample 162 - 55893 reads in 23518 unique sequences.
+Sample 163 - 60603 reads in 26879 unique sequences.
+Sample 164 - 61721 reads in 26284 unique sequences.
+Sample 165 - 57471 reads in 24344 unique sequences.
+Sample 166 - 30828 reads in 10966 unique sequences.
+Sample 167 - 62284 reads in 21745 unique sequences.
+Sample 168 - 58805 reads in 23061 unique sequences.
+Sample 169 - 72669 reads in 27186 unique sequences.
+Sample 170 - 61832 reads in 25287 unique sequences.
+Sample 171 - 85251 reads in 34345 unique sequences.
+Sample 172 - 82818 reads in 30724 unique sequences.
+Sample 173 - 60117 reads in 27888 unique sequences.
+Sample 174 - 75982 reads in 32021 unique sequences.
+Sample 175 - 62669 reads in 27773 unique sequences.
+Sample 176 - 63629 reads in 27134 unique sequences.
+Sample 177 - 64152 reads in 26941 unique sequences.
+Sample 178 - 73385 reads in 28160 unique sequences.
+Sample 179 - 60773 reads in 26901 unique sequences.
+Sample 180 - 54321 reads in 25169 unique sequences.
+Sample 181 - 71986 reads in 23824 unique sequences.
+Sample 182 - 61610 reads in 23094 unique sequences.
+Sample 183 - 65803 reads in 21911 unique sequences.
+Sample 184 - 62397 reads in 26477 unique sequences.
+Sample 185 - 61180 reads in 25707 unique sequences.
+Sample 186 - 56281 reads in 25994 unique sequences.
+Sample 187 - 50375 reads in 17596 unique sequences.
+Sample 188 - 67012 reads in 28929 unique sequences.
+Sample 189 - 77790 reads in 30167 unique sequences.
+Sample 190 - 83252 reads in 33612 unique sequences.
+Sample 191 - 69112 reads in 29653 unique sequences.
+Sample 192 - 57084 reads in 26791 unique sequences.
+Sample 193 - 70433 reads in 31737 unique sequences.
+Sample 194 - 58370 reads in 26718 unique sequences.
+Sample 195 - 58378 reads in 23771 unique sequences.
+Sample 196 - 10756 reads in 4363 unique sequences.
+Sample 197 - 49083 reads in 16568 unique sequences.
+Sample 198 - 5255 reads in 2043 unique sequences.
+Sample 199 - 2046 reads in 865 unique sequences.
+Sample 200 - 60555 reads in 22693 unique sequences.
+Sample 201 - 61602 reads in 25169 unique sequences.
+Sample 202 - 63782 reads in 27804 unique sequences.
+Sample 203 - 59401 reads in 28779 unique sequences.
+Sample 204 - 63999 reads in 28487 unique sequences.
+Sample 205 - 69660 reads in 29647 unique sequences.
+Sample 206 - 61432 reads in 24553 unique sequences.
+Sample 207 - 62840 reads in 28820 unique sequences.
+Sample 208 - 11159 reads in 5441 unique sequences.
+Sample 209 - 73307 reads in 28464 unique sequences.
+Sample 210 - 16868 reads in 7781 unique sequences.
+Sample 211 - 65184 reads in 21838 unique sequences.
+Sample 212 - 73784 reads in 26736 unique sequences.
+Sample 213 - 61380 reads in 27137 unique sequences.
+Sample 214 - 76322 reads in 28457 unique sequences.
+Sample 215 - 67005 reads in 23269 unique sequences.
+Sample 216 - 59195 reads in 25961 unique sequences.
+Sample 217 - 62796 reads in 29074 unique sequences.
+Sample 218 - 65907 reads in 30848 unique sequences.
+Sample 219 - 60820 reads in 24038 unique sequences.
+Sample 220 - 67997 reads in 26026 unique sequences.
+Sample 221 - 79420 reads in 29397 unique sequences.
+Sample 222 - 70244 reads in 25989 unique sequences.
+Sample 223 - 71893 reads in 25532 unique sequences.
+Sample 224 - 58385 reads in 19328 unique sequences.
+Sample 225 - 62367 reads in 23826 unique sequences.
+Sample 226 - 66214 reads in 22154 unique sequences.
+Sample 227 - 69376 reads in 24450 unique sequences.
+Sample 228 - 62431 reads in 22920 unique sequences.
+Sample 229 - 63033 reads in 23713 unique sequences.
+Sample 230 - 60589 reads in 23836 unique sequences.
+Sample 231 - 62434 reads in 25683 unique sequences.
+Sample 232 - 59899 reads in 24532 unique sequences.
+Sample 233 - 62209 reads in 22142 unique sequences.
+Sample 234 - 34545 reads in 14313 unique sequences.
+Sample 235 - 69789 reads in 31021 unique sequences.
+Sample 236 - 64260 reads in 26141 unique sequences.
+Sample 237 - 64050 reads in 20140 unique sequences.
+Sample 238 - 67795 reads in 24914 unique sequences.
+Sample 239 - 69563 reads in 23005 unique sequences.
+Sample 240 - 66979 reads in 23562 unique sequences.
+Sample 241 - 64188 reads in 23142 unique sequences.
+Sample 242 - 67049 reads in 24234 unique sequences.
+Sample 243 - 58956 reads in 22060 unique sequences.
+Sample 244 - 59409 reads in 24679 unique sequences.
+Sample 245 - 71232 reads in 26700 unique sequences.
+Sample 246 - 71460 reads in 26753 unique sequences.
+Sample 247 - 67200 reads in 28453 unique sequences.
+Sample 248 - 59324 reads in 25847 unique sequences.
+Sample 249 - 63619 reads in 25713 unique sequences.
+Sample 250 - 61507 reads in 28169 unique sequences.
+Sample 251 - 60644 reads in 26484 unique sequences.
+Sample 252 - 63380 reads in 26102 unique sequences.
+Sample 253 - 64642 reads in 24626 unique sequences.
+Sample 254 - 63823 reads in 22162 unique sequences.
+Sample 255 - 1754 reads in 935 unique sequences.
+Sample 256 - 73223 reads in 22910 unique sequences.
+Sample 257 - 61211 reads in 20549 unique sequences.
+Sample 258 - 65012 reads in 26310 unique sequences.
+Sample 259 - 72276 reads in 28505 unique sequences.
+Sample 260 - 62720 reads in 27199 unique sequences.
+Sample 261 - 63159 reads in 19471 unique sequences.
+Sample 262 - 59671 reads in 26885 unique sequences.
+Sample 263 - 72757 reads in 29095 unique sequences.
+Sample 264 - 60047 reads in 27521 unique sequences.
+Sample 265 - 54920 reads in 26924 unique sequences.
+Sample 266 - 65598 reads in 27778 unique sequences.
+Sample 267 - 68894 reads in 28082 unique sequences.
+Sample 268 - 32225 reads in 10767 unique sequences.
+Sample 269 - 60035 reads in 19633 unique sequences.
+Sample 270 - 59317 reads in 23249 unique sequences.
+Sample 271 - 56442 reads in 20617 unique sequences.
+Sample 272 - 61490 reads in 25895 unique sequences.
+Sample 273 - 52185 reads in 23650 unique sequences.
+Sample 274 - 56984 reads in 27606 unique sequences.
+Sample 275 - 56335 reads in 26177 unique sequences.
+Sample 276 - 60153 reads in 22612 unique sequences.
+Sample 277 - 66204 reads in 28710 unique sequences.
+Sample 278 - 68282 reads in 25901 unique sequences.
+Sample 279 - 79977 reads in 25501 unique sequences.
+Sample 280 - 71145 reads in 26216 unique sequences.
+Sample 281 - 56186 reads in 24221 unique sequences.
+Sample 282 - 57598 reads in 28037 unique sequences.
+Sample 283 - 61004 reads in 28048 unique sequences.
+Sample 284 - 64508 reads in 25446 unique sequences.
+Sample 285 - 59632 reads in 22141 unique sequences.
+Sample 286 - 68756 reads in 27014 unique sequences.
+Sample 287 - 57083 reads in 25501 unique sequences.
+Sample 288 - 54878 reads in 24806 unique sequences.
+Sample 289 - 60706 reads in 27328 unique sequences.
+Sample 290 - 10420 reads in 5303 unique sequences.
+Sample 291 - 42089 reads in 18468 unique sequences.
+Sample 292 - 59692 reads in 25082 unique sequences.
+Sample 293 - 60986 reads in 24361 unique sequences.
+Sample 294 - 57733 reads in 23789 unique sequences.
+Sample 295 - 57660 reads in 22709 unique sequences.
+Sample 296 - 46267 reads in 19789 unique sequences.
+Sample 297 - 54003 reads in 23147 unique sequences.
+Sample 298 - 64865 reads in 26591 unique sequences.
+Sample 299 - 52790 reads in 22783 unique sequences.
+Sample 300 - 52777 reads in 23002 unique sequences.
+Sample 301 - 60998 reads in 23357 unique sequences.
+Sample 302 - 66989 reads in 24379 unique sequences.
+Sample 303 - 64633 reads in 25028 unique sequences.
+Sample 304 - 59516 reads in 24245 unique sequences.
+Sample 305 - 56271 reads in 24904 unique sequences.
+Sample 306 - 68520 reads in 29952 unique sequences.
+Sample 307 - 67376 reads in 28499 unique sequences.
+Sample 308 - 73101 reads in 31099 unique sequences.
+Sample 309 - 65064 reads in 26941 unique sequences.
+Sample 310 - 80518 reads in 31059 unique sequences.
+Sample 311 - 60556 reads in 24079 unique sequences.
+Sample 312 - 59723 reads in 23711 unique sequences.
+Sample 313 - 58132 reads in 21225 unique sequences.
+Sample 314 - 51045 reads in 20665 unique sequences.
+Sample 315 - 57090 reads in 21352 unique sequences.
+Sample 316 - 62982 reads in 10114 unique sequences.
+Sample 317 - 27285 reads in 10770 unique sequences.
+Sample 318 - 22932 reads in 8718 unique sequences.
+Sample 319 - 57472 reads in 20902 unique sequences.
+Sample 320 - 32975 reads in 11795 unique sequences.
+Sample 321 - 10286 reads in 4116 unique sequences.
+
+   selfConsist step 2[1] "Summarise dada2 results:"
+dada-class: object describing DADA2 denoising results
+822 sequence variants were inferred from 7049 input unique sequences.
+Key parameters: OMEGA_A = 1e-40, OMEGA_C = 1e-40, BAND_SIZE = 16
+13677 paired-reads (in 980 unique pairings) successfully merged out of 14379 (in 1295 pairings) input.
+11844 paired-reads (in 898 unique pairings) successfully merged out of 12761 (in 1185 pairings) input.
+22632 paired-reads (in 1429 unique pairings) successfully merged out of 23769 (in 2247 pairings) input.
+23807 paired-reads (in 1646 unique pairings) successfully merged out of 25661 (in 3113 pairings) input.
+20664 paired-reads (in 1762 unique pairings) successfully merged out of 22954 (in 3313 pairings) input.
+24169 paired-reads (in 2068 unique pairings) successfully merged out of 26765 (in 4167 pairings) input.
+26150 paired-reads (in 2562 unique pairings) successfully merged out of 30006 (in 5851 pairings) input.
+22494 paired-reads (in 2616 unique pairings) successfully merged out of 26297 (in 5740 pairings) input.
+26005 paired-reads (in 3241 unique pairings) successfully merged out of 30863 (in 7403 pairings) input.
+23323 paired-reads (in 3173 unique pairings) successfully merged out of 28265 (in 7424 pairings) input.
+23034 paired-reads (in 2956 unique pairings) successfully merged out of 27074 (in 6507 pairings) input.
+2401 paired-reads (in 646 unique pairings) successfully merged out of 3018 (in 1190 pairings) input.
+17855 paired-reads (in 2515 unique pairings) successfully merged out of 21625 (in 5268 pairings) input.
+20554 paired-reads (in 2864 unique pairings) successfully merged out of 24745 (in 6400 pairings) input.
+23356 paired-reads (in 2813 unique pairings) successfully merged out of 27599 (in 6437 pairings) input.
+22311 paired-reads (in 1921 unique pairings) successfully merged out of 24923 (in 4026 pairings) input.
+21812 paired-reads (in 1621 unique pairings) successfully merged out of 23847 (in 3102 pairings) input.
+19118 paired-reads (in 1620 unique pairings) successfully merged out of 21225 (in 3285 pairings) input.
+20336 paired-reads (in 1897 unique pairings) successfully merged out of 23484 (in 4065 pairings) input.
+19499 paired-reads (in 2135 unique pairings) successfully merged out of 22317 (in 4436 pairings) input.
+23092 paired-reads (in 2507 unique pairings) successfully merged out of 26480 (in 5390 pairings) input.
+14638 paired-reads (in 2044 unique pairings) successfully merged out of 17388 (in 4291 pairings) input.
+23042 paired-reads (in 3087 unique pairings) successfully merged out of 28028 (in 7191 pairings) input.
+26438 paired-reads (in 3217 unique pairings) successfully merged out of 32382 (in 7327 pairings) input.
+17455 paired-reads (in 2796 unique pairings) successfully merged out of 22371 (in 7027 pairings) input.
+22079 paired-reads (in 2931 unique pairings) successfully merged out of 27050 (in 7144 pairings) input.
+19357 paired-reads (in 2684 unique pairings) successfully merged out of 23538 (in 6154 pairings) input.
+18677 paired-reads (in 2691 unique pairings) successfully merged out of 23258 (in 6101 pairings) input.
+15603 paired-reads (in 2262 unique pairings) successfully merged out of 18903 (in 4965 pairings) input.
+11755 paired-reads (in 1956 unique pairings) successfully merged out of 15115 (in 4562 pairings) input.
+18911 paired-reads (in 1440 unique pairings) successfully merged out of 19957 (in 2268 pairings) input.
+17046 paired-reads (in 1617 unique pairings) successfully merged out of 18564 (in 2868 pairings) input.
+21657 paired-reads (in 2062 unique pairings) successfully merged out of 23993 (in 4042 pairings) input.
+19496 paired-reads (in 2159 unique pairings) successfully merged out of 22020 (in 4267 pairings) input.
+25233 paired-reads (in 2713 unique pairings) successfully merged out of 28991 (in 5890 pairings) input.
+19345 paired-reads (in 2215 unique pairings) successfully merged out of 21879 (in 4432 pairings) input.
+16163 paired-reads (in 2169 unique pairings) successfully merged out of 19127 (in 4662 pairings) input.
+20086 paired-reads (in 2675 unique pairings) successfully merged out of 23688 (in 5814 pairings) input.
+19308 paired-reads (in 2589 unique pairings) successfully merged out of 22847 (in 5684 pairings) input.
+17274 paired-reads (in 2494 unique pairings) successfully merged out of 20715 (in 5470 pairings) input.
+19441 paired-reads (in 2503 unique pairings) successfully merged out of 22606 (in 5235 pairings) input.
+15194 paired-reads (in 2256 unique pairings) successfully merged out of 18237 (in 4930 pairings) input.
+19632 paired-reads (in 2565 unique pairings) successfully merged out of 22994 (in 5506 pairings) input.
+21016 paired-reads (in 2742 unique pairings) successfully merged out of 25081 (in 6211 pairings) input.
+21915 paired-reads (in 2779 unique pairings) successfully merged out of 25950 (in 6222 pairings) input.
+19265 paired-reads (in 1393 unique pairings) successfully merged out of 20626 (in 2446 pairings) input.
+19622 paired-reads (in 1569 unique pairings) successfully merged out of 21858 (in 3355 pairings) input.
+27952 paired-reads (in 2223 unique pairings) successfully merged out of 30964 (in 4672 pairings) input.
+15720 paired-reads (in 1601 unique pairings) successfully merged out of 17653 (in 3182 pairings) input.
+18642 paired-reads (in 2000 unique pairings) successfully merged out of 21116 (in 4123 pairings) input.
+20426 paired-reads (in 2328 unique pairings) successfully merged out of 23578 (in 4984 pairings) input.
+19555 paired-reads (in 2615 unique pairings) successfully merged out of 22943 (in 5520 pairings) input.
+18362 paired-reads (in 2725 unique pairings) successfully merged out of 21525 (in 5486 pairings) input.
+14549 paired-reads (in 2416 unique pairings) successfully merged out of 17329 (in 4860 pairings) input.
+19401 paired-reads (in 2731 unique pairings) successfully merged out of 22866 (in 5695 pairings) input.
+22142 paired-reads (in 2934 unique pairings) successfully merged out of 26027 (in 6266 pairings) input.
+5275 paired-reads (in 1177 unique pairings) successfully merged out of 6385 (in 2176 pairings) input.
+14791 paired-reads (in 2147 unique pairings) successfully merged out of 17499 (in 4536 pairings) input.
+24336 paired-reads (in 2747 unique pairings) successfully merged out of 28337 (in 6152 pairings) input.
+24060 paired-reads (in 2685 unique pairings) successfully merged out of 27720 (in 5800 pairings) input.
+12 paired-reads (in 8 unique pairings) successfully merged out of 14 (in 10 pairings) input.
+7 paired-reads (in 4 unique pairings) successfully merged out of 8 (in 5 pairings) input.
+2 paired-reads (in 2 unique pairings) successfully merged out of 3 (in 3 pairings) input.
+No paired-reads (in ZERO unique pairings) successfully merged out of 12 pairings) input.
+5 paired-reads (in 4 unique pairings) successfully merged out of 7 (in 6 pairings) input.
+31 paired-reads (in 17 unique pairings) successfully merged out of 38 (in 24 pairings) input.
+2 paired-reads (in 1 unique pairings) successfully merged out of 4 (in 2 pairings) input.
+No paired-reads (in ZERO unique pairings) successfully merged out of 9 pairings) input.
+18180 paired-reads (in 2226 unique pairings) successfully merged out of 21074 (in 4427 pairings) input.
+67 paired-reads (in 32 unique pairings) successfully merged out of 82 (in 45 pairings) input.
+20915 paired-reads (in 2652 unique pairings) successfully merged out of 24550 (in 5748 pairings) input.
+27570 paired-reads (in 3363 unique pairings) successfully merged out of 33026 (in 7661 pairings) input.
+21248 paired-reads (in 2701 unique pairings) successfully merged out of 24939 (in 5675 pairings) input.
+27721 paired-reads (in 3072 unique pairings) successfully merged out of 32299 (in 6813 pairings) input.
+23956 paired-reads (in 2682 unique pairings) successfully merged out of 27723 (in 5852 pairings) input.
+21431 paired-reads (in 2423 unique pairings) successfully merged out of 23908 (in 4443 pairings) input.
+18225 paired-reads (in 1674 unique pairings) successfully merged out of 20137 (in 2533 pairings) input.
+14905 paired-reads (in 1573 unique pairings) successfully merged out of 16756 (in 2421 pairings) input.
+25103 paired-reads (in 2242 unique pairings) successfully merged out of 26935 (in 3617 pairings) input.
+22591 paired-reads (in 2065 unique pairings) successfully merged out of 24131 (in 3331 pairings) input.
+24872 paired-reads (in 2269 unique pairings) successfully merged out of 26981 (in 3994 pairings) input.
+20810 paired-reads (in 2134 unique pairings) successfully merged out of 22544 (in 3548 pairings) input.
+29203 paired-reads (in 2912 unique pairings) successfully merged out of 32072 (in 5385 pairings) input.
+26749 paired-reads (in 2481 unique pairings) successfully merged out of 28864 (in 4275 pairings) input.
+33815 paired-reads (in 3523 unique pairings) successfully merged out of 37821 (in 6920 pairings) input.
+27981 paired-reads (in 2993 unique pairings) successfully merged out of 31125 (in 5680 pairings) input.
+25758 paired-reads (in 2917 unique pairings) successfully merged out of 28702 (in 5394 pairings) input.
+27179 paired-reads (in 2732 unique pairings) successfully merged out of 29786 (in 4934 pairings) input.
+17593 paired-reads (in 1407 unique pairings) successfully merged out of 18348 (in 1899 pairings) input.
+22729 paired-reads (in 2245 unique pairings) successfully merged out of 24905 (in 3793 pairings) input.
+16837 paired-reads (in 1122 unique pairings) successfully merged out of 18063 (in 1612 pairings) input.
+14786 paired-reads (in 1144 unique pairings) successfully merged out of 15739 (in 1549 pairings) input.
+1816 paired-reads (in 82 unique pairings) successfully merged out of 1915 (in 93 pairings) input.
+21570 paired-reads (in 2057 unique pairings) successfully merged out of 23361 (in 3508 pairings) input.
+32465 paired-reads (in 2287 unique pairings) successfully merged out of 34317 (in 3732 pairings) input.
+35361 paired-reads (in 2968 unique pairings) successfully merged out of 38471 (in 5338 pairings) input.
+61832 paired-reads (in 3624 unique pairings) successfully merged out of 65997 (in 6742 pairings) input.
+56960 paired-reads (in 3580 unique pairings) successfully merged out of 61567 (in 6918 pairings) input.
+55250 paired-reads (in 4857 unique pairings) successfully merged out of 63687 (in 10856 pairings) input.
+58285 paired-reads (in 3294 unique pairings) successfully merged out of 62095 (in 5969 pairings) input.
+60607 paired-reads (in 2862 unique pairings) successfully merged out of 63236 (in 4481 pairings) input.
+66408 paired-reads (in 2387 unique pairings) successfully merged out of 68446 (in 3313 pairings) input.
+65701 paired-reads (in 2094 unique pairings) successfully merged out of 67701 (in 2927 pairings) input.
+66138 paired-reads (in 2303 unique pairings) successfully merged out of 68614 (in 3471 pairings) input.
+63926 paired-reads (in 1640 unique pairings) successfully merged out of 65505 (in 2230 pairings) input.
+61317 paired-reads (in 2757 unique pairings) successfully merged out of 65027 (in 5303 pairings) input.
+54884 paired-reads (in 2730 unique pairings) successfully merged out of 58539 (in 5367 pairings) input.
+57360 paired-reads (in 3144 unique pairings) successfully merged out of 61937 (in 6564 pairings) input.
+66159 paired-reads (in 3760 unique pairings) successfully merged out of 71461 (in 7845 pairings) input.
+78124 paired-reads (in 4606 unique pairings) successfully merged out of 85974 (in 10641 pairings) input.
+81696 paired-reads (in 5805 unique pairings) successfully merged out of 91129 (in 13240 pairings) input.
+57872 paired-reads (in 5072 unique pairings) successfully merged out of 65544 (in 11278 pairings) input.
+55868 paired-reads (in 5245 unique pairings) successfully merged out of 63555 (in 11372 pairings) input.
+50477 paired-reads (in 5192 unique pairings) successfully merged out of 58342 (in 11477 pairings) input.
+50260 paired-reads (in 5231 unique pairings) successfully merged out of 58215 (in 11519 pairings) input.
+51761 paired-reads (in 5383 unique pairings) successfully merged out of 59866 (in 11904 pairings) input.
+52026 paired-reads (in 5165 unique pairings) successfully merged out of 60306 (in 11877 pairings) input.
+57637 paired-reads (in 5141 unique pairings) successfully merged out of 65572 (in 11450 pairings) input.
+49337 paired-reads (in 4596 unique pairings) successfully merged out of 55922 (in 9938 pairings) input.
+50884 paired-reads (in 4396 unique pairings) successfully merged out of 57026 (in 9384 pairings) input.
+73332 paired-reads (in 2433 unique pairings) successfully merged out of 75569 (in 3956 pairings) input.
+58794 paired-reads (in 2110 unique pairings) successfully merged out of 60709 (in 3449 pairings) input.
+55606 paired-reads (in 2293 unique pairings) successfully merged out of 58055 (in 4088 pairings) input.
+62469 paired-reads (in 2809 unique pairings) successfully merged out of 66129 (in 5571 pairings) input.
+61428 paired-reads (in 3410 unique pairings) successfully merged out of 65711 (in 6846 pairings) input.
+64283 paired-reads (in 4234 unique pairings) successfully merged out of 70101 (in 8836 pairings) input.
+57829 paired-reads (in 4380 unique pairings) successfully merged out of 63730 (in 9102 pairings) input.
+58938 paired-reads (in 5162 unique pairings) successfully merged out of 66131 (in 10987 pairings) input.
+50738 paired-reads (in 5105 unique pairings) successfully merged out of 58109 (in 11002 pairings) input.
+60051 paired-reads (in 5191 unique pairings) successfully merged out of 67758 (in 11392 pairings) input.
+55040 paired-reads (in 4875 unique pairings) successfully merged out of 61437 (in 10021 pairings) input.
+52140 paired-reads (in 4845 unique pairings) successfully merged out of 59179 (in 10454 pairings) input.
+65778 paired-reads (in 5310 unique pairings) successfully merged out of 73753 (in 11557 pairings) input.
+55082 paired-reads (in 4561 unique pairings) successfully merged out of 61680 (in 9803 pairings) input.
+55850 paired-reads (in 4266 unique pairings) successfully merged out of 61629 (in 8962 pairings) input.
+56118 paired-reads (in 3141 unique pairings) successfully merged out of 60162 (in 6013 pairings) input.
+57332 paired-reads (in 3331 unique pairings) successfully merged out of 61704 (in 6536 pairings) input.
+56509 paired-reads (in 3121 unique pairings) successfully merged out of 60380 (in 5960 pairings) input.
+53236 paired-reads (in 3340 unique pairings) successfully merged out of 57741 (in 6732 pairings) input.
+57462 paired-reads (in 3280 unique pairings) successfully merged out of 62370 (in 6304 pairings) input.
+52923 paired-reads (in 3935 unique pairings) successfully merged out of 58073 (in 7858 pairings) input.
+57056 paired-reads (in 4412 unique pairings) successfully merged out of 63440 (in 9158 pairings) input.
+56539 paired-reads (in 4711 unique pairings) successfully merged out of 62639 (in 9621 pairings) input.
+49507 paired-reads (in 4231 unique pairings) successfully merged out of 54939 (in 8652 pairings) input.
+56057 paired-reads (in 4851 unique pairings) successfully merged out of 62653 (in 10108 pairings) input.
+55582 paired-reads (in 5105 unique pairings) successfully merged out of 62705 (in 10716 pairings) input.
+54495 paired-reads (in 5025 unique pairings) successfully merged out of 61483 (in 10738 pairings) input.
+57570 paired-reads (in 4474 unique pairings) successfully merged out of 64047 (in 9603 pairings) input.
+49390 paired-reads (in 4334 unique pairings) successfully merged out of 55772 (in 9042 pairings) input.
+59000 paired-reads (in 3906 unique pairings) successfully merged out of 64599 (in 8171 pairings) input.
+59973 paired-reads (in 3042 unique pairings) successfully merged out of 64189 (in 5375 pairings) input.
+57347 paired-reads (in 2696 unique pairings) successfully merged out of 62400 (in 5185 pairings) input.
+56125 paired-reads (in 3113 unique pairings) successfully merged out of 59296 (in 5471 pairings) input.
+61587 paired-reads (in 3057 unique pairings) successfully merged out of 68214 (in 5603 pairings) input.
+55531 paired-reads (in 3021 unique pairings) successfully merged out of 61674 (in 5557 pairings) input.
+2479 paired-reads (in 519 unique pairings) successfully merged out of 2703 (in 720 pairings) input.
+63251 paired-reads (in 4014 unique pairings) successfully merged out of 68831 (in 7825 pairings) input.
+58794 paired-reads (in 4241 unique pairings) successfully merged out of 64141 (in 8502 pairings) input.
+58714 paired-reads (in 3993 unique pairings) successfully merged out of 63359 (in 7591 pairings) input.
+51693 paired-reads (in 4078 unique pairings) successfully merged out of 56327 (in 7777 pairings) input.
+49011 paired-reads (in 4056 unique pairings) successfully merged out of 53679 (in 7858 pairings) input.
+50325 paired-reads (in 3833 unique pairings) successfully merged out of 54941 (in 7430 pairings) input.
+53235 paired-reads (in 4456 unique pairings) successfully merged out of 59370 (in 9260 pairings) input.
+55436 paired-reads (in 4035 unique pairings) successfully merged out of 60639 (in 8012 pairings) input.
+51701 paired-reads (in 3727 unique pairings) successfully merged out of 56478 (in 7239 pairings) input.
+28904 paired-reads (in 1852 unique pairings) successfully merged out of 30352 (in 3025 pairings) input.
+59943 paired-reads (in 1998 unique pairings) successfully merged out of 61333 (in 2766 pairings) input.
+56159 paired-reads (in 2297 unique pairings) successfully merged out of 57815 (in 3312 pairings) input.
+69256 paired-reads (in 2907 unique pairings) successfully merged out of 71617 (in 4571 pairings) input.
+58541 paired-reads (in 2780 unique pairings) successfully merged out of 60819 (in 4504 pairings) input.
+79011 paired-reads (in 3961 unique pairings) successfully merged out of 83781 (in 7804 pairings) input.
+79061 paired-reads (in 2955 unique pairings) successfully merged out of 81626 (in 4654 pairings) input.
+53770 paired-reads (in 3875 unique pairings) successfully merged out of 58679 (in 8018 pairings) input.
+67917 paired-reads (in 4510 unique pairings) successfully merged out of 74495 (in 9890 pairings) input.
+55414 paired-reads (in 4070 unique pairings) successfully merged out of 61170 (in 8858 pairings) input.
+56856 paired-reads (in 4125 unique pairings) successfully merged out of 62469 (in 8827 pairings) input.
+57752 paired-reads (in 4085 unique pairings) successfully merged out of 63070 (in 8578 pairings) input.
+66509 paired-reads (in 4324 unique pairings) successfully merged out of 72397 (in 9205 pairings) input.
+53885 paired-reads (in 3998 unique pairings) successfully merged out of 59427 (in 8574 pairings) input.
+48336 paired-reads (in 3720 unique pairings) successfully merged out of 53093 (in 7733 pairings) input.
+69752 paired-reads (in 1822 unique pairings) successfully merged out of 71078 (in 2412 pairings) input.
+59027 paired-reads (in 2354 unique pairings) successfully merged out of 60660 (in 3364 pairings) input.
+63415 paired-reads (in 2123 unique pairings) successfully merged out of 64968 (in 3041 pairings) input.
+58420 paired-reads (in 2958 unique pairings) successfully merged out of 61129 (in 4988 pairings) input.
+57707 paired-reads (in 2966 unique pairings) successfully merged out of 60230 (in 4910 pairings) input.
+51510 paired-reads (in 3452 unique pairings) successfully merged out of 55142 (in 6458 pairings) input.
+47768 paired-reads (in 2510 unique pairings) successfully merged out of 49655 (in 3940 pairings) input.
+59375 paired-reads (in 4242 unique pairings) successfully merged out of 65610 (in 9414 pairings) input.
+68911 paired-reads (in 4669 unique pairings) successfully merged out of 76479 (in 10800 pairings) input.
+73901 paired-reads (in 4921 unique pairings) successfully merged out of 81714 (in 11253 pairings) input.
+60559 paired-reads (in 4644 unique pairings) successfully merged out of 67830 (in 10564 pairings) input.
+49587 paired-reads (in 4132 unique pairings) successfully merged out of 55737 (in 9306 pairings) input.
+60892 paired-reads (in 4940 unique pairings) successfully merged out of 68761 (in 11445 pairings) input.
+50972 paired-reads (in 4188 unique pairings) successfully merged out of 56977 (in 9238 pairings) input.
+53285 paired-reads (in 3669 unique pairings) successfully merged out of 57448 (in 7180 pairings) input.
+10253 paired-reads (in 843 unique pairings) successfully merged out of 10571 (in 1037 pairings) input.
+47338 paired-reads (in 1475 unique pairings) successfully merged out of 48438 (in 1984 pairings) input.
+5054 paired-reads (in 325 unique pairings) successfully merged out of 5186 (in 367 pairings) input.
+1926 paired-reads (in 131 unique pairings) successfully merged out of 1978 (in 157 pairings) input.
+57874 paired-reads (in 2352 unique pairings) successfully merged out of 59661 (in 3549 pairings) input.
+57953 paired-reads (in 3037 unique pairings) successfully merged out of 60620 (in 5038 pairings) input.
+58524 paired-reads (in 3659 unique pairings) successfully merged out of 62527 (in 6914 pairings) input.
+52528 paired-reads (in 4075 unique pairings) successfully merged out of 57951 (in 8523 pairings) input.
+56651 paired-reads (in 4239 unique pairings) successfully merged out of 62526 (in 9116 pairings) input.
+61737 paired-reads (in 4525 unique pairings) successfully merged out of 68140 (in 9747 pairings) input.
+56371 paired-reads (in 3445 unique pairings) successfully merged out of 60321 (in 6747 pairings) input.
+55174 paired-reads (in 3995 unique pairings) successfully merged out of 61294 (in 9042 pairings) input.
+9891 paired-reads (in 1321 unique pairings) successfully merged out of 10939 (in 2252 pairings) input.
+66603 paired-reads (in 4042 unique pairings) successfully merged out of 72031 (in 8492 pairings) input.
+15185 paired-reads (in 1701 unique pairings) successfully merged out of 16504 (in 2842 pairings) input.
+62048 paired-reads (in 1498 unique pairings) successfully merged out of 64246 (in 2470 pairings) input.
+68896 paired-reads (in 2285 unique pairings) successfully merged out of 72560 (in 3425 pairings) input.
+57257 paired-reads (in 2831 unique pairings) successfully merged out of 60124 (in 4941 pairings) input.
+70608 paired-reads (in 2821 unique pairings) successfully merged out of 75190 (in 5569 pairings) input.
+63220 paired-reads (in 2313 unique pairings) successfully merged out of 65991 (in 3465 pairings) input.
+53998 paired-reads (in 3305 unique pairings) successfully merged out of 58195 (in 6639 pairings) input.
+55637 paired-reads (in 3908 unique pairings) successfully merged out of 61432 (in 8570 pairings) input.
+56253 paired-reads (in 4710 unique pairings) successfully merged out of 64465 (in 11347 pairings) input.
+55487 paired-reads (in 2978 unique pairings) successfully merged out of 59898 (in 5781 pairings) input.
+60171 paired-reads (in 4536 unique pairings) successfully merged out of 66938 (in 9647 pairings) input.
+70402 paired-reads (in 4620 unique pairings) successfully merged out of 78216 (in 10687 pairings) input.
+63583 paired-reads (in 3865 unique pairings) successfully merged out of 69250 (in 8157 pairings) input.
+67549 paired-reads (in 3998 unique pairings) successfully merged out of 71193 (in 6881 pairings) input.
+54719 paired-reads (in 2327 unique pairings) successfully merged out of 57653 (in 3660 pairings) input.
+57976 paired-reads (in 2955 unique pairings) successfully merged out of 61350 (in 5214 pairings) input.
+63159 paired-reads (in 1858 unique pairings) successfully merged out of 65305 (in 2554 pairings) input.
+65245 paired-reads (in 2665 unique pairings) successfully merged out of 68360 (in 4383 pairings) input.
+59528 paired-reads (in 2474 unique pairings) successfully merged out of 61559 (in 3757 pairings) input.
+59484 paired-reads (in 2661 unique pairings) successfully merged out of 62086 (in 4293 pairings) input.
+56646 paired-reads (in 2775 unique pairings) successfully merged out of 59469 (in 4761 pairings) input.
+56233 paired-reads (in 3669 unique pairings) successfully merged out of 61299 (in 7673 pairings) input.
+54660 paired-reads (in 3288 unique pairings) successfully merged out of 58862 (in 6613 pairings) input.
+59028 paired-reads (in 2213 unique pairings) successfully merged out of 61104 (in 3291 pairings) input.
+30487 paired-reads (in 2658 unique pairings) successfully merged out of 33897 (in 5426 pairings) input.
+58923 paired-reads (in 4904 unique pairings) successfully merged out of 68187 (in 12285 pairings) input.
+56643 paired-reads (in 4085 unique pairings) successfully merged out of 63102 (in 9153 pairings) input.
+60969 paired-reads (in 1796 unique pairings) successfully merged out of 63085 (in 2637 pairings) input.
+62407 paired-reads (in 3191 unique pairings) successfully merged out of 66796 (in 6319 pairings) input.
+65452 paired-reads (in 2617 unique pairings) successfully merged out of 68605 (in 4313 pairings) input.
+62464 paired-reads (in 3054 unique pairings) successfully merged out of 66117 (in 5434 pairings) input.
+61149 paired-reads (in 1805 unique pairings) successfully merged out of 63312 (in 2794 pairings) input.
+63813 paired-reads (in 2092 unique pairings) successfully merged out of 66041 (in 3316 pairings) input.
+56650 paired-reads (in 1341 unique pairings) successfully merged out of 58203 (in 2111 pairings) input.
+55903 paired-reads (in 2332 unique pairings) successfully merged out of 58431 (in 3867 pairings) input.
+66654 paired-reads (in 2958 unique pairings) successfully merged out of 70293 (in 5400 pairings) input.
+66713 paired-reads (in 3010 unique pairings) successfully merged out of 70432 (in 5364 pairings) input.
+58223 paired-reads (in 5155 unique pairings) successfully merged out of 65980 (in 11219 pairings) input.
+51704 paired-reads (in 4677 unique pairings) successfully merged out of 58167 (in 9895 pairings) input.
+57170 paired-reads (in 4144 unique pairings) successfully merged out of 62587 (in 8451 pairings) input.
+53853 paired-reads (in 4054 unique pairings) successfully merged out of 60173 (in 8645 pairings) input.
+55062 paired-reads (in 3572 unique pairings) successfully merged out of 59655 (in 6940 pairings) input.
+57988 paired-reads (in 3283 unique pairings) successfully merged out of 62324 (in 6504 pairings) input.
+60973 paired-reads (in 2443 unique pairings) successfully merged out of 63736 (in 4142 pairings) input.
+60528 paired-reads (in 2046 unique pairings) successfully merged out of 63164 (in 3104 pairings) input.
+1006 paired-reads (in 89 unique pairings) successfully merged out of 1675 (in 123 pairings) input.
+70255 paired-reads (in 2265 unique pairings) successfully merged out of 72029 (in 3408 pairings) input.
+58452 paired-reads (in 2199 unique pairings) successfully merged out of 60399 (in 3284 pairings) input.
+60757 paired-reads (in 2981 unique pairings) successfully merged out of 64008 (in 4950 pairings) input.
+67141 paired-reads (in 3575 unique pairings) successfully merged out of 71241 (in 6456 pairings) input.
+56894 paired-reads (in 3762 unique pairings) successfully merged out of 61693 (in 7462 pairings) input.
+61055 paired-reads (in 1940 unique pairings) successfully merged out of 62413 (in 2675 pairings) input.
+53298 paired-reads (in 3966 unique pairings) successfully merged out of 58568 (in 7866 pairings) input.
+64693 paired-reads (in 4857 unique pairings) successfully merged out of 71476 (in 9780 pairings) input.
+52594 paired-reads (in 4576 unique pairings) successfully merged out of 58922 (in 9355 pairings) input.
+46606 paired-reads (in 4561 unique pairings) successfully merged out of 53541 (in 9757 pairings) input.
+55698 paired-reads (in 4438 unique pairings) successfully merged out of 64236 (in 9969 pairings) input.
+61603 paired-reads (in 4359 unique pairings) successfully merged out of 67753 (in 8812 pairings) input.
+29974 paired-reads (in 1865 unique pairings) successfully merged out of 31785 (in 2762 pairings) input.
+57099 paired-reads (in 2130 unique pairings) successfully merged out of 59143 (in 3112 pairings) input.
+55051 paired-reads (in 2960 unique pairings) successfully merged out of 58485 (in 5067 pairings) input.
+51704 paired-reads (in 2445 unique pairings) successfully merged out of 55702 (in 4175 pairings) input.
+55968 paired-reads (in 2862 unique pairings) successfully merged out of 60390 (in 5734 pairings) input.
+47778 paired-reads (in 3043 unique pairings) successfully merged out of 51291 (in 5275 pairings) input.
+49787 paired-reads (in 4137 unique pairings) successfully merged out of 55776 (in 8487 pairings) input.
+49500 paired-reads (in 3993 unique pairings) successfully merged out of 55215 (in 8129 pairings) input.
+55725 paired-reads (in 3292 unique pairings) successfully merged out of 59180 (in 5952 pairings) input.
+58800 paired-reads (in 4471 unique pairings) successfully merged out of 64911 (in 9085 pairings) input.
+62102 paired-reads (in 4190 unique pairings) successfully merged out of 67286 (in 8263 pairings) input.
+75018 paired-reads (in 3199 unique pairings) successfully merged out of 79016 (in 5534 pairings) input.
+65185 paired-reads (in 4107 unique pairings) successfully merged out of 70217 (in 7932 pairings) input.
+50166 paired-reads (in 3915 unique pairings) successfully merged out of 55218 (in 7824 pairings) input.
+48916 paired-reads (in 4795 unique pairings) successfully merged out of 56145 (in 10290 pairings) input.
+52815 paired-reads (in 4468 unique pairings) successfully merged out of 59612 (in 9428 pairings) input.
+58113 paired-reads (in 3931 unique pairings) successfully merged out of 63549 (in 7984 pairings) input.
+55089 paired-reads (in 3171 unique pairings) successfully merged out of 58798 (in 5690 pairings) input.
+64053 paired-reads (in 2880 unique pairings) successfully merged out of 67760 (in 4879 pairings) input.
+51339 paired-reads (in 3181 unique pairings) successfully merged out of 55865 (in 6539 pairings) input.
+49218 paired-reads (in 3298 unique pairings) successfully merged out of 53843 (in 6856 pairings) input.
+54067 paired-reads (in 4018 unique pairings) successfully merged out of 59576 (in 8222 pairings) input.
+9235 paired-reads (in 1131 unique pairings) successfully merged out of 10178 (in 1868 pairings) input.
+37443 paired-reads (in 3101 unique pairings) successfully merged out of 41463 (in 6171 pairings) input.
+55384 paired-reads (in 3293 unique pairings) successfully merged out of 58747 (in 5957 pairings) input.
+56144 paired-reads (in 3461 unique pairings) successfully merged out of 60057 (in 6541 pairings) input.
+54254 paired-reads (in 2807 unique pairings) successfully merged out of 56733 (in 4732 pairings) input.
+54202 paired-reads (in 2798 unique pairings) successfully merged out of 56726 (in 4729 pairings) input.
+43404 paired-reads (in 2597 unique pairings) successfully merged out of 45527 (in 4310 pairings) input.
+50731 paired-reads (in 2678 unique pairings) successfully merged out of 53047 (in 4385 pairings) input.
+57021 paired-reads (in 4209 unique pairings) successfully merged out of 63816 (in 9346 pairings) input.
+46624 paired-reads (in 3673 unique pairings) successfully merged out of 51825 (in 7565 pairings) input.
+48121 paired-reads (in 3454 unique pairings) successfully merged out of 51695 (in 6279 pairings) input.
+58893 paired-reads (in 2248 unique pairings) successfully merged out of 60251 (in 3111 pairings) input.
+64353 paired-reads (in 2338 unique pairings) successfully merged out of 66248 (in 3317 pairings) input.
+62236 paired-reads (in 2487 unique pairings) successfully merged out of 63855 (in 3493 pairings) input.
+57140 paired-reads (in 2552 unique pairings) successfully merged out of 58709 (in 3601 pairings) input.
+53201 paired-reads (in 2701 unique pairings) successfully merged out of 55389 (in 4323 pairings) input.
+64004 paired-reads (in 3447 unique pairings) successfully merged out of 67220 (in 5959 pairings) input.
+63446 paired-reads (in 3362 unique pairings) successfully merged out of 66376 (in 5662 pairings) input.
+68118 paired-reads (in 3582 unique pairings) successfully merged out of 71723 (in 6370 pairings) input.
+60594 paired-reads (in 3294 unique pairings) successfully merged out of 63732 (in 5772 pairings) input.
+76294 paired-reads (in 3177 unique pairings) successfully merged out of 79260 (in 5352 pairings) input.
+57400 paired-reads (in 2701 unique pairings) successfully merged out of 59680 (in 4450 pairings) input.
+57218 paired-reads (in 2325 unique pairings) successfully merged out of 58814 (in 3445 pairings) input.
+55760 paired-reads (in 2281 unique pairings) successfully merged out of 57243 (in 3327 pairings) input.
+48702 paired-reads (in 2306 unique pairings) successfully merged out of 50241 (in 3427 pairings) input.
+55121 paired-reads (in 2202 unique pairings) successfully merged out of 56252 (in 2945 pairings) input.
+62478 paired-reads (in 86 unique pairings) successfully merged out of 62622 (in 113 pairings) input.
+16105 paired-reads (in 89 unique pairings) successfully merged out of 26946 (in 456 pairings) input.
+9561 paired-reads (in 86 unique pairings) successfully merged out of 22785 (in 377 pairings) input.
+54704 paired-reads (in 1821 unique pairings) successfully merged out of 56755 (in 2510 pairings) input.
+12980 paired-reads (in 72 unique pairings) successfully merged out of 32581 (in 609 pairings) input.
+3155 paired-reads (in 9 unique pairings) successfully merged out of 10100 (in 31 pairings) input.
+[1] "First 10 merged sequences:"
+                                                                                                                                                                                                                                                        sequence
+1  TACGTAGGGTGCGAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTTCGTTAAGACAGATGTGAAATCCCCGGGCTTAACCTGGGAACTGCATTTGTGACTGGCGAGCTAGAGTATGGCAGAGGGGGGTAGAATTCCACGTGTAGCAGTGAAATGCGTAGAGATGTGGAGGAATACCGATGGCGAAGGCAGCCCCCTGGGCCAATACTGACGCTCATGCACGAAAGCGTGGGGAGCAAACAGG
+2  TACGTAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTCCGCTAAGACAGATGTGAAATCCCCGGGCTTAACCTGGGAACTGCATTTGTGACTGGCGGGCTAGAGTATGGCAGAGGGGGGTAGAATTCCACGTGTAGCAGTGAAATGCGTAGAGATGTGGAGGAATACCGATGGCGAAGGCAGCCCCCTGGGCCAATACTGACGCTCATGCACGAAAGCGTGGGGAGCAAACAGG
+3  TACGTAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTTTGTTAAGACGGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATTCGTGACTGGCAAGCTAGAGTATGGCAGAGGGGGGTGGAATTCCACGTGTAGCAGTGAAATGCGTAGAGATGTGGAGGAACACCGATGGCGAAGGCAGCCCCCTGGGCCAATACTGACGCTCATGCACGAAAGCGTGGGGAGCAAACAGG
+4  CACGTAGGGCGCAAGCGTTGTCCGGAATTATTGGGCGTAAAGAGCTCGTAGGCGGTCTGTTGCGTCCGCTGTGAAATCTCGGGGCTTAACCCCGAGCCTGCAGTGGATACGGGCAGACTAGAGGTAGGTAGGGGAGAATGGAATTCCCGGTGTAGCGGTGAAATGCGCAGATATCGGGAGGAACACCGGTGGCGAAGGCGGTTCTCTGGGCCTTACCTGACGCTGAGGAGCGAAAGCGTGGGGAGCAAACAGG
+5  TACCAGCACCCCGAGTGGTCGGGACGATTATTGGGCCTAAAGCATCCGTAGCCGGTCGTGCAAGTCTTCCGTTAAATCCAGCCGCTCAACGGATGGGCTGCGGAGGATACTACAGGACTAGGAGGCGGGAGAGGCAAGCGGTACTTAGTGGGTAGGGGTAAAATCCTTTGATCCATTGAAGACCACCAGTGGCGAAGGCGGCTTGCCAGAACGCGCTCGACGGTGAGGGATGAAAGCTGGGGGAGCAAACCGG
+6  TACGGAGGATCCGAGCGTTATCCGGATTTATTGGGTTTAAAGGGTGCGTAGGCGGCCTTGTAAGTCAGGGGTGAAAGACGGTAGCTTAACTATCGCAGTGCCTTTGATACTGCAGGGCTTGAATGTACTTGAGGTAGGCGGAATGTGACAAGTAGCGGTGAAATGCATAGATATGTCACAGAACACCAATTGCGAAGGCAGCTTACTAAAGTATGATTGACGCTGAGGCACGAAAGCGTGGGGATCAAACAGG
+7  TACGAAGGGGGCTAGCGTTGCTCGGAATCACTGGGCGTAAAGCGCACGTAGGCGGCTTTTTAAGTCAGGGGTGAAATCCTGGAGCTCAACTCCAGAACTGCCTTTGATACTGAGAAGCTCGAGTCCGGGAGAGGTGAGTGGAACTGCGAGTGTAGAGGTGAAATTCGTAGATATTCGCAAGAACACCAGTGGCGAAGGCGGCTCACTGGCCCGGTACTGACGCTGAGGTGCGAAAGCGTGGGGAGCAAACAGG
+8  TACGTAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTTTGCTAAGACAGATGTGAAATCCCCGGGCTTAACCTGGGAACTGCATTTGTGACTGGCAGGCTAGAGTATGGCAGAGGGGGGTAGAATTCCACGTGTAGCAGTGAAATGCGTAGAGATGTGGAGGAATACCGATGGCGAAGGCAGCCCCCTGGGCCAATACTGACGCTCATGCACGAAAGCGTGGGGAGCAAACAGG
+9  TACGAAGGGGGCTAGCGTTGCTCGGAATCACTGGGCGTAAAGCGCACGTAGGCGGCTTTTTAAGTCAGGGGTGAAATCCTGGAGCTCAACTCCAGAACTGCCTTTGATACTGAGAAGCTTGAGTCCGGGAGAGGTGAGTGGAACTGCGAGTGTAGAGGTGAAATTCGTAGATATTCGCAAGAACACCAGTGGCGAAGGCGGCTCACTGGCCCGGTACTGACGCTGAGGTGCGAAAGCGTGGGGAGCAAACAGG
+10 TACGAAGGGGGCGAGCGTTGTTCGGATTTACTGGGCGTAAAGGGCGCGTAGGCGGCGATGTAAGTCAGGCGTGAAAGCCCCGGGCTCAACCTGGGAATTGCGCTTGGGACTACATTGCTGGAGTTCGGGAGAGGAGCGTGGAATTCCCAGTGTAGAGGTGAAATTCGTAGATATTGGGAAGAACACCGGTGGCGAAGGCGGCGCTCTGGACCGATACTGACGCTGAGGCGCGAAAGCGTGGGGAGCAAACAGG
+   abundance forward reverse nmatch nmismatch nindel prefer accept
+1       2036       1       1     14         0      0      2   TRUE
+2       1295       2       1     14         0      0      2   TRUE
+3        673       4       3     14         0      0      1   TRUE
+4        430       3       2     14         0      0      1   TRUE
+5        263       5       9     14         0      0      1   TRUE
+6        253       6       7     14         0      0      1   TRUE
+7        221       7       4     14         0      0      2   TRUE
+8        174       9       1     14         0      0      2   TRUE
+9        168     157       4     14         0      0      2   TRUE
+10       157      10       5     14         0      0      2   TRUE
+[1] "Construct sequence table"
+[1] "Sequence table dimensions:"
+[1]   321 54272
+[1] "Inspect distribution of sequence lengths"
+
+  134   135   136   137   138   139   140   141   142   144   146   151   152 
+    4     1     1     7     6     2     4     9     5    17     6     1     1 
+  153   154   155   156   157   160   161   164   165   166   167   168   170 
+    5     1     3     3     1    35     5     4     1    13     4     1     1 
+  171   172   174   177   178   180   182   183   184   186   187   188   189 
+    7     2     9     3     1     6     5     2     5     2     1     3     5 
+  190   191   192   193   194   195   196   197   198   199   200   201   202 
+    9     7     1     6     3     2     2     2     8     3     2     6     1 
+  203   204   205   206   207   208   209   210   211   212   213   214   215 
+    4    27     2     9     3     7    66     5     8     1     7     7    16 
+  216   217   218   219   220   221   222   223   224   225   226   227   228 
+    4     2     8     3     7    21    22    67     7     4     6    11     6 
+  229   232   233   234   235   236   237   239   240   241   242   243   244 
+    6     2     3     2    21     1     1     1     3     7     5     1     2 
+  247   248   249   250   251   252   253   254   255   256   257   258   259 
+    6    28    48    76    93  1740 48339  3117    57    46    10    18    10 
+  260   261 
+    4    51 
+[1] "Remove sequences differing from excected lenght by more than 5 bp"
+[1] "Remove chimeras"
+Identified 39128 bimeras out of 53572 input sequences.
+[1] "Sequence table dimensions after chimera removal:"
+[1]   321 14444
+[1] "What proportions passed through chimera check?"
+[1] 0.8898455
+                            sample_name
+Roey-001-AP3-3_S134 Roey-001-AP3-3_S134
+Roey-002-AP3-4_S135 Roey-002-AP3-4_S135
+Roey-003-AP3-5_S136 Roey-003-AP3-5_S136
+Roey-004-AP3-6_S137 Roey-004-AP3-6_S137
+Roey-005-AP3-7_S138 Roey-005-AP3-7_S138
+Roey-006-AP3-8_S139 Roey-006-AP3-8_S139
+                                                             file_name input
+Roey-001-AP3-3_S134 Roey-001-AP3-3_S134_L001_R1_001_noPrimers.fastq.gz 14975
+Roey-002-AP3-4_S135 Roey-002-AP3-4_S135_L001_R1_001_noPrimers.fastq.gz 13411
+Roey-003-AP3-5_S136 Roey-003-AP3-5_S136_L001_R1_001_noPrimers.fastq.gz 24724
+Roey-004-AP3-6_S137 Roey-004-AP3-6_S137_L001_R1_001_noPrimers.fastq.gz 26743
+Roey-005-AP3-7_S138 Roey-005-AP3-7_S138_L001_R1_001_noPrimers.fastq.gz 24061
+Roey-006-AP3-8_S139 Roey-006-AP3-8_S139_L001_R1_001_noPrimers.fastq.gz 27975
+                    filtered denoised merged tabled nonchim
+Roey-001-AP3-3_S134    14681    14455  13677  13563   13257
+Roey-002-AP3-4_S135    13051    12833  11844  11713   11436
+Roey-003-AP3-5_S136    24248    23943  22632  22565   20997
+Roey-004-AP3-6_S137    26240    25855  23807  23736   21391
+Roey-005-AP3-7_S138    23580    23141  20664  20618   18671
+Roey-006-AP3-8_S139    27463    26999  24169  24115   21753
+Warning message:
+`as_tibble.matrix()` requires a matrix with column names or a `.name_repair` argument. Using compatibility `.name_repair`.
+This warning is displayed once per session. 
+
+ *** caught segfault ***
+address 0x7ff3ccf65ff0, cause 'memory not mapped'
+Command terminated by signal 11
+	Command being timed: "Rscript --vanilla /data/Anaerobic_CUE/Analysis/16S/01_DADA2_16S_V8.4.R pseudo ../ ~/Resources/"
+	User time (seconds): 283474.24
+	System time (seconds): 10491.31
+	Percent of CPU this job got: 3118%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:37:05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 45509068
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 65670827
+	Voluntary context switches: 111162776
+	Involuntary context switches: 123629451
+	Swaps: 0
+	File system inputs: 250856
+	File system outputs: 2264032
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

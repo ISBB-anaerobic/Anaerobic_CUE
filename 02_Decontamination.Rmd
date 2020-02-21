@@ -1,0 +1,340 @@
+---
+title: "Anaerobic CUE - 16S"
+subtitle: "02 Decontaminate dataset"
+author: "Roey Angel"
+email: "roey.angel@bc.cas.cz"
+date: "`r Sys.Date()`"
+bibliography: references.bib
+link-citations: yes
+csl: fems-microbiology-ecology.csl
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 5
+    keep_md: false
+    number_sections: false
+    highlight: "pygments"
+    theme: "flatly"
+    dev: "png"
+    df_print: "kable"
+    fig_caption: true
+    code_folding: "show"
+---
+
+```{r libraries, include=F}
+# Load libraries
+#.libPaths(c('~/R/library', .libPaths())) # Uncomment if you have no write access to R path
+
+repo <- "http://cran.wu.ac.at"
+lib.loc <- Sys.getenv("R_LIBS_USER")
+
+update.packages(
+    lib.loc, 
+    repos = repo,
+    ask = FALSE
+)
+
+.cran_libs <- c(
+  "remotes", # R Package Installation from Remote Repositories, Including 'GitHub'
+  "knitr", # A General-Purpose Package for Dynamic Report Generation in R
+  "kableExtra", # Construct Complex Table with 'kable' and Pipe Syntax
+  "extrafont", # for extra figure fonts
+  "rmarkdown", # Dynamic Documents for R
+  "tidyverse", # for dplyr forcats ggplot2 readr tibble
+  "cowplot", # wrappers for ggplot
+  "magrittr", # pipes
+  "scales", # Generic plot scaling methods
+  "svglite" # for svg files
+) 
+
+.cran_inst <- .cran_libs %in% installed.packages()
+if (any(!.cran_inst)) {
+   install.packages(.cran_libs[!.cran_inst], 
+                    repos = repo,
+                    lib = lib.loc)
+}
+
+.bioc_libs <- c(
+  "phyloseq" # Handling and analysis of high-throughput phylogenetic sequence data
+)
+
+if (!"phyloseq" %in% installed.packages()) {
+      source(
+        "https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",
+        local = TRUE
+      )
+}
+
+.bioc_inst <- .bioc_libs %in% installed.packages()
+if (any(!.bioc_inst)) {
+   if (!requireNamespace("BiocManager", quietly = TRUE))
+   install.packages("BiocManager")
+   BiocManager::install(ask = F, lib = lib.loc)  # upgrade bioC packages
+   BiocManager::install(.bioc_libs[!.bioc_inst], ask = F, lib = lib.loc)
+}
+
+.local_libs <- c(
+  my.tools = "my.tools_0.4_R_x86_64-pc-linux-gnu.tar.gz"
+)
+
+.local_inst <- names(.local_libs) %in% installed.packages()
+if (any(!.local_inst)) {
+   install.packages(paste0("~/R/", .local_libs[!.inst]) ,repos = NULL, type = "source", lib = lib.loc)
+}
+
+.github_libs <- c(
+  "benjjneb/decontam", # dentify Contaminants in Marker-gene and Metagenomics Sequencing Data
+  "clauswilke/ggtext", # Improved text rendering for ggplot2.
+  "mikemc/speedyseq" # Faster implementations of common phyloseq functions
+)
+
+.github_lib_names <- stringr::str_replace(.github_libs, ".*/(.*)$", "\\1")
+
+.github_inst <- .github_lib_names %in% installed.packages()
+if (any(!.github_inst)) {
+  install_github(.github_libs[!.github_inst],
+                           lib = lib.loc,
+                           dependencies = TRUE)
+}
+
+# Load packages into session, and print package version
+(loaded.libs <- sapply(c(.cran_libs, .bioc_libs, names(.local_libs), .github_lib_names), require, character.only = TRUE))
+if (!all(loaded.libs)) {stop(paste("Package(s):", names(loaded.libs[loaded.libs == FALSE]), "could not be loaded"))}
+sapply(c(.cran_libs, .bioc_libs, names(.local_libs), .github_lib_names), packageVersion)
+```
+```{r style settings, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+options(width = 90, knitr.table.format = "html") 
+opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  cache = TRUE,
+  dev = "png",
+  fig.ext = "png",
+  dpi = 600,
+#  fig.width = 12,
+#  fig.height = 8,
+  cache.path = "02_Decontamination_cache/",
+  fig.path = "02_Decontamination_figures/"
+)
+f_name <- "DejaVu Sans" #sub("\\s//", "", f_name)
+f_size <- 14
+font_import(pattern = "DejaVuSans", prompt = FALSE)
+loadfonts() # registers fonts
+theme_set(theme_bw(base_size = f_size, base_family = f_name))
+```
+
+```{r functions, include=F}
+```
+
+[roey.angel@bc.cas.cz](mailto: roey.angel@bc.cas.cz) 
+
+## Decontamination
+Decontamination of sequence library based on [Introduction to decontam](https://benjjneb.github.io/decontam/vignettes/decontam_intro.html) and Davis and colleagues [-@davis_simple_2018]. Decontamination is based on correlating sequence abundance frequencies to initial DNA concentrations used for PCR and also on examining sequence abundance prevalence patterns in the negative control samples.
+
+### Setting general parameters:
+```{r general parameters}
+set.seed(1000)
+metadata_path <- "./"
+data_path <- "./DADA2_pseudo/"
+Metadata_table <- "Metadata.csv"
+Seq_table <- "DADA2.seqtab_nochim.tsv"
+# Metadata_table <- ""
+```
+
+### Reading in raw data and generate phyloseq object
+```{r load data, cache=T}
+# read OTU mat from data file
+Raw_data <- read_tsv(paste0(data_path, Seq_table), 
+                        trim_ws = TRUE)
+
+Raw_data[, 2:ncol(Raw_data)] %>% 
+  t() %>% 
+  as.data.frame() -> abundance_mat # convert to abundance matrix
+colnames(abundance_mat) <- pull(Raw_data, "#OTU") # add sequence names
+
+# get short names of samples
+# abundance_mat %>% 
+#   rownames() %>% 
+#   str_remove("^Roey[0-9]{3,}-?") %>% 
+#   str_split("_", simplify = T) %>% 
+#   .[, 1] ->
+#   short_names
+
+# Read metadata file
+Metadata <- read_csv(paste0(metadata_path, Metadata_table),
+                        trim_ws = TRUE)
+Metadata$Read1_file <- str_replace(Metadata$Read1_file, "(.*)_L001_R1_001_noPrimers.fastq.gz|\\.1\\.fastq.gz", "\\1")
+Metadata <- Metadata[Metadata$Read1_file %in% rownames(abundance_mat), ] # remove metadata rows if the samples did not go through qual processing
+# Metadata %<>% mutate(`16S copies` = replace(`16S copies`, which(`16S copies` == 0 | `16S copies` < 0), 0.001)) # replace 0 conc. with 0.001
+
+# Order abundance_mat samples according to the metadata
+sample_order <- match(rownames(abundance_mat), Metadata$Read1_file)
+abundance_mat %<>% arrange(., sample_order)
+rownames(abundance_mat) <- Metadata$Read1_file # needed for pyhloseq
+
+Metadata$LibrarySize <- rowSums(abundance_mat)
+Metadata <- data.frame(row.names = Metadata$Read1_file, Metadata)
+
+# generate phyloseq object
+Ps_obj <- phyloseq(otu_table(abundance_mat, taxa_are_rows = FALSE),
+                        sample_data(Metadata)
+                        )
+Ps_obj <- filter_taxa(Ps_obj, function(x) sum(x) > 0, TRUE) # remove 0 abundance taxa
+Ps_obj <- subset_samples(Ps_obj, sample_sums(Ps_obj) > 0) # remove 0 abundance samples
+```
+
+### Inspect Library Sizes
+```{r Library Sizes, cache=T}
+Ps_obj_df <-
+  as.data.frame(sample_data(Ps_obj)) # Put sample_data into a ggplot-friendly data.frame
+Ps_obj_df <- Ps_obj_df[order(Ps_obj_df$LibrarySize), ]
+Ps_obj_df$Index <- seq(nrow(Ps_obj_df))
+ggplot(data = Ps_obj_df, 
+       aes(x = Index, y = LibrarySize, color = Control)) + 
+  geom_point() +
+  scale_y_log10(breaks = c(
+    min(Ps_obj_df$Lib.size),
+    10,
+    100,
+    1000,
+    5000,
+    10000,
+    ceiling(max(Ps_obj_df$Lib.size) / 10000) * 10000
+    )) + 
+  scale_shape_discrete(name = "Illumina run")
+summary(sample_sums(Ps_obj))
+summary(taxa_sums(Ps_obj))
+```
+
+No sample has 0 counts but some controls have more sequences than any true sample. 
+
+**This is how many reads remained per control sample after DADA2 pipeline:**
+```{r}
+Ps_obj %>% 
+  subset_samples(., Control == "TRUE") %>% 
+  sample_sums() %>% 
+  sort() %>% 
+  as_tibble(rownames = "Sample") %>% 
+  dplyr::rename(Reads = value) %>% 
+  kable(.) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+```
+
+**Summary of all non-control samples:**
+```{r}
+# Ps_obj <-
+  # subset_samples(Ps_obj, Sample.name != names(which(sample_sums(Ps_obj) == 0)))
+Ps_obj %>% 
+  subset_samples(., Control == "FALSE") %>% 
+  sample_sums(.) %>% 
+  summary()
+```
+
+###  Identify contaminants - Frequency
+Use the distribution of the frequency of each sequence feature as a function of the input DNA concentration to identify contaminants.
+
+```{r frequency, cache=T}
+Ps_obj_noNA <- subset_samples(Ps_obj, X16S.copies > 0)
+
+contamdf.freq <-
+  isContaminant(Ps_obj_noNA, method = "frequency", conc = "X16S.copies")
+# print(contamdf.freq)
+# How many contaminants are found?
+table(contamdf.freq$contaminant)
+# Which ones?
+contamdf.freq %>% 
+  rownames_to_column(., var = "ESV") %>% 
+  filter(contaminant == TRUE) %>% 
+  kable(.) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+```
+
+Plot the frequency of the first 20 non-contaminant ESVs against the DNA concentration, as an example.
+```{r plot frequency 1, cache=T, fig.height=20, fig.width=20}
+plot_frequency(Ps_obj_noNA, taxa_names(Ps_obj_noNA)[which(!contamdf.freq$contaminant)[1:20]], conc = "X16S.copies") + 
+  xlab("16S copy numbers")
+```
+
+Plot the frequency of the the first 20 contaminant sequences against the DNA concentration.
+```{r plot frequency 2, cache=T, fig.height=20, fig.width=20}
+plot_frequency(Ps_obj_noNA, taxa_names(Ps_obj_noNA)[which(contamdf.freq$contaminant)[1:20]], conc = "X16S.copies") + 
+  xlab("16S copy numbers")
+```
+
+The frequency analysis detected $`r sum(contamdf.freq$contaminant)`$ sequences as contaminants.
+
+###  Identify contaminants - Prevalence
+Use the prevalence of sequences found in the control samples (no-template controls) to identify contaminants.
+```{r prevalence, cache=T}
+# Ps_obj_noBioControl <- subset_samples(Ps_obj, Control != "Biological") # remove "Biological control" samples
+# sample_data(Ps_obj_noBioControl)$Control <- sample_data(Ps_obj_noBioControl)$Control == "TRUE" # convert to logical
+contamdf.prev <- isContaminant(Ps_obj, method = "prevalence", neg = "Control")
+# How many contaminants are found?
+table(contamdf.prev$contaminant)
+# Which ones?
+contamdf.prev %>% 
+  rownames_to_column(., var = "ESV") %>% 
+  filter(contaminant == TRUE) %>% 
+  kable(.) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+
+# And using a more aggrssive threshold
+contamdf.prev05 <- isContaminant(Ps_obj, method = "prevalence", neg = "Control", threshold = 0.5)
+table(contamdf.prev05$contaminant)
+
+# Make phyloseq object of presence-absence in negative controls
+Ps_obj.pa <-
+  transform_sample_counts(Ps_obj, function(abund)
+    1 * (abund > 0))
+Ps_obj.pa.neg <-
+  prune_samples(sample_data(Ps_obj.pa)$Control == "TRUE", Ps_obj.pa)
+Ps_obj.pa.pos <-
+  prune_samples(sample_data(Ps_obj.pa)$Control == "FALSE", Ps_obj.pa)
+# Make data.frame of prevalence in positive and negative samples
+df.pa <-
+  data.frame(
+    pa.pos = taxa_sums(Ps_obj.pa.pos),
+    pa.neg = taxa_sums(Ps_obj.pa.neg),
+    contaminant = contamdf.prev$contaminant
+  )
+ggplot(data = df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) + geom_point() +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+```
+
+The prevalence analysis detected $`r sum(contamdf.prev$contaminant)`$ sequences as contaminants.
+In total $`r length(unique(c(taxa_names(Ps_obj)[which(contamdf.freq$contaminant)], taxa_names(Ps_obj)[which(contamdf.prev$contaminant)])))`$ were detected as contaminants and will be removed.
+
+### Save contaminant sequence names
+```{r save, cache=T}
+c(taxa_names(Ps_obj)[which(contamdf.freq$contaminant)],
+  taxa_names(Ps_obj)[which(contamdf.prev$contaminant)]) %>%
+  unique() ->
+  contaminants
+
+contaminants %>% 
+  data.frame() %>%
+  write_csv(., 
+            paste0(data_path, "decontam_contaminants.csv"), 
+            col_names = FALSE)
+
+contaminants %>% 
+  setdiff(taxa_names(Ps_obj), .) %>% 
+  prune_taxa(., Ps_obj) %>% 
+  otu_table(.) %>% 
+  as(., "matrix") %>% 
+  {if(taxa_are_rows(Ps_obj)) . else t(.)} %>% 
+  as_tibble() %>% 
+  rownames_to_column(var = "#OTU") %>% 
+  write_tsv(., 
+          paste0(data_path, "DADA2.seqtab_nochim_decontam.tsv"), 
+          col_names = TRUE)
+```
+
+```{r session info, cache=F}
+sessionInfo()
+```
+
+## References
+
+
