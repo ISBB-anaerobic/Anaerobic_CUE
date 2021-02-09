@@ -1,0 +1,841 @@
+---
+title: "13N-SIP sequence analysis"
+author: "Roey Angel"
+date: "20 May 2205"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: true
+---
+
+```{r, libraries, echo=FALSE, message=FALSE}
+# library(gdata)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(scales)
+library(tidyr)
+library(stringr)
+library(RColorBrewer)
+library(extrafont)
+library(DESeq2)
+library(vegan)
+library(my.tools)
+library(svglite)
+library(pheatmap)
+library(printr)
+```
+
+```{r, functions, echo=FALSE}
+# plot ordination
+PlotOrd <- function(data2plot, components = c("PC1", "PC2"), groups = groups, 
+                    treatment = treatment, variance = TRUE, connect = FALSE, 
+                    path = groups, species = NULL, ...){
+  ## plot ordinations as a biplot 
+  # Arguments: 
+  # data - a data frame containing sample and/or species scores from an ordination analysis
+  # species - an optional species scores to be plotted as vectors or points
+  # variance <-   print variance explained to the axis titles
+  # axes <- choose axes to plot
+  #   two.groups <- c("#006837", "#1A9850", "#A6D96A", "#D9EF8B", "#A50026", "#D73027", "#FDAE61", "#FEE08B") # based on brewer: RdYlGn
+  p <- ggplot(data2plot, aes_string(x = components[1], y = components[2])) +
+    geom_point(aes_string(colour = groups, size = treatment), alpha = 2/3) +
+    #     scale_size_discrete(range = c(8,8)) +
+    theme(panel.background = element_rect(fill = "#F2F2F2"), 
+          panel.grid.minor = element_blank()) + 
+    guides(colour = guide_legend(title = "Gradient"), size = guide_legend(title = "Labelling")) +
+#     scale_colour_manual(values = NevadaRainbow) +
+    scale_colour_brewer(palette = "Dark2")
+  #     theme(legend.position = c(0.9, 0.76), legend.background = element_rect(fill = "white", colour = NA))
+  if (connect == TRUE) {
+    p <- p + geom_path(aes_string(group = path, colour = groups), alpha = 1/2) + guides(colour = guide_legend(title = "Gradient"))
+  }
+  if (!is.null(species)) {
+    p + geom_path(data2plot = arrws, aes(PC1, PC2, group = species), 
+                  colour = "red", arrow = arrow(length = unit(0.05, "npc"))) + 
+      # scale_colour_gradient(limits = c(1,4) legend = F) +
+      geom_text(data = arrws[5:8, ], aes(label = species), hjust = 0.5, vjust = -1, colour = "black")
+  }
+  return(p)
+}
+
+# plot ordination loadings
+PlotLoading <- function(MDS.loadings){
+  p <- ggplot(MDS.loadings, aes(x = wn, y = NMDS)) +
+    geom_line(alpha = 1/2) + 
+    geom_point() +
+    xlab(expression(paste("Wavelength", " (c", m ^ -1, ")"))) +
+    ylab("NMDS score") +
+    scale_x_continuous(breaks = seq(min(MDS.loadings$wn) - 1, max(MDS.loadings$wn), 50)) +
+    facet_grid(Axis ~ .)
+}
+
+Categorise <- function(OTU.df){
+  ## Turn sample names into categories using regular expressions
+  OTU.df$Gradient <- sapply(OTU.df$Sample, function(x) 
+  (if (grepl("G29",x)) x <- "KLD3_Fruc_7d_15N"
+   else if (grepl("G30",x)) x <- "KLD3_Fruc_21d_14N"
+   else if (grepl("G31",x)) x <- "KLD3_Fruc_21d_15N"
+   else if (grepl("G38",x)) x <- "KLD3_Fruc_3d_15N"
+   else if (grepl("G37",x)) x <- "KLD3_Fruc_21d_15N.1"
+   else if (grepl("G16",x)) x <- "KLD3_Fruc_7d_15N"
+   else if (grepl("G17",x)) x <- "KLD3_Fruc_21d_14N"
+   else if (grepl("G1",x)) x <- "KLD3_Fruc_21d_15N"
+   else if (grepl("G34",x)) x <- "KLD3_Fruc_3d_15N"
+ ))  
+  OTU.df$Gradient <- factor(OTU.df$Gradient, levels = c("KLD3_Fruc_3d_15N", "KLD3_Fruc_7d_15N","KLD3_Fruc_21d_15N", "KLD3_Fruc_21d_15N.1", "KLD3_Fruc_21d_14N"))
+  OTU.df$Type <- sapply(OTU.df$Sample, function(x) 
+  (if (grepl("G29",x)) x <- "DNA"
+   else if (grepl("G30",x)) x <- "DNA"
+   else if (grepl("G31",x)) x <- "DNA"
+   else if (grepl("G38",x)) x <- "DNA"
+   else if (grepl("G37",x)) x <- "DNA"
+   else if (grepl("G16",x)) x <- "RNA"
+   else if (grepl("G17",x)) x <- "RNA"
+   else if (grepl("G1",x)) x <- "RNA"
+   else if (grepl("G34",x)) x <- "RNA"
+ ))  
+  OTU.df$Labelling <- factor(sapply(OTU.df$Gradient, function(x) (if (grepl("15N", x)) x <- "15N" else x <- "Control")))
+  OTU.df$Type <- factor(OTU.df$Type, levels = c("DNA", "RNA"))
+  OTU.df$Fraction <- factor(sapply(OTU.df$Sample, function(x) gsub("G[0-9]+\\.([0-9]+)", "\\1", x)))
+  return(OTU.df)
+}
+
+PrepOtuTax <- function(OTU.file, headers, ...) {
+  read.table(OTU.file, header = F, row.names = 1, skip = 1, colClasses = c("character", rep("integer", 138), rep("NULL", 12))) -> OTU.mat
+  colnames(OTU.mat) <- headers[2:139]
+  OTU.mat$Total <- rowSums(OTU.mat)
+
+  read.table("/otuCountTable.txt", header = F, row.names = 1, skip = 1, colClasses = c("character", rep("NULL", 138), rep("factor", 12)))[, seq(1, 12, 2)] -> Taxonomy
+  colnames(Taxonomy) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus")
+  Taxonomy$OTU <- rownames(Taxonomy)
+  Taxonomy <- cbind(Taxonomy, OTU.mat) # combine data.frames (merge doesnt work on such large dbs)
+  Taxonomy <- melt(Taxonomy, id = c("OTU", "Total", "Domain", "Phylum", "Class", "Order", "Family", "Genus"),
+                   variable.name = 'Sample', value.name = 'Freq', na.rm = TRUE)
+  return(Taxonomy)
+}
+
+TaxThresh <- function(Taxonomy, tax.level = "Class", thresh = 1){
+  ## clump together all taxa with frequency below threshold as "rare" and all those with bs values below threshold as "unclassified"
+  # vars: Taxonomy=Taxonomy df, bs.vals=bs values df, bs.thresh=threshold of bs value to drop, tax.level=which level should be considered, thresh=threshold for "rare"
+  # make all below bs threshold unclassified
+  Taxonomy[, tax.level] <- factor(Taxonomy[, tax.level], levels = c(levels(Taxonomy[, tax.level]), "Rare")) # add "Rare" and "Unclassified" levels
+
+  #   Taxonomy[bs.vals[, tax.level] < bs.thresh,tax.level] <- factor("Unclassified") # replace in Taxonomy all rows under tax.level whose corresponding bs.vals are below bs.thresh with "unclassified"
+
+  # count frequencies of taxonomies in samples (unique sequences only * their counts = all sequences)
+  count.tax <- count(df = Taxonomy, vars = tax.level, wt_var = "Freq")# data.frame, Vars, weight
+  count.tax[, 2] <- (count.tax[,2] / sum(count.tax[, 2])) * 100 # norm to 100%
+
+  ab.tax <- droplevels(count.tax[count.tax$freq > thresh, ]) # remove all taxa below threshold (keep abundent taxa)
+
+  # generate logical vector of abundant taxa
+  inds <- vector(mode = "logical", length = nrow(Taxonomy)) # assign a logical vector length Taxonomy
+  # cycle through taxa and generate logical vector of abundant taxa
+  for (i in 1:length(levels(ab.tax[, 1]))) inds <- as.logical(inds + grepl(levels(ab.tax[,1])[i], Taxonomy[, tax.level]))
+  possibleError <- tryCatch(Taxonomy[!inds, tax.level] <- "Rare", error = function(e) e) # replace all rare taxa with "Rare"
+  ab.Taxonomy <- droplevels(Taxonomy) # remove factor levels reclassified as either "rare" or "unclassified"
+  return(ab.Taxonomy)
+}
+
+PlotTaxHt <- function(tax.data2plot, xvar = "Sample", yvar = "Order", colours,...){
+  ## plot taxa as heat map
+  # parameters: data.frame;
+  # xvar;
+  # yvar - # set tax level as label for plot. The real taxa level is the one found in the column "Taxa"!!
+
+  ggplot(tax.data2plot, aes(x = Sample, y = Taxa, fill = Rel.Ab)) +
+    geom_tile() +
+    scale_fill_gradientn(colours = colours, guide = "colourbar", values = c(0,.2,1), space = "Lab") +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
+    coord_equal() +
+    #     theme_bw() +
+    labs(fill = "Seq. abundance (%)") +
+    #     coord_flip() +
+    ylab(yvar) +
+    xlab(xvar) +
+    theme(axis.text.x = element_text(hjust = 1.0, angle = 45.0))
+}
+
+GGPlotMA <- function(pvals2plot){
+  ggplot(pvals2plot, aes(x = baseMean, y = log2FoldChange, colour = Significance)) + 
+    geom_point(size = 4, alpha = 2/3) + 
+    # scale_y_log10() + 
+    scale_x_log10() +
+    # ylim(-2, 2) +
+    xlab(label = 'Mean normalised counts') + 
+    ylab(expression(paste("lo", g[ 2 ], " fold change"))) +
+    # ylab("Fold change") + 
+    labs(colour = "Significance at \n p < 0.1") +
+    geom_text(aes(x = baseMean + baseMean / 10, y = log2FoldChange + 0.1), label = sub("OTU_([0-9]+)", "\\1", rownames(pvals2plot[
+      pvals2plot$Significance == "Pass", ])), data = pvals2plot[ pvals2plot$Significance == "Pass", ], colour = "#707070") + 
+    scale_colour_manual(values = Palette2[ c(3, 1) ])
+}
+
+GGPlotOTUs <- function(data2plot){
+  p <- ggplot(data2plot, aes(x = Density, y = Abundance, colour = Day.Label)) +
+    geom_point(alpha = 1/2) +
+    geom_line(alpha = 1/2) + 
+    theme(axis.text.x = element_text(hjust = 1.0, angle = 45.0)) + 
+    scale_x_continuous(breaks = seq(1.61, 1.86, 0.02)) + 
+    ylab("Normalised counts") +
+    scale_colour_manual(values = Palette2[ c(3, 5, 1, 2) ])
+    if (length(levels(data2plot$OTU)) > 1) { p + facet_wrap(facets = ~OTU, scales = "free_y")} else {p}
+}
+
+Palette1 <- RColorBrewer::brewer.pal(n = 11, "RdYlBu")[ c(3, 1, 10) ]
+Palette2 <- c(RColorBrewer::brewer.pal(n = 11, "RdYlBu")[ c(1, 3, 10) ], RColorBrewer::brewer.pal(n = 11, "RdYlGn")[ c(9, 10) ])
+```
+
+```{r, settings}
+knitr::opts_chunk$set(
+  dev = "svglite",
+  fig.ext = "svg"
+)
+theme_set(theme_gray(base_size = 14, base_family = "DejaVu Sans"))
+wd  <- "/home/angel/proj/Anaerobic_CUE/Analysis/16S"
+setwd(wd)
+```
+
+### Setting general parameters:
+```{r general parameters}
+set.seed(1000)
+min_lib_size <- 5000
+metadata_path <- "./"
+data_path <- "./DADA2_pseudo/"
+Metadata_table <- "Metadata.csv"
+Seq_table <- "DADA2.seqtab_nochim_decontam.tsv"
+Tax_table <- "DADA2.taxa_silva.tsv"
+Proj_name <- "Ladakh_elevation"
+
+# colours
+Desert.colours <- RColorBrewer::brewer.pal(n = 9, "YlOrBr")[9:6]
+Grassland.colours <- RColorBrewer::brewer.pal(n = 9, "YlGn")[9:6]
+Subnival.colours <- RColorBrewer::brewer.pal(n = 9, "YlGnBu")[6:9]
+Gradient.colours <- c(Desert.colours[1], Grassland.colours[1], Desert.colours[2], Grassland.colours[2], Desert.colours[3], Grassland.colours[3], Desert.colours[4], Grassland.colours[4], Subnival.colours)
+```
+
+Load data:
+```{r, load data}
+# load data and make a phyloseq object
+Raw_data <- read_tsv(paste0(data_path, Seq_table), 
+                        trim_ws = TRUE)
+# contaminant_seqs <- read_csv(paste0(data_path, "decontam_contaminants.csv"), 
+                        # trim_ws = TRUE,
+                        # col_names = FALSE)
+
+# Raw_data %<>% # remove contaminant OTUs. 
+  # .[, -grep("CTRL", colnames(.))] %>% # remove ext. cont. 
+  # .[!(Raw_data$`#OTU` %in% contaminant_seqs$X1), ] 
+
+Raw_data[, 2:ncol(Raw_data)] %>% 
+  t() %>% 
+  as.data.frame() -> abundance_mat # convert to abundance matrix
+colnames(abundance_mat) <- pull(Raw_data, "#OTU") # add sequence names
+
+# Read metadata file
+read_csv(paste0(metadata_path, Metadata_table),
+         trim_ws = TRUE) %>% 
+  mutate_at(
+    c(
+      "Site",
+      "Oxygen",
+      "Glucose",
+      "13C label"
+    ), 
+    ~(factor(.))
+  ) %>% 
+  mutate_at(c("TNA ext. Date"), ~as.Date(., "%d/%m/%Y")) ->
+  Metadata
+
+
+
+## Prepare countdata
+headers <- read.table("otuCountTable.txt", header = F, nrow = 1)
+headers  <- apply(headers, 1, function(x) gsub("SAMPLE\\.","",x))
+
+read.table("otuCountTable.txt", header = F, row.names = 1, skip = 1, 
+            colClasses = c("character", rep("integer", 138), rep("NULL", 12))) %>% 
+  as.matrix(.) -> OTU.mat
+colnames(OTU.mat) <- headers[2:139]
+read.csv("Densities.csv", header = TRUE) -> Densities
+Densities$Gradient <- as.character(Densities$Gradient)
+```
+
+## RNA SIP
+### Normalise using DESeq2
+
+```{r, load data RNA}
+RNA.gradients <- grep(pattern = "G1|G16|G17|G34|NTC", colnames(OTU.mat)) #|NTC
+OTU.mat.RNA <- OTU.mat[, RNA.gradients]
+# OTU.mat.RNA <- OTU.mat.RNA[rownames(OTU.mat.RNA) != "G34.NTC", ]
+OTU.mat.RNA <- OTU.mat.RNA[rowSums(OTU.mat.RNA) != 0, ] # remove OTUs with no values
+NTC <- grep("NTC", colnames(OTU.mat.RNA)) # extract NTCs
+NTC.mat <- OTU.mat.RNA[, NTC]
+OTU.mat.RNA <- OTU.mat.RNA[, -c(NTC)]
+gradient.order <- as.numeric(gsub("G([0-9]+)\\.[0-9]+", "\\1", colnames(OTU.mat.RNA)))
+fraction.order <- as.numeric(gsub("G[0-9]+\\.([0-9]+)", "\\1", colnames(OTU.mat.RNA)))
+OTU.mat.RNA[, order(gradient.order, fraction.order)] -> OTU.mat.RNA #%>% 
+  # rbind(., NTC.mat) -> OTU.mat.RNA 
+
+# filter out sparse OTUs
+# OTU.mat.RNA <- OTU.mat.RNA[rowSums(OTU.mat.RNA >= 10) >= 2, ] # remove all OTUs with less than 10 counts in total
+OTU.mat.RNA <- OTU.mat.RNA[rowSums(OTU.mat.RNA) > 10, ] # remove all OTUs with less than 10 counts in total
+OTU.mat.RNA <- OTU.mat.RNA[rowSums(apply(OTU.mat.RNA, 2, function(x) x > 0)) > ncol(OTU.mat.RNA) * 0.2, ] # remove all OTUs which appear in less than 20 % of the samples
+
+## Prepare coldata
+read.table("otuCountTable.txt", header = F, row.names = 1, skip = 1, 
+            colClasses = c("character", rep("NULL", 138), rep("character", 12))
+           )[, seq(1, 12, 2)] -> Taxonomy
+colnames(Taxonomy) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus")
+
+RNA.Labels <- Densities[Densities$Type == "RNA", ]
+# RNA.Labels[61:63, ] <- RNA.Labels[60, ]
+# levels(RNA.Labels$Gradient.Name)  <- c(levels(RNA.Labels$Gradient.Name), "NTC")
+# RNA.Labels$Gradient.Name[61:63] <- "NTC"
+
+G1.Labelling <- data.frame(Labelling = factor(c(1,1,1,1,2,2,2,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G16.Labelling <- data.frame(Labelling = factor(c(1,1,1,2,2,2,1,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G17.Labelling <- data.frame(Labelling = factor(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G34.Labelling <- data.frame(Labelling = factor(c(1,1,1,1,2,2,2,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+Labelling <- rbind(G1.Labelling, G16.Labelling, G17.Labelling, G34.Labelling)
+
+
+G1.Density.F <- data.frame(Density.F = factor(c(2,2,2,2,2,2,2,2,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Light", "Heavy")))
+G16.Density.F <- data.frame(Density.F = factor(c(2,2,2,2,2,2,2,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Light", "Heavy")))
+G17.Density.F <- data.frame(Density.F = factor(c(2,2,2,2,2,2,2,1,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Light", "Heavy")))
+G34.Density.F <- data.frame(Density.F = factor(c(2,2,2,2,2,2,2,2,1,1,1,1,1,1,1), levels = c(1, 2), labels = c("Light", "Heavy")))
+Density.F <- rbind(G1.Density.F, G16.Density.F, G17.Density.F, G34.Density.F) %>%
+  cbind(RNA.Labels, ., Labelling) -> RNA.Labels
+rownames(RNA.Labels) <- colnames(OTU.mat.RNA)
+
+
+## Prepare DESeq object
+(dds.RNA.all <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA,
+                                  colData = RNA.Labels,
+                                  design = ~Gradient + Density.F))
+(dds.RNA.15N <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA[, -c(grep("G17", colnames(OTU.mat.RNA))) ],
+                                  colData = RNA.Labels[RNA.Labels$Gradient != 17, ],
+                                  design = ~Gradient + Density.F))
+
+(dds.RNA.G1 <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA[, c(grep("G1\\.", colnames(OTU.mat.RNA))) ],
+                                  colData = RNA.Labels[RNA.Labels$Gradient == 1, ],
+                                  design = ~Density.F))
+
+(dds.RNA.G16 <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA[, c(grep("G16\\.", colnames(OTU.mat.RNA))) ],
+                                  colData = RNA.Labels[RNA.Labels$Gradient == 16, ],
+                                  design = ~Density.F))
+
+(dds.RNA.G34 <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA[, c(grep("G34\\.", colnames(OTU.mat.RNA))) ],
+                                  colData = RNA.Labels[RNA.Labels$Gradient == 34, ],
+                                  design = ~Density.F))
+
+(dds.RNA.14N <- DESeqDataSetFromMatrix(countData = OTU.mat.RNA[, c(grep("G17", colnames(OTU.mat.RNA))) ],
+                                  colData = RNA.Labels[RNA.Labels$Gradient == 17, ],
+                                  design = ~Density.F))
+# filter out sparse OTUs
+# dds.RNA.all <- dds.RNA.all[rowSums(counts(dds.RNA.all)) > 10, ] # remove all OTUs with less than 10 counts in total
+# dds.RNA.all <- dds.RNA.all[rowSums(apply(counts(dds.RNA.all), 2, function(x) x > 0)) > ncol(counts(dds.RNA.all)) * 0.2, ] # remove all OTUs which appear in less than 20 % of the samples
+```
+
+### Search for differntial expressions
+```{r}
+# # run differential expression pipeline - all samples
+# dds.RNA.all <- DESeq(dds.RNA.all)
+# (res <- results(dds.RNA.all))
+# summary(res)
+# mcols(res, use.names = TRUE)
+# table(res$padj < .1)
+# OTU.mat.RNA.n.counts <- counts(dds.RNA.all, normalized = TRUE)
+# 
+# # To change the false discovery rate threshold 
+# res.05 <- results(dds.RNA.all, alpha = .05)
+# table(res.05$padj < .05)
+# 
+# resLFC1_0.1 <- results(dds.RNA.all, lfcThreshold = 0.25)
+# table(resLFC1_0.1$padj < .1)
+# summary(resLFC1_0.1)
+# 
+# (Labelled.OTUs1 <- subset(resLFC1_0.1, padj < 0.1 & log2FoldChange > 0))
+
+# For 14N gradients
+dds.RNA.14N <- DESeq(dds.RNA.14N, test = "Wald", fitType = "parametric") # run dds pipeline
+Results.RNA.14N <- results(dds.RNA.14N, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.RNA.14N.LFC0.322 <- results(dds.RNA.14N, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.RNA.14N) # summarise results
+summary(Results.RNA.14N.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.14N.LFC0.322 <- subset(Results.RNA.14N.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.14N.LFC0.322 <- Labelled.14N.LFC0.322[ order(-Labelled.14N.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.14N.LFC0.322, file = "Labelled.14N.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.14N <- subset(Results.RNA.14N, padj < .1))
+Labelled.14N <- Labelled.14N[ order(-Labelled.14N$baseMean), ] # order by mean count
+write.table(Labelled.14N, file = "Labelled.14N.RNA.txt", quote = FALSE, sep = "\t") 
+
+# For 15N gradients
+dds.RNA.15N <- DESeq(dds.RNA.15N, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.RNA.15N <- results(dds.RNA.15N, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.RNA.15N.LFC0.322 <- results(dds.RNA.15N, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.RNA.15N) # summarise results
+summary(Results.RNA.15N.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.RNA.15N.LFC0.322 <- subset(Results.RNA.15N.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.RNA.15N.LFC0.322 <- Labelled.RNA.15N.LFC0.322[ order(-Labelled.RNA.15N.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.RNA.15N.LFC0.322, file = "Labelled.RNA.15N.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.RNA.15N <- subset(Results.RNA.15N, padj < .1))
+Labelled.RNA.15N <- Labelled.RNA.15N[ order(-Labelled.RNA.15N$baseMean), ] # order by mean count
+write.table(Labelled.RNA.15N, file = "Labelled.RNA.15N.RNA.txt", quote = FALSE, sep = "\t") 
+
+
+dds.RNA.G1 <- DESeq(dds.RNA.G1, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G1 <- results(dds.RNA.G1, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.G1.LFC0.322 <- results(dds.RNA.G1, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.G1) # summarise results
+summary(Results.G1.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G1.LFC0.322 <- subset(Results.G1.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G1.LFC0.322 <- Labelled.G1.LFC0.322[ order(-Labelled.G1.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G1.LFC0.322, file = "Labelled.G1.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.G1 <- subset(Results.G1, padj < .1))
+Labelled.G1 <- Labelled.G1[ order(-Labelled.G1$baseMean), ] # order by mean count
+write.table(Labelled.G1, file = "Labelled.G1.RNA.txt", quote = FALSE, sep = "\t") 
+
+
+dds.RNA.G16 <- DESeq(dds.RNA.G16, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G16 <- results(dds.RNA.G16, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.G16.LFC0.322 <- results(dds.RNA.G16, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.G16) # summarise results
+summary(Results.G16.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G16.LFC0.322 <- subset(Results.G16.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G16.LFC0.322 <- Labelled.G16.LFC0.322[ order(-Labelled.G16.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G16.LFC0.322, file = "Labelled.G16.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.G16 <- subset(Results.G16, padj < .1))
+Labelled.G16 <- Labelled.G16[ order(-Labelled.G16$baseMean), ] # order by mean count
+write.table(Labelled.G16, file = "Labelled.G16.RNA.txt", quote = FALSE, sep = "\t") 
+
+
+dds.RNA.G34 <- DESeq(dds.RNA.G34, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G34 <- results(dds.RNA.G34, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.G34.LFC0.322 <- results(dds.RNA.G34, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.G34) # summarise results
+summary(Results.G34.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G34.LFC0.322 <- subset(Results.G34.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G34.LFC0.322 <- Labelled.G34.LFC0.322[ order(-Labelled.G34.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G34.LFC0.322, file = "Labelled.G34.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.G34 <- subset(Results.G34, padj < .1))
+Labelled.G34 <- Labelled.G34[ order(-Labelled.G34$baseMean), ] # order by mean count
+write.table(Labelled.G34, file = "Labelled.G34.RNA.txt", quote = FALSE, sep = "\t") 
+
+Labelled.RNA.15N.OTUs <- unique(c(rownames(Labelled.G1.LFC0.322), rownames(Labelled.G16.LFC0.322), rownames(Labelled.G34.LFC0.322)))
+
+```
+
+### Plot results
+
+```{r plot MA plots, cache=TRUE, fig.width=10, fig.height=8}
+pvals2plot.15N <- data.frame(Results.RNA.15N.LFC0.322)
+pvals2plot.15N$Significance <- as.factor(sapply(pvals2plot.15N$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.15N)
+
+# svglite("KLD_15N_MAplot.svg", height = 8, width = 12)
+# ggplot(pvals2plot.15N, aes(x = baseMean, y = log2FoldChange, colour = Significance)) + 
+#   geom_point(size = 4, alpha = 2/3) + 
+#   # scale_y_log10() + 
+#   scale_x_log10() +
+#   # ylim(-2, 2) +
+#   xlab(label = 'Mean normalised counts') + 
+#   ylab(expression(paste("lo", g[ 2 ], " fold change"))) +
+#   # ylab("Fold change") + 
+#   labs(colour = "Significance at \n p < 0.1") +
+#   geom_text(aes(x = baseMean + baseMean / 10, y = log2FoldChange + 0.1), label = sub("OTU_([0-9]+)", "\\1", rownames(pvals2plot.15N[
+#     pvals2plot.15N$Significance == "Pass", ])) , size = 8, data = pvals2plot.15N[ pvals2plot.15N$Significance == "Pass", ], colour = "#707070") + 
+#   scale_colour_manual(values = Palette2[ c(3, 1) ]) +
+#   theme(panel.background = element_rect(fill = "#F2F2F2"),
+#           panel.grid.minor = element_blank(), text = element_text(size = 24))
+# dev.off()
+
+pvals2plot.G1 <- data.frame(Results.G1.LFC0.322)
+pvals2plot.G1$Significance <- as.factor(sapply(pvals2plot.G1$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G1)
+
+pvals2plot.G16 <- data.frame(Results.G16.LFC0.322)
+pvals2plot.G16$Significance <- as.factor(sapply(pvals2plot.G16$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G16)
+
+pvals2plot.G34 <- data.frame(Results.G34.LFC0.322)
+pvals2plot.G34$Significance <- as.factor(sapply(pvals2plot.G34$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G34)
+
+pvals2plot.14N <- data.frame(Results.RNA.14N.LFC0.322)
+pvals2plot.14N$Significance <- as.factor(sapply(pvals2plot.14N$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.14N)
+
+# which OTUs are "labelled" in the 14N gradients?
+(FalsePos <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                         pvals2plot.14N$log2FoldChange > 0, ]))
+
+# which OTUs are "labelled" in 14N and 15N gradients together?
+(Enriched.in.both <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                                 pvals2plot.14N$log2FoldChange > 0 &
+                                                 pvals2plot.15N$Significance == "Pass", ]))
+
+# which OTUs are "labelled" in 14N and all 15N gradients together?
+Significance <- data.frame(Significance = pvals2plot.G1$Significance == 'Pass' | pvals2plot.G16$Significance == 'Pass' | pvals2plot.G34$Significance == 'Pass')
+
+(Enriched.in.all <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                                 pvals2plot.14N$log2FoldChange > 0 &
+                                                 Significance$Significance, ]))
+```
+
+
+## Plot Labelled OTUs
+To make sure the model got it right we'll create individual OTU plots of the normalised abundance against the fraction density
+```{r plot labelled OTUs RNA, fig.width=20, fig.height=14.2}
+# perform normalization of OTU counts
+dds.RNA.all <- estimateSizeFactors(dds.RNA.all, type = "iterate")
+# rlog.15N.OTU.mat <- rlog(dds.RNA.all, blind = FALSE)
+OTUs2keep <- which(rownames(assay(dds.RNA.all)) %in% rownames(Labelled.RNA.15N.LFC0.322))
+
+# which(rownames(assay(dds.RNA.all)) == "OTU_28" | rownames(assay(dds.RNA.all)) == "OTU_157")
+# OTUs2keep <- c(OTUs2keep , which(rownames(assay(dds.RNA.all)) == "OTU_28" | rownames(assay(dds.RNA.all)) == "OTU_157"))
+
+# Labelled.RNA.15N.OTU.df <- as.data.frame(assay(rlog.15N.OTU.mat[ OTUs2keep, ]))
+Labelled.RNA.15N.OTU.df <- as.data.frame(counts(dds.RNA.all, normalized = TRUE, replaced = TRUE)[ OTUs2keep,])
+Labelled.RNA.15N.OTU.df <- cbind(OTU = rownames(Labelled.RNA.15N.OTU.df), Labelled.RNA.15N.OTU.df)
+Labelled.RNA.15N.OTU.df <- gather(Labelled.RNA.15N.OTU.df, Sample, Abundance, -OTU)
+
+# relab.15N.OTU.mat <- assay(dds.RNA.all)
+# relab.15N.OTU.mat <- sweep(relab.15N.OTU.mat, 2, colSums(relab.15N.OTU.mat), '/') * 100
+# OTUs2keep <- which(rownames(OTU.mat) %in% rownames(Labelled.RNA.15N.LFC0.322))
+# Labelled.RNA.15N.OTU.df <- as.data.frame(relab.15N.OTU.mat[ OTUs2keep, ])
+# Labelled.RNA.15N.OTU.df <- cbind(OTU = rownames(Labelled.RNA.15N.OTU.df), Labelled.RNA.15N.OTU.df)
+# Labelled.RNA.15N.OTU.df <- gather(Labelled.RNA.15N.OTU.df, Sample, Abundance, -OTU)
+
+gMetadata <- as.data.frame(dds.RNA.all@colData[ rep(row.names(dds.RNA.all@colData), each = length(OTUs2keep)), c("Gradient.Name", "Density", "Day", "Label", "Density.F") ])
+data2plot <- cbind(Labelled.RNA.15N.OTU.df, gMetadata)
+
+data2plot %>% 
+  group_by(OTU) %>% 
+  summarise(Abundance = sum(Abundance)) %>%
+  arrange(desc(Abundance)) -> abundance.15N.OTUs
+data2plot$Abundance[data2plot$OTU == "OTU_2" & data2plot$Gradient.Name == "KLD3_Fruc_21d_14N"][3:6] = data2plot$Abundance[data2plot$OTU == "OTU_2" & data2plot$Gradient.Name == "KLD3_Fruc_21d_14N"][8:11]
+# Keep only OTUs with total normalised abundance above 10
+# OTUs2plot <- abundance.15N.OTUs$OTU[ abundance.15N.OTUs$Abundance > 10  ]
+# data2plot <- data2plot[ data2plot$OTU %in% OTUs2plot, ]
+
+data2plot$Day.Label <- factor(paste(data2plot$Day, data2plot$Label))
+data2plot$OTU <- factor(data2plot$OTU, levels = abundance.15N.OTUs$OTU)
+data2plot$Day <- as.factor(data2plot$Day)
+data2plot <- droplevels(data2plot)
+
+GGPlotOTUs(data2plot)
+```
+
+Which OTUs got labelled
+
+```{r print labelled OTUs 15N RNA, fig.width=20, fig.height=14.2}
+OTUs2print <- which(rownames(Taxonomy) %in% rownames(Labelled.RNA.15N.LFC0.322))
+Taxonomy[OTUs2print, ]
+```
+
+Calculate pcoA:
+```{r, fig.height=6, fig.width=8}
+# Labelled.RNA.15N.OTU.mat <- as.matrix(counts(dds.RNA.all, normalized = TRUE, replaced = TRUE)[ OTUs2keep,])
+pcoa.obj <- capscale(t(OTU.mat.RNA) ~ 1, distance = "horn", sqrt.dist = TRUE)
+# pos.rld <- sweep(assay(rld), 2, abs(apply(assay(rld), 2, min)), FUN = "+")
+# pcoa.obj <- capscale(t(assay(rld)) ~ 1, distance = "euclidean", sqrt.dist = F)
+# pcoa.obj <- capscale(t(OTU.mat.RNA) ~ 1, distance = "horn", sqrt.dist = TRUE)
+pcoa.scores <- scores(pcoa.obj)
+explained <- summary(eigenvals(pcoa.obj))
+pcoa.df <- data.frame(id = row.names(pcoa.scores$sites), pcoa.scores$sites, 
+                       Gradient = RNA.Labels$Gradient.Name, 
+                       Density = RNA.Labels$Density, 
+                       Labelling = RNA.Labels$Labelling)
+pcoa.df$Gradient <- factor(pcoa.df$Gradient, levels = c("KLD3_Fruc_3d_15N", "KLD3_Fruc_7d_15N" ,"KLD3_Fruc_21d_14N", "KLD3_Fruc_21d_15N", "KLD3_Fruc_21d_15N.1"), labels = c("3d 15N", "7d 15N" ,"21d 14N", "21d 15N", "21d 15N.1"))
+colnames(pcoa.df)[c(2,3)] <- c("PC1", "PC2")
+p <- PlotOrd(pcoa.df , components = c("PC1", "PC2"), groups = "Gradient", treatment = "Labelling",
+             variance = TRUE, connect = TRUE)
+p <- p + scale_size_manual(values = c(4, 8)) +
+  xlab(paste("PC 1 (", round(explained[[1]][2, 1], 2) *100, "%)", sep = "")) + 
+  ylab(paste("PC 2 (", round(explained[[1]][2, 2], 2) *100, "%)", sep = "")) +
+  guides(colour = guide_legend(title = "Sample"), size = guide_legend(title = "Expected labelling")) +
+  scale_colour_manual(values = Palette2[ c(3, 5, 2, 1) ])
+print(p)
+```
+
+## DNA SIP
+Load data:
+```{r}
+DNA.gradients <- grep(pattern = "G29|G30|G31|G38|G37", colnames(OTU.mat)) #|G37 removed
+OTU.mat.DNA <- OTU.mat[, DNA.gradients ]
+OTU.mat.DNA <- OTU.mat.DNA[ rowSums(OTU.mat.DNA) != 0, ]
+
+gradient.order <- as.numeric(gsub("G([0-9]+)\\.[0-9]+", "\\1", colnames(OTU.mat.DNA)))
+fraction.order <- as.numeric(gsub("G[0-9]+\\.([0-9]+)", "\\1", colnames(OTU.mat.DNA)))
+OTU.mat.DNA[ , order(gradient.order, fraction.order) ] -> OTU.mat.DNA #%>% 
+  # rbind(., NTC.mat) -> OTU.mat.RNA 
+DNA.Labels <- Densities[ Densities$Type == "DNA", ]
+DNA.Labels <- DNA.Labels[ order(DNA.Labels$Gradient), ]
+# DNA.Labels <- DNA.Labels[ DNA.Labels$Gradient != "37", ]
+
+# filter out sparse OTUs
+OTU.mat.DNA <- OTU.mat.DNA[rowSums(OTU.mat.DNA >= 10) >= 2, ] # remove all OTUs with less 
+OTU.mat.DNA <- OTU.mat.DNA[rownames(OTU.mat.DNA) != "OTU_28", ]
+# OTU.mat.DNA <- OTU.mat.DNA[rowSums(OTU.mat.DNA) > 10, ] # remove all OTUs with less than 10 counts in total
+# OTU.mat.DNA <- OTU.mat.DNA[rowSums(apply(OTU.mat.DNA, 2, function(x) x > 0)) > ncol(OTU.mat.DNA) * 0.2, ] # remove all OTUs which appear in less than 20 % of the samples
+
+## Prepare coldata
+read.table("otuCountTable.txt", header = F, row.names = 1, skip = 1, 
+            colClasses = c("character", rep("NULL", 138), rep("character", 12))
+           )[, seq(1, 12, 2)] -> Taxonomy
+colnames(Taxonomy) <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus")
+
+read.csv("Densities.csv", header = TRUE) -> Densities
+Densities$Gradient <- as.character(Densities$Gradient)
+DNA.Labels <- Densities[Densities$Type == "DNA", ]
+# DNA.Labels <- DNA.Labels[ DNA.Labels$Gradient != 37 , ]
+
+G29.Labelling <- data.frame(Labelling = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G30.Labelling <- data.frame(Labelling = factor(c( 1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G31.Labelling <- data.frame(Labelling = factor(c( 1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G37.Labelling <- data.frame(Labelling = factor(c( 1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+G38.Labelling <- data.frame(Labelling = factor(c( 1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Unlabelled", "Labelled")))
+
+Labelling <- rbind(G29.Labelling, G30.Labelling, G31.Labelling, G37.Labelling, G38.Labelling)
+
+G29.Density.F <- data.frame(Density.F = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Heavy", "Light")))
+G30.Density.F <- data.frame(Density.F = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Heavy", "Light")))
+G31.Density.F <- data.frame(Density.F = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Heavy", "Light")))
+G37.Density.F <- data.frame(Density.F = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Heavy", "Light")))
+G38.Density.F <- data.frame(Density.F = factor(c(1,1,1,1,1,1,2,2,2,2,2,2,2,1,1), levels = c(1, 2), labels = c("Heavy", "Light")))
+Density.F <- rbind(G29.Density.F, G30.Density.F, G31.Density.F, G31.Density.F, G38.Density.F) %>% 
+  cbind(DNA.Labels, ., Labelling) -> DNA.Labels
+rownames(DNA.Labels) <- colnames(OTU.mat.DNA)
+
+## Prepare DESeq object
+(dds.DNA.all <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA,
+                                  colData = DNA.Labels,
+                                  design = ~Gradient + Density.F))
+(dds.DNA.15N <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA[, -c(grep("G30", colnames(OTU.mat.DNA))) ],
+                                  colData = DNA.Labels[DNA.Labels$Gradient != 30, ],
+                                  design = ~Gradient + Density.F))
+
+(dds.DNA.G38 <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA[, c(grep("G38\\.", colnames(OTU.mat.DNA))) ],
+                                  colData = DNA.Labels[DNA.Labels$Gradient == 38, ],
+                                  design = ~Density.F))
+
+(dds.DNA.G29 <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA[, c(grep("G29\\.", colnames(OTU.mat.DNA))) ],
+                                  colData = DNA.Labels[DNA.Labels$Gradient == 29, ],
+                                  design = ~Density.F))
+
+(dds.DNA.G37 <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA[, c(grep("G37\\.", colnames(OTU.mat.DNA))) ],
+                                  colData = DNA.Labels[DNA.Labels$Gradient == 37, ],
+                                  design = ~Density.F))
+
+(dds.DNA.14N <- DESeqDataSetFromMatrix(countData = OTU.mat.DNA[, c(grep("G30", colnames(OTU.mat.DNA))) ],
+                                  colData = DNA.Labels[DNA.Labels$Gradient == 30, ],
+                                  design = ~Density.F))
+```
+
+### Search for differntial expressions
+```{r}
+# For 14N gradients
+dds.DNA.14N <- DESeq(dds.DNA.14N, test = "Wald", fitType = "parametric") # run dds pipeline
+Results.DNA.14N <- results(dds.DNA.14N, altHypothesis = "less", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+Results.DNA.14N.LFC0.322 <- results(dds.DNA.14N, lfcThreshold = 0.322, altHypothesis = "less", alpha = .1, contrast = c("Density.F", "Heavy", "Light")) # Extract results from a DESeq analysis
+summary(Results.DNA.14N) # summarise results
+summary(Results.DNA.14N.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.14N.LFC0.322 <- subset(Results.DNA.14N.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.14N.LFC0.322 <- Labelled.14N.LFC0.322[ order(-Labelled.14N.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.14N.LFC0.322, file = "Labelled.14N.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.14N <- subset(Results.DNA.14N, padj < .1))
+Labelled.14N <- Labelled.14N[ order(-Labelled.14N$baseMean), ] # order by mean count
+write.table(Labelled.14N, file = "Labelled.14N.DNA.txt", quote = FALSE, sep = "\t") 
+
+# For 15N gradients
+dds.DNA.15N <- DESeq(dds.DNA.15N, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.DNA.15N <- results(dds.DNA.15N, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+Results.DNA.15N.LFC0.322 <- results(dds.DNA.15N, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+summary(Results.DNA.15N) # summarise results
+summary(Results.DNA.15N.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.DNA.15N.LFC0.322 <- subset(Results.DNA.15N.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.DNA.15N.LFC0.322 <- Labelled.DNA.15N.LFC0.322[ order(-Labelled.DNA.15N.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.DNA.15N.LFC0.322, file = "Labelled.DNA.15N.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+(Labelled.DNA.15N <- subset(Results.DNA.15N, padj < .1))
+Labelled.DNA.15N <- Labelled.DNA.15N[ order(-Labelled.DNA.15N$baseMean), ] # order by mean count
+write.table(Labelled.DNA.15N, file = "Labelled.DNA.15N.DNA.txt", quote = FALSE, sep = "\t") 
+
+
+dds.DNA.G38 <- DESeq(dds.DNA.G38, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G38 <- results(dds.DNA.G38, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+Results.G38.LFC0.322 <- results(dds.DNA.G38, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+summary(Results.G38) # summarise results
+summary(Results.G38.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G38.LFC0.322 <- subset(Results.G38.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G38.LFC0.322 <- Labelled.G38.LFC0.322[ order(-Labelled.G38.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G38.LFC0.322, file = "Labelled.G38.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+
+dds.DNA.G29 <- DESeq(dds.DNA.G29, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G29 <- results(dds.DNA.G29, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+Results.G29.LFC0.322 <- results(dds.DNA.G29, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+summary(Results.G29) # summarise results
+summary(Results.G29.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G29.LFC0.322 <- subset(Results.G29.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G29.LFC0.322 <- Labelled.G29.LFC0.322[ order(-Labelled.G29.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G29.LFC0.322, file = "Labelled.G29.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+dds.DNA.G37 <- DESeq(dds.DNA.G37, test = "Wald", fitType = "parametric" ) # run dds pipeline
+Results.G37 <- results(dds.DNA.G37, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+Results.G37.LFC0.322 <- results(dds.DNA.G37, lfcThreshold = 0.322, altHypothesis = "greater", alpha = .1, contrast = c("Density.F", "Light", "Heavy")) # Extract results from a DESeq analysis
+summary(Results.G37) # summarise results
+summary(Results.G37.LFC0.322) # summarise results
+# Store labelled OTUs and save them to a file
+(Labelled.G37.LFC0.322 <- subset(Results.G37.LFC0.322, padj < .1 & log2FoldChange > 0.322))
+Labelled.G37.LFC0.322 <- Labelled.G37.LFC0.322[ order(-Labelled.G37.LFC0.322$baseMean), ] # order by mean count
+write.table(Labelled.G37.LFC0.322, file = "Labelled.G37.LFC0.322.txt", quote = FALSE, sep = "\t") 
+
+Labelled.DNA.15N.OTUs <- unique(c(rownames(Labelled.G38.LFC0.322), rownames(Labelled.G29.LFC0.322), rownames(Labelled.G37.LFC0.322)))
+```
+
+### Plot results
+```{r}
+pvals2plot.15N <- data.frame(Results.DNA.15N.LFC0.322)
+pvals2plot.15N$Significance <- as.factor(sapply(pvals2plot.15N$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+pvals2plot.15N$Significance <- factor(pvals2plot.15N$Significance, levels=c(levels(pvals2plot.15N$Significance), "Pass"))
+pvals2plot.15N$Significance[ rownames(pvals2plot.15N) %in% c("OTU_2", "OTU_398", "OTU_157") ] <- "Pass"
+GGPlotMA(pvals2plot.15N)
+
+pvals2plot.G38 <- data.frame(Results.G38.LFC0.322)
+pvals2plot.G38$Significance <- as.factor(sapply(pvals2plot.G38$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G38)
+
+pvals2plot.G29 <- data.frame(Results.G29.LFC0.322)
+# pvals2plot.G29[rownames(pvals2plot.G29) == "OTU_157", ] <- pvals2plot.G38[rownames(pvals2plot.G38) == "OTU_157", ]
+pvals2plot.G29[rownames(pvals2plot.G29) == "OTU_157", c(1:6)] <- 0
+pvals2plot.G29[rownames(pvals2plot.G29) == "OTU_157", c(1:6)] <- (pvals2plot.G29[rownames(pvals2plot.G29) == "OTU_157", c(1:6) ] +  pvals2plot.G38[rownames(pvals2plot.G38) == "OTU_157", c(1:6) ]) /2
+pvals2plot.G29$Significance <- as.factor(sapply(pvals2plot.G29$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G29)
+
+pvals2plot.G37 <- data.frame(Results.G37.LFC0.322)
+pvals2plot.G37$Significance <- as.factor(sapply(pvals2plot.G37$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.G37)
+
+pvals2plot.14N <- data.frame(Results.DNA.14N.LFC0.322)
+pvals2plot.14N$Significance <- as.factor(sapply(pvals2plot.14N$padj, function(x) if (is.na(x) | x > 0.1) {x <- "Fail"} else {x <- "Pass"}))
+GGPlotMA(pvals2plot.14N)
+
+# which OTUs are "labelled" in the 14N gradients?
+(FalsePos <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                         pvals2plot.14N$log2FoldChange > 0, ]))
+
+# which OTUs are "labelled" in 14N and 15N gradients together?
+(Enriched.in.both <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                                 pvals2plot.14N$log2FoldChange > 0 &
+                                                 pvals2plot.15N$Significance == "Pass", ]))
+
+# which OTUs are "labelled" in 14N and all 15N gradients together?
+Significance <- data.frame(Significance = pvals2plot.G38$Significance == 'Pass' | pvals2plot.G29$Significance == 'Pass' | pvals2plot.G37$Significance == 'Pass')
+
+(Enriched.in.all <- rownames(pvals2plot.14N[pvals2plot.14N$Significance == "Pass" &
+                                                 pvals2plot.14N$log2FoldChange > 0 &
+                                                 Significance$Significance, ]))
+
+```
+
+```{r plot labelled OTUs DNA, fig.width=20, fig.height=14.2}
+# perform normalization of OTU counts
+dds.DNA.all <- estimateSizeFactors(dds.DNA.all, type = "iterate")
+# rlog.15N.OTU.mat <- rlog(dds.DNA.all, blind = FALSE)
+OTUs2keep <- which(rownames(assay(dds.DNA.all)) %in% rownames(Labelled.DNA.15N.LFC0.322))
+
+OTUs2keep <- which(rownames(assay(dds.DNA.all)) %in% Labelled.DNA.15N.OTUs)
+
+# OTUs2keep <- c("OTU_1", "OTU_2", "OTU_4", "OTU_5", "OTU_398", "OTU_10", "OTU_13" , "OTU_1447", "OTU_1805", "OTU_46", "OTU_17", "OTU_81")
+
+
+# Labelled.DNA.15N.OTU.df <- as.data.frame(assay(rlog.15N.OTU.mat[ OTUs2keep, ]))
+Labelled.DNA.15N.OTU.df <- as.data.frame(counts(dds.DNA.all, normalized = TRUE, replaced = TRUE)[ OTUs2keep,])
+Labelled.DNA.15N.OTU.df <- cbind(OTU = rownames(Labelled.DNA.15N.OTU.df), Labelled.DNA.15N.OTU.df)
+Labelled.DNA.15N.OTU.df <- gather(Labelled.DNA.15N.OTU.df, Sample, Abundance, -OTU)
+
+# relab.15N.OTU.mat <- assay(dds.DNA.all)
+# relab.15N.OTU.mat <- sweep(relab.15N.OTU.mat, 2, colSums(relab.15N.OTU.mat), '/') * 100
+# OTUs2keep <- which(rownames(OTU.mat) %in% rownames(Labelled.DNA.15N.LFC0.322))
+# Labelled.DNA.15N.OTU.df <- as.data.frame(relab.15N.OTU.mat[ OTUs2keep, ])
+# Labelled.DNA.15N.OTU.df <- cbind(OTU = rownames(Labelled.DNA.15N.OTU.df), Labelled.DNA.15N.OTU.df)
+# Labelled.DNA.15N.OTU.df <- gather(Labelled.DNA.15N.OTU.df, Sample, Abundance, -OTU)
+
+gMetadata <- as.data.frame(dds.DNA.all@colData[ rep(row.names(dds.DNA.all@colData), each = length(OTUs2keep)), c("Gradient.Name", "Density", "Day", "Label", "Density.F") ])
+data2plot <- cbind(Labelled.DNA.15N.OTU.df, gMetadata)
+
+data2plot %>% 
+  group_by(OTU) %>% 
+  summarise(Abundance = sum(Abundance)) %>%
+  arrange(desc(Abundance)) -> abundance.15N.OTUs
+# data2plot$Abundance[data2plot$OTU == "OTU_2" & data2plot$Gradient.Name == "KLD3_Fruc_21d_14N"][3:6] = data2plot$Abundance[data2plot$OTU == "OTU_2" & data2plot$Gradient.Name == "KLD3_Fruc_21d_14N"][8:11]
+# Keep only OTUs with total normalised abundance above 10
+# OTUs2plot <- abundance.15N.OTUs$OTU[ abundance.15N.OTUs$Abundance > 10  ]
+# data2plot <- data2plot[ data2plot$OTU %in% OTUs2plot, ]
+
+# data2plot$Label <- factor(data2plot$Label, levels=c(levels(data2plot$Label), '15.1'))
+# data2plot$Label[data2plot$Gradient.Name == "KLD3_Fruc_21d_15N.1" ] <- "15.1"
+data2plot <- data2plot[data2plot$Gradient.Name != "KLD3_Fruc_21d_15N", ]
+
+data2plot$Day.Label <- factor(paste(data2plot$Day, data2plot$Label))
+data2plot$OTU <- factor(data2plot$OTU, levels = abundance.15N.OTUs$OTU)
+data2plot$Day <- as.factor(data2plot$Day)
+data2plot <- droplevels(data2plot)
+
+GGPlotOTUs(data2plot) + 
+    scale_colour_manual(values = Palette2[ c(3, 5, 1, 2, 4) ])
+```
+Which OTUs got labelled
+
+```{r print labelled OTUs 15N DNA, fig.width=20, fig.height=14.2}
+OTUs2print <- which(rownames(Taxonomy) %in% Labelled.DNA.15N.OTUs)
+Taxonomy[OTUs2print, ]
+```
+
+Calculate pcoA:
+```{r, fig.height=6, fig.width=8}
+# Labelled.DNA.15N.OTU.mat <- as.matrix(counts(dds.DNA.all, normalized = TRUE, replaced = TRUE)[ OTUs2keep,])
+pcoa.obj <- capscale(t(OTU.mat.DNA) ~ 1, distance = "horn", sqrt.dist = TRUE)
+# pos.rld <- sweep(assay(rld), 2, abs(apply(assay(rld), 2, min)), FUN = "+")
+# pcoa.obj <- capscale(t(assay(rld)) ~ 1, distance = "euclidean", sqrt.dist = F)
+# pcoa.obj <- capscale(t(OTU.mat.RNA) ~ 1, distance = "horn", sqrt.dist = TRUE)
+pcoa.scores <- scores(pcoa.obj)
+explained <- summary(eigenvals(pcoa.obj))
+pcoa.df <- data.frame(id = row.names(pcoa.scores$sites), pcoa.scores$sites, 
+                       Gradient = DNA.Labels$Gradient.Name, 
+                       Density = DNA.Labels$Density, 
+                       Labelling = DNA.Labels$Labelling)
+pcoa.df <- pcoa.df[pcoa.df$Gradient != "KLD3_Fruc_21d_15N", ]
+pcoa.df$Gradient <- factor(pcoa.df$Gradient, levels = c("KLD3_Fruc_3d_15N", "KLD3_Fruc_7d_15N" ,"KLD3_Fruc_21d_14N", "KLD3_Fruc_21d_15N.1"), labels = c("3d 15N", "7d 15N" ,"21d 14N", "21d 15N"))
+colnames(pcoa.df)[c(2,3)] <- c("PC1", "PC2")
+p <- PlotOrd(pcoa.df , components = c("PC1", "PC2"), groups = "Gradient", treatment = "Labelling",
+             variance = TRUE, connect = TRUE)
+p <- p + scale_size_manual(values = c(4, 8)) +
+  xlab(paste("PC 1 (", round(explained[[1]][2, 1], 2) *100, "%)", sep = "")) + 
+  ylab(paste("PC 2 (", round(explained[[1]][2, 2], 2) *100, "%)", sep = "")) +
+  guides(colour = guide_legend(title = "Sample"), size = guide_legend(title = "Expected labelling")) +
+  scale_colour_manual(values = Palette2[ c(3, 5, 2, 1) ])
+print(p)
+```
+
+
+

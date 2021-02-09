@@ -1,0 +1,1136 @@
+---
+title: "Anaerobic CUE"
+subtitle: "05 Differential abundance modelling"
+author: "Roey Angel"
+email: "roey.angel@bc.cas.cz"
+date: "`r Sys.Date()`"
+bibliography: references.bib
+link-citations: yes
+csl: fems-microbiology-ecology.csl
+output:
+ rmarkdown::html_document:
+  toc: true
+  toc_float: true
+  keep_md: true
+  number_sections: false
+  highlight: "pygments"
+  theme: "flatly"
+  dev: "png"
+  df_print: "kable"
+  fig_caption: true
+  code_folding: "show"
+---
+
+```{r libraries, include=F}
+# .libPaths(c('~/R/library', .libPaths())) # Uncomment if you have no write access to R path
+library(extrafont) # ?Tools for using fonts, CRAN v0.17
+library(tidyverse) # Easily Install and Load the 'Tidyverse', CRAN v1.3.0
+library(scales) # Scale Functions for Visualization, CRAN v1.1.1
+library(RColorBrewer)
+library(ggtext)
+library(magrittr) # A Forward-Pipe Operator for R, CRAN v2.0.1
+library(phyloseq) # Handling and analysis of high-throughput microbiome census data, Bioconductor v1.32.0
+library(speedyseq) # Faster implementations of phyloseq functions, [github::mikemc/speedyseq] v0.5.3.9001
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax
+library(vegan) # Community Ecology Package, CRAN v2.5-7
+library(Biostrings) # Efficient manipulation of biological strings, Bioconductor v2.56.0
+library(svglite) # An 'SVG' Graphics Device, CRAN v1.2.3.2 
+library(HTSSIP) # High Throughput Sequencing of Stable Isotope Probing Data Analysis, CRAN v1.4.1
+library(parallel) # Support for Parallel computation in R, CRAN v4.0.3
+library(ggtext) # Improved Text Rendering Support for 'ggplot2', CRAN v0.1.1
+library(DESeq2) # Differential gene expression analysis based on the negative binomial distribution, Bioconductor v1.28.1
+library(patchwork) 
+library(ggtree)
+library(ggtreeExtra)
+library(visdat)
+library(glue)
+library(viridis)
+```
+
+```{r style settings, echo=F, message=F, warning=F, results="asis", cache=T}
+options(width = 90, knitr.table.format = "html") 
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  cache = TRUE,
+  dev = "png",
+  fig.ext = "png",
+  dpi = 600,
+  #  fig.width = 12,
+  #  fig.height = 8,
+  cache.path = "05_Diff_abund_cache/",
+  fig.path = "05_Diff_abund_figures/"
+)
+f_name <- "DejaVu Sans" #sub("\\s//", "", f_name)
+f_size <- 12
+font_import(pattern = "DejaVuSans\\.", prompt = FALSE)
+loadfonts() # registers fonts
+theme_set(theme_bw(base_size = f_size, base_family = f_name))
+```
+
+```{r functions, include=F}
+#' scale_libraries
+#'
+#' Scales libraries by:
+#' 1) Taking proportions
+#' 2) Multiplying by a given library size of n
+#' 3) Rounding
+#'
+#' @param ps_obj (Required) A phyloseq object
+#'
+#' @param n (Optional) Library size to scale to (Default: min(sample_sums(physeq)))
+#'
+#' @param round (Optional) Rounding method. Either "floor" (default) or "round"
+#'
+#' @author https://github.com/DenefLab/MicrobeMiseq/blob/master/R/miseqR.R
+#' @return A phyloseq objectn ordered data frame with the columns: ASV names, taxonomic rank names and abundance
+#' @usage scale_libraries(Ps_obj, n = min(sample_sums(physeq)), round = "floor")
+#' @export
+#'
+#'
+
+#' plot_lib_dist
+#' Plot distribution of amplicon library sizes as a histogram
+#'
+#' @param Ps_obj (Required) A phyloseq object
+#'
+#' @author Roey Angel (https://github.com/roey-angel)
+#' @return A ggplot object
+#' @usage plot_lib_dist(Ps_obj)
+#' @export
+
+plot_lib_dist <- function(Ps_obj){
+  require(ggplot2)
+  require(scales)
+  data.frame(sum = sample_sums(Ps_obj)) %>%
+  ggplot(aes(x = sum)) +
+    geom_histogram(color = "black",
+                   fill = "indianred") +
+    theme(panel.grid.minor = element_blank()) +
+    labs(x = "Library size" , y = "Sample count") ->
+    lib_dist_plot
+  return(lib_dist_plot)
+}
+
+scale_libraries <- function(physeq, n = min(sample_sums(physeq)), round = "floor") {
+  require(phyloseq)
+
+  # Transform counts to n
+  physeq.scale <- transform_sample_counts(physeq,
+    function(x) {(n * x/sum(x))}
+  )
+
+  # Pick the rounding functions
+  if (round == "floor") {
+    otu_table(physeq.scale) <- floor(otu_table(physeq.scale))
+  } else if (round == "round") {
+    otu_table(physeq.scale) <- round(otu_table(physeq.scale), digits = 0)
+  }
+
+  # Prune taxa and return new phyloseq object
+  physeq.scale <- prune_taxa(taxa_sums(physeq.scale) > 0, physeq.scale)
+  return(physeq.scale)
+}
+
+#' phyloseq_to_deseq2_safe
+#' A wrapper for phyloseq::phyloseq_to_deseq2() but ensures that the right reference level is used
+#'
+#' phyloseq_to_deseq2() converts a phyloseq object to a deseq2 object. However for DESeq2 to work properly the reference level in the factor being tested needs to be the first level in the factor (R's default is alphabetical)
+#'
+#' @author Roey Angel (https://github.com/roey-angel)
+#' @usage physeq_merge_samples(ps_obj, grouping_name = "Description")
+#' @param ps (Required). A phyloseq object that has sample indices.
+#'
+#' @param test_condition (Required). A single character string matching a variable name in
+#' the corresponding sample_data of \code{ps}.
+#'
+#' @param ref_level (Required). A single character string to be set as the reference level for DESeq2 (must be a factor level of test_condition)
+#'
+#' @return A DESeq2 object
+#'
+#' @seealso \code{\link{phyloseq::phyloseq_to_deseq2}}
+#'
+#' @export
+
+## TODO:
+
+phyloseq_to_deseq2_safe <- function(ps = ps_obj, test_condition = "Density.zone", ref_level = "Light") {
+  require(magrittr)
+  require(forcats)
+  require(phyloseq)
+
+  # critical for DESeq2 that the reference is the first level!!
+  sample_data(ps)[[test_condition]] %<>% fct_relevel(., ref_level)
+  expr <- as.formula(paste("~", test_condition))
+  phyloseq_to_deseq2(ps, expr) %>%
+    return(.)
+}
+
+mark_rare_taxa <- function(ps_obj, rank = "Phylum", rare_thresh = 0.01){
+  require(dplyr)
+  require(phyloseq)
+  require(speedyseq)
+  
+  # glomerate to the "Rank" level
+  ps_obj_glom <- tax_glom(ps_obj, 
+                          rank, 
+                          NArm = TRUE) 
+  
+  ps_obj_glom_rel <- transform_sample_counts(ps_obj_glom, 
+                                             function(x) x / sum(x)) # transform to rel. ab.
+  
+  # convert to df
+  ps_obj_df <- speedyseq::psmelt(ps_obj_glom_rel) # generate a df
+  ps_obj_df %<>%
+    mutate(Rank = as.character(!!sym(rank)))
+   
+  # group dataframe by Phylum, calculate sum rel. abundance
+  ps_obj_df %>%
+    group_by(!!sym(rank)) %>%
+    summarise(Sum = sum(Abundance) / nsamples(ps_obj)) %>% 
+    filter(Sum < rare_thresh) %>% # find Taxa whose mean rel. abund. is less than thresh
+    pull(rank) -> 
+    Rare_phyla 
+  
+  # change their name to "Rare"
+  tax_table(ps_obj) %<>% 
+    as.data.frame() %>%  
+    rownames_to_column("OTU") %>% 
+    mutate(across(rank, 
+                  ~if_else(!!sym(rank) %in% Rare_phyla, "Rare", !!sym(rank)))) %>% 
+    column_to_rownames("OTU") %>% 
+    as.matrix() %>% 
+    tax_table()
+    return(ps_obj)
+}
+
+order_taxa <- function(ps_obj, rank = "Phylum", rel_abund = TRUE){
+  require(dplyr)
+  require(phyloseq)
+  require(speedyseq)
+  
+  ps_obj %>%
+    tax_glom(taxrank = rank) %>%                     # agglomerate at 'Rank' level
+    {if(rel_abund) transform_sample_counts(., function(x) x / sum(x)) else .} %>% # convert to rel abundance 
+    psmelt() %>%                                        # Melt to long format
+    arrange(rank) %>%                                  # arrange by 'Rank'
+    group_by(across(rank)) %>% 
+    summarise(Abundance = sum(Abundance)) %>%
+    arrange(desc(Abundance)) %>% 
+    mutate(across(rank, ~factor(., levels = fct_inorder(.)))) %>%  
+    mutate(across(rank, ~fct_relevel(., "Rare", after = Inf))) ->
+    Taxa_order 
+  
+  return(Taxa_order)
+}
+
+prep_DESeq_data <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC = LFC_thresh, rank = "Phylum", rare_thresh = 0.01) {
+  require(dplyr)
+  require(magrittr)
+  require(phyloseq)
+  
+  if (!is.list(DESeq_results)) {DESeq_results <- list(DESeq_results)} # convert to list if it is not (to support a vectorised run of DESEq2)
+  
+  # mark rare phyla
+  ps_obj %>% mark_rare_taxa(., rank = rank, rare_thresh = rare_thresh) -> ps_obj
+  
+  # group dataframe by OTU, calculate median rel. abundance
+  ps_obj %>%
+    transform_sample_counts(., function(x) x / sum(x) * 100) %>% 
+    taxa_sums(.) %>% 
+    map_dbl(~(.x / nsamples(ps_obj))) %>% 
+    enframe(name = "OTU", value = "Mean abundance (%)") -> 
+    baseMean
+  
+  Taxa_order <- order_taxa(ps_obj)
+  
+  DESeq_results[[1]] %>% 
+    as.data.frame() %>% 
+    rownames_to_column(var = "OTU") %>% 
+    left_join(., baseMean, by = "OTU") %>% # add mean abundance to results table
+    bind_cols(., as(tax_table(ps_obj)[taxa_names(ps_obj) %in% .$OTU, ], "data.frame")) %>% # add taxnomy
+    mutate(across(rank, ~factor(., levels = levels(Taxa_order$Phylum)))) %>% # order taxa by abundance
+    mutate(Significance = if_else(padj < sig_level &
+                            !is.na(padj) &
+                            abs(lfcSE) > LFC,
+                            "Pass",
+                            "Fail"))  %>% 
+    mutate(ymin = if_else(Significance == "Pass", log2FoldChange - lfcSE, NA_real_),
+           ymax = if_else(Significance == "Pass", log2FoldChange + lfcSE, NA_real_)) -> # add error
+    DESeq2plot
+
+  return(DESeq2plot)
+}
+
+plot_DESeq <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC = LFC_thresh, rank = "Phylum", rare_thresh = 0.01, OTU_labels = FALSE, Y_val = "log2FoldChange", plot_title = "") {
+  require(ggplot2)
+  require(ggrepel)
+  require(ggtext)
+  
+  DESeq2plot <- prep_DESeq_data(DESeq_results, ps_obj, sig_level, LFC, rank, rare_thresh)
+  
+  DESeq_summary <- tibble(Label = c(paste0("⬆", 
+                                           sum(DESeq2plot$log2FoldChange > 0 & 
+                                                 DESeq2plot$Significance == "Pass"),
+                                           " (", nrow(DESeq2plot), ")")))
+  
+  pos <- position_jitter(width = 0.3, seed = 1)
+  
+  p <-
+    ggplot(DESeq2plot) +
+    geom_point(aes(
+      x = !!sym(rank),
+      y = !!sym(Y_val),
+      colour = !!sym("Significance"),
+      size = !!sym("Mean abundance (%)")),
+      position = pos,
+      alpha = 2 / 3,
+      stroke = 0) +
+    geom_linerange(aes(x = !!sym(rank),
+                       y = !!sym(Y_val),
+                       ymin = ymin,
+                       ymax = ymax,
+                       colour = !!sym("Significance")),
+                   position = pos,
+                   alpha = 1/5, 
+                   show.legend = FALSE) +
+    geom_text(
+      data    = DESeq_summary,
+      mapping = aes(x = Inf, y = Inf, label = Label),
+      hjust   = 1.1,
+      vjust   = 1.6
+    ) +
+    labs(x = "", y = "Log<sub>2</sub> fold change", title = plot_title) +
+    labs(colour = paste("Significance at \n p <", sig_level), size = "Mean abundance (%)") +
+    theme_grey(base_size = f_size, base_family = f_name) +
+    theme(axis.text.x = element_text(angle = 45.0, vjust = 1, hjust = 1),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          axis.title.y = element_markdown()) +
+    guides(colour = guide_legend(override.aes = list(size = 5))) +
+    # scale_colour_manual(values = c(ggpomological:::pomological_base[[7]], ggpomological:::pomological_palette[[1]])) +
+    scale_colour_manual(values = c("#2b323f", "#c03728")) +
+    scale_size_continuous(name = "Mean abundance (%)",
+                          range = c(2, 8),
+                          breaks = c(round(seq(min(DESeq2plot$`Mean abundance (%)`), max(DESeq2plot$`Mean abundance (%)`), length.out = 5), 1)))
+  
+  if (OTU_labels) {
+    p <- p + geom_label_repel(
+      aes(x = !!sym(rank), y = !!sym(Y_val)),
+      size = 6,
+      label = sub("Seq_([0-9]+)", "\\1", pull(DESeq2plot[DESeq2plot$Significance == "Pass", ], "OTU")),
+      position = pos,
+      data = DESeq2plot[DESeq2plot$Significance == "Pass", ],
+      # nudge_x = 0.4,
+      colour = "#4a4a4a",
+      label.size = NA, 
+      alpha = 0.75, 
+      # fontface = 'bold',
+      box.padding = 0.80,
+      point.padding = 0.5
+    )
+  }
+  return(p)
+}
+
+plot_otus_by_density <- function(ps_obj = Ps_obj_SIP_noTime_l[[1]], 
+                                 ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo", Oxygen == "Anoxic"),
+                                 ASV_colours = ggpomological:::pomological_palette[c(2, 4, 3, 1)],
+                                 X_val = "Density..g.ml.1.", 
+                                 Y_val = "Abundance", 
+                                 shape_val = "Label..13C.",
+                                 colour_val = "Hours",
+                                 topN = 30){
+  require(ggpomological)
+  require(dplyr)
+  require(phyloseq)
+  require(speedyseq)
+  
+  ps_obj %>% 
+    transform_sample_counts(function(x) x/sum(x) * 100) %>% 
+    prune_taxa(ASV2plot$ASV, .) %>% 
+    prune_taxa(unique(arrange(ASV2plot, desc(log2FoldChange))$ASV)[1:topN], .) %>% 
+    # prune_taxa(names(sort(taxa_sums(.), TRUE)[1:topN]), .) %>%
+    psmelt() ->
+    Incorporators_df
+  
+  ggplot(Incorporators_df, aes(x = !!sym(X_val),
+                               y = !!sym(Y_val),
+                               shape = !!sym(shape_val),
+                               colour = as.factor(!!sym(colour_val)))) + 
+    scale_colour_manual(values = ASV_colours) +
+    # scale_colour_pomological() +
+    geom_point(alpha = 1/2, size = 3) + 
+    geom_line() +
+    facet_wrap("OTU", scales = "free_y") +
+    guides(colour = guide_legend(title = "Hours"), 
+           shape = guide_legend(title = "Label <sup>13</sup>C")) +
+    labs(x = "Density (g ml<sup>-1</sup>)") +
+    theme(legend.title = element_markdown(),
+          axis.title.x = element_markdown())
+  
+  
+}
+
+plot_ggtree <- function(ps_obj, 
+                        rank = "Phylum",
+                        subrank = "Order",
+                        Taxa2plot = "Actinobacteriota"){
+  require(magrittr)
+  require(ggplot2)
+  require(ggtree)
+  require(RColorBrewer)
+  
+  # subset (phyloseq subset_taxa doesn't support quasiquotation)
+  ps_obj %>% 
+    tax_table() %>%
+    as("data.frame") %>%
+    rownames_to_column("ASV") %>% 
+    filter(., !!sym(rank) == Taxa2plot) %>% 
+    column_to_rownames("ASV") %>% 
+    as.matrix() %>% 
+    tax_table() ->
+    tax_table(ps_obj)
+  
+  tax_table(ps_obj) %>% 
+    as("data.frame") %>% 
+    pull(subrank) %>% 
+    unique() %>% 
+    length() ->
+    n_colours
+
+  p_tree <- ggtree(ps_obj,
+                       layout = "rectangular") +
+    geom_tippoint(aes(colour = !!sym(subrank)), 
+                  size = 3, 
+                  alpha = 3/4) +
+    scale_color_manual(subrank, 
+                       values = colorRampPalette(brewer.pal(11, "Spectral"))(n_colours)) +
+    # geom_tiplab(hjust=-.3, size = 2) +
+    geom_treescale() +
+    theme_tree(legend.position = "bottom") +
+    guides(colour = guide_legend(nrow = 3, 
+                                 byrow = TRUE)) +
+    # scale_colour_manual(values = mycolours) +
+    ggtitle(Taxa2plot)
+  return(p_tree)
+}
+
+plot_ggtree_heatmap <- function(ggtree, 
+                                ps_obj,
+                                DESeq_res_df,
+                                rank = "Phylum",
+                                Taxa2plot = "Actinobacteriota",
+                                sample_names = "Site_Oxygen_Hours",
+                                sample_colours = "black"){
+  require(dplyr)
+  require(ggplot2)
+  require(viridis)
+  
+  ps_obj %>% 
+    tax_table() %>%
+    as("data.frame") %>%
+    rownames_to_column("ASV") %>% 
+    filter(., !!sym(rank) == Taxa2plot) %>% 
+    column_to_rownames("ASV") %>% 
+    as.matrix() %>% 
+    tax_table() ->
+    tax_table(ps_obj)
+  
+  ggtree$data %>% 
+    arrange(y, label) %>% 
+    pull(label) %>% 
+    unique() -> tip_order
+  
+  DESeq_res_df %>% 
+    right_join(., tibble(ASV = taxa_names(ps_obj)), 
+               by  = "ASV") ->
+    DDESeq_res_df_sub
+  
+  colours <- sample_colours
+  labels <- glue("<i style='colours:{colours}'>{col_order}</i>")
+  
+  DDESeq_res_df_sub %>% 
+    # filter(Labelled == "Labelled") %>% 
+    mutate(log2FoldChange = ifelse(Labelled == "Labelled", log2FoldChange, NA_integer_)) %>% # retain values for labelled ASVs only
+    select(ASV, !!sym(sample_names), log2FoldChange) %>% 
+    mutate(across(ASV, ~factor(., levels = tip_order))) %>%
+    complete(., !!sym(sample_names), ASV) %>% 
+    ggplot(., aes(!!sym(sample_names), ASV, fill = log2FoldChange)) + 
+    geom_tile(colour = "white",
+              size = 0.25) +
+    scale_x_discrete(expand = c(0,0),
+                     name = NULL,
+                     labels = labels) + 
+    scale_y_discrete(expand = c(0,0)) +
+    # scale_fill_gradient(low = "gray", high = "darkred") +
+    scale_fill_viridis(na.value = "gray95",
+                       option = "inferno") +
+    guides(fill = guide_legend(title = "Log<sub>2</sub> fold change")) +
+    theme(axis.text.x = element_markdown(size = 10,
+                                         angle = 45, 
+                                         vjust = 1, 
+                                         hjust = 1),
+          panel.grid.major = element_blank(),
+          axis.title =  element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          legend.title = element_markdown(size = 10),
+          legend.position = "bottom") ->
+    HM_plot
+  
+  return(HM_plot)
+  
+}
+```
+
+## Differential abundance modelling of SIP gradients
+Here we attempt to detect ASVs that were labelled with 13C in our soil incubations using differential abundance modelling.
+Using DESeq2 [@love_moderated_2014] we compare the relative abundance of each ASV in the fractions where ^13^C-labelled RNA is supposed to be found (>1.795 g ml^-1^; AKA 'heavy' fractions) to the fractions where unlabelled RNA is supposed to be found (<1.795 g ml^-1^; AKA 'light' fractions)
+
+### Setting general parameters:
+```{r general parameters, cache=T}
+set.seed(2021)
+alpha_thresh <- 0.05
+LFC_thresh <- 0.26
+samples_prep_path <- "./"
+data_path <- "./DADA2_pseudo/"
+# Metadata_table <- "./AnCUE_Metadata_decontam.csv"
+# Seq_table <- "DADA2.seqtab_nochim_decontam.tsv"
+# Seq_file <- "DADA2.Seqs_decontam.fa"
+Ps_file <- "Ps_obj_decontam_filt3.Rds"
+Tree_file <- "./Tree/DADA2.Seqs_decontam_filtered.filtered.align.treefile"
+```
+
+### Read phyloseq object
+```{r load data, cache=T}
+# Load phylogenetic tree
+Tree <- read_tree(paste0(data_path, Tree_file))
+
+# load and merge  phyloseq object
+readRDS(paste0(data_path, Ps_file)) %>% 
+  merge_phyloseq(.,
+                 phy_tree(Tree)
+  ) -> Ps_obj_SIP
+```
+
+### Subset the dataset
+Because the DESeq2 models will be run on each gradient separately, we need to subset This is easily done using `HTSSIP::phyloseq_subset` [@youngblut_htssip_2018]
+```{r subset dataset, cache=T}
+
+test_expr_1 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == 'Unlabelled') | (Site == '${Site}'  & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
+params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
+                                   "Oxygen",
+                                   "Glucose",
+                                   "Label..13C."),
+                     "Label..13C. != 'Unlabelled'")
+Ps_obj_SIP_noTime_l <- phyloseq_subset(Ps_obj_SIP, params_1, test_expr_1) 
+# names(Ps_obj_SIP_noTime_l) %<>% 
+#   map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
+#   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
+#   map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
+
+test_expr_2 <- "(Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
+params_2 <- get_treatment_params(Ps_obj_SIP, c("Site", 
+                                   "Hours", 
+                                   "Oxygen",
+                                   "Glucose",
+                                   "Label..13C."))
+
+# Generate a list of subsetted phyloseq objects
+Ps_obj_SIP_byTime_l <- phyloseq_subset(Ps_obj_SIP, params_2, test_expr_2) 
+names(Ps_obj_SIP_byTime_l) %<>% 
+  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
+  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
+  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
+
+test_expr_3 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
+params_3 <- get_treatment_params(Ps_obj_SIP, c("Site", 
+                                   "Oxygen",
+                                   "Glucose",
+                                   "Label..13C."))
+
+# Generate a list of subsetted phyloseq objects
+Ps_obj_SIP_noTime_split_l <- phyloseq_subset(Ps_obj_SIP, params_3, test_expr_3) 
+names(Ps_obj_SIP_noTime_split_l) %<>% 
+  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
+  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
+  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
+```
+
+
+### Beta diversity analysis
+Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling)
+
+First let's built a joint model where 
+```{r beta div ord joint, cache=T}
+(mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+  data = as(sample_data(Ps_obj_SIP), "data.frame"),
+  permutations = 999
+))
+
+plot_lib_dist(Ps_obj_SIP)
+
+Ps_obj_SIP %>%
+  scale_libraries(round = "round") ->
+  Ps_obj_SIP_scaled
+  
+plot_lib_dist(Ps_obj_SIP_scaled)
+
+
+(mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+  data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
+  permutations = 999
+))
+
+
+(mod3 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+  data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
+  permutations = 999
+))
+
+Site_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Site"))
+permutest(Site_disp)
+plot(Site_disp)
+Oxygen_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Oxygen"))
+permutest(Oxygen_disp)
+plot(Oxygen_disp)
+Hours_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Hours"))
+permutest(Hours_disp)
+plot(Hours_disp)
+Density_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Density.zone"))
+permutest(Density_disp)
+plot(Density_disp)
+
+Ord <- ordinate(Ps_obj_SIP_scaled, "CAP", "horn", 
+                formula =  ~ Site * Oxygen * Hours * Density.zone)
+explained <- as.numeric(format(round(eigenvals(Ord)/sum(eigenvals(Ord)) * 100, 1), nsmall = 1))
+Ord_plt <- plot_ordination(Ps_obj_SIP, Ord, type = "samples", color = "Label..13C.", justDF = TRUE)
+
+p_ord_joint <- ggplot(Ord_plt) +
+  geom_point(aes(
+               x = CAP1,
+               y = CAP2,
+               color = Label..13C.,
+               size = Density..g.ml.1.,
+               shape = Oxygen
+             ), alpha = 2 / 3) +
+  guides(colour = guide_legend(title = "Labelling"), 
+         size = guide_legend(title = "Density (g ml<sup>-1</sup>)"),
+         shape = guide_legend(title = "Oxygen")) +
+  ggsci::scale_colour_locuszoom() +
+  # scale_colour_manual(values = Gradient.colours) +
+  # scale_fill_manual(values = Gradient.colours, guide = "none") +
+  labs(x = sprintf("CAP1 (%s%%)", explained[1]),
+  y = sprintf("CAP2 (%s%%)", explained[2])) +
+  coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
+   theme(legend.justification = "top",
+         legend.title = element_markdown(size = 11)
+         ) +
+  scale_size_continuous(breaks = c(seq(min(Ord_plt$Density..g.ml.1.), 
+                                       max(Ord_plt$Density..g.ml.1.), 
+                                       length.out = 5), 
+                                   1),
+                        range = c(0.1, 5)) +
+  facet_grid(Site ~ Hours) +
+  ggtitle("Joint analysis")
+print(p_ord_joint)
+```
+
+```{r beta div ord split by time, cache=T}
+Ord_l <- mclapply(Ps_obj_SIP_byTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_2))
+
+explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_2))
+
+bind_rows(map(seq(1, length(Ps_obj_SIP_byTime_l)), ~plot_ordination(Ps_obj_SIP_byTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
+  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
+  Ord_plt_time_df 
+
+p_ord_split_time <- ggplot(Ord_plt_time_df) +
+  geom_point(aes(
+               x = CAP1,
+               y = MDS1,
+               color = Label..13C.,
+               size = Density..g.ml.1.,
+               shape = Oxygen
+             ), alpha = 2 / 3) +
+  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
+  ggsci::scale_colour_locuszoom() +
+  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
+       # y = sprintf("CAP2 (%s%%)", explained[2])) +
+  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
+   theme(legend.justification = "top") +
+  facet_grid(Site ~ Hours) +
+  ggtitle("Split analysis (incl. time)")
+print(p_ord_split_time)
+```
+
+```{r beta div ord split no time, cache=T}
+Ord_l <- mclapply(Ps_obj_SIP_noTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_1))
+
+explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_1))
+
+bind_rows(map(seq(1, length(Ps_obj_SIP_noTime_l)), ~plot_ordination(Ps_obj_SIP_noTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
+  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
+  Ord_plt_df 
+
+p_ord_split_time <- ggplot(Ord_plt_time_df) +
+  geom_point(aes(
+               x = CAP1,
+               y = MDS1,
+               color = Label..13C.,
+               size = Density..g.ml.1.,
+               shape = Oxygen
+             ), alpha = 2 / 3) +
+  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
+  ggsci::scale_colour_locuszoom() +
+  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
+       # y = sprintf("CAP2 (%s%%)", explained[2])) +
+  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
+   theme(legend.justification = "top") +
+  facet_grid(Site ~ Oxygen) +
+  ggtitle("Split analysis (excl. time)")
+print(p_ord_split_time)
+```
+
+```{r DESeq2 models by time, cache=T}
+# generate a deseq object
+DESeq_obj_SIP_byTime_l <- mclapply(Ps_obj_SIP_byTime_l, 
+                                   function(x) {phyloseq_to_deseq2_safe(x, 
+                                                                        test_condition = "Density.zone", 
+                                                                        ref_level = "Light")}, 
+                                   mc.cores = nrow(params_2))
+
+
+# run dds pipeline
+DESeq_obj_SIP_byTime_l %<>% mclapply(., 
+                                     function(x) {DESeq(x, 
+                                                        test = "Wald", 
+                                                        fitType = "local")}, 
+                                     mc.cores = nrow(params_2)) # run dds pipeline
+
+# extract results from a DESeq analysis
+DESeq_res_SIP_byTime_l  <- mclapply(DESeq_obj_SIP_byTime_l, 
+                             function(x) {
+                               results(x, 
+                                       altHypothesis = "greater",
+                                       alpha = alpha_thresh, 
+                                       contrast = c("Density.zone", "Heavy", "Light"))}, # redundant if phyloseq_to_deseq2_safe() was used but doesn't hurt
+                             mc.cores = nrow(params_2)) 
+
+DESeq_res_SIP_byTime_LFC_l <- mclapply(DESeq_obj_SIP_byTime_l, 
+                                     function(x) {
+                                       results(x,
+                                               lfcThreshold = LFC_thresh,
+                                               altHypothesis = "greater",
+                                               alpha = alpha_thresh,
+                                               contrast = c("Density.zone", "Heavy", "Light"))}, # redundant if phyloseq_to_deseq2_safe() was used but doesn't hurt
+                                     mc.cores = nrow(params_2)) # Extract results from a DESeq analysis
+
+
+DESeq_res_SIP_byTime_LFC_shrink_l <- map(seq(length(DESeq_obj_SIP_byTime_l)), 
+                                             ~lfcShrink(DESeq_obj_SIP_byTime_l[[.x]],
+                                                         res = DESeq_res_SIP_byTime_LFC_l[[.x]],
+                                                         coef = "Density.zone_Heavy_vs_Light",
+                                                         type = "ashr"))
+names(DESeq_res_SIP_byTime_LFC_shrink_l) <- names(DESeq_res_SIP_byTime_LFC_l)
+
+# Compare
+plotMA(DESeq_res_SIP_byTime_l[[2]], ylim = c(-2,2))
+plotMA(DESeq_res_SIP_byTime_LFC_l[[2]], ylim = c(-2,2))
+plotMA(DESeq_res_SIP_byTime_LFC_shrink_l[[2]], ylim = c(-2,2))
+
+# summarise results (lfcShrink doesn't change the values)
+# map2(DESeq_res_SIP_byTime_l, print(names(DESeq_res_SIP_byTime_l)), ~summary(.x)) # summarise results
+for (i in seq(1, length(DESeq_res_SIP_byTime_l))) { # didn't manage with map
+  print(names(DESeq_res_SIP_byTime_l[i]))
+  summary(DESeq_res_SIP_byTime_l[[i]])
+}
+
+for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
+  print(names(DESeq_res_SIP_byTime_LFC_l[i]))
+  summary(DESeq_res_SIP_byTime_LFC_l[[i]])
+}
+
+# Store labelled OTUs and save them to a file
+# DESeq_res_SIP_byTime_l %>% 
+#   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
+#   map(., ~as.data.frame(.x)) %>% 
+#   map(., ~rownames_to_column(.x, "ASV")) %>% 
+#   bind_rows(., .id = "Comparison") %>% 
+#   arrange(Comparison, desc(baseMean)) %T>% 
+#   write_csv(., file = "DESeq2_byTime_a-0.05.txt") ->
+#   DESeq_res_SIP_byTime_df
+
+DESeq_res_SIP_byTime_LFC_l %>% 
+  map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
+  map(., ~as.data.frame(.x)) %>% 
+  map(., ~rownames_to_column(.x, "ASV")) %>% 
+  bind_rows(., .id = "Comparison") %>% 
+  arrange(Comparison, desc(baseMean)) %>% 
+  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") %T>% 
+  write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt") ->
+  DESeq_res_SIP_byTime_LFC_sig_df
+```
+
+```{r vis DES res, cache=T}
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  get_variable() %>% 
+  select_if(is.numeric) %>% 
+  vis_value()
+
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  get_variable() %>% 
+  select_if(is.numeric) %>% 
+  vis_cor()
+```
+
+```{r plot DESeq2 models, cache=T}
+# ps_obj <- Ps_obj_SIP
+# DESeq_results <- DESeq_res_SIP_byTime_LFC0.322_l[9]
+# plot_DESeq(DESeq_results, ps_obj, plot_title = names(DESeq_results))
+
+DESeq_plots <- lapply(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
+                        function(x) {plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[x],  
+                                                Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[x]))})
+
+
+(DESeq_plots[[6]] + 
+    theme(legend.position = "none") +
+    theme(axis.text.x = element_blank())) +
+  (DESeq_plots[[1]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[7]] + 
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[3]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[8]] + 
+     theme(legend.position = "none") +
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[4]] + 
+     theme(legend.position = "none") +
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank()) +
+     ylim(NA, 5)) +
+  (DESeq_plots[[9]] + 
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[2]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[10]] + 
+     theme(legend.position = "none")) +
+  (DESeq_plots[[5]] + 
+     theme(legend.position = "none", 
+           axis.title.y = element_blank())) + 
+  plot_layout(ncol = 2, guides = "collect") & 
+  theme(legend.position = 'bottom')
+
+  
+(DESeq_plots[[16]] + 
+    theme(legend.position = "none") +
+    theme(axis.text.x = element_blank())) +
+  (DESeq_plots[[11]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[17]] + 
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[13]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[18]] + 
+     theme(legend.position = "none") +
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[14]] + 
+     theme(legend.position = "none") +
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank())) +
+  (DESeq_plots[[19]] + 
+     theme(legend.position = "none",
+           axis.text.x = element_blank())) +
+  (DESeq_plots[[12]] + 
+     theme(legend.position = "none", 
+           axis.text.x = element_blank(), 
+           axis.title.y = element_blank()) +
+     ylim(-3, NA)) +
+  (DESeq_plots[[20]] + 
+     theme(legend.position = "none")) +
+  (DESeq_plots[[15]] + 
+     theme(legend.position = "none", 
+           axis.title.y = element_blank())) + 
+  plot_layout(ncol = 2, guides = "collect") & 
+  theme(legend.position = 'bottom')
+```
+
+```{r Plot incorporators, cache=T}
+plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[2]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo", Oxygen == "Oxic"))
+plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[1]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo", Oxygen == "Anoxic"))
+plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[4]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne", Oxygen == "Oxic"))
+plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[3]],
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne", Oxygen == "Anoxic"))
+```
+
+```{r Plot trees, cache=T}
+c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" )  ->
+  col_order
+
+DESeq_res_SIP_byTime_LFC_l %>% 
+  map(., ~as.data.frame(.x)) %>% 
+  map(., ~rownames_to_column(.x, "ASV")) %>% 
+  bind_rows(., .id = "Comparison") %>% 
+  filter(str_detect(Comparison, "Labelled")) %>% # remove unlabelled samples [c(-5, -10, -15, -20)]
+  mutate(Labelled = ifelse(padj < alpha_thresh & log2FoldChange > LFC_thresh, "Labelled", "Unlabelled")) %>% 
+  # arrange(Comparison, desc(baseMean)) %>% 
+  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") %>% 
+  mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) %>% 
+  mutate(across(Site_Oxygen_Hours, ~factor(., levels = col_order))) ->
+  # mutate(Site_oxygen = paste(Site, Oxygen)) ->
+  DESeq_res_SIP_byTime_all_df
+
+# Summarise number of labelled and unlabelled ASVs
+DESeq_res_SIP_byTime_all_df %>% 
+  group_by(Labelled) %>% 
+  summarise(n = n()) 
+
+# detect taxa with NA from DESeq analysis
+DESeq_res_SIP_byTime_all_df %<>% 
+  filter(!is.na(Labelled)) #%>% 
+  # pull(Labelled) -> 
+  # bad_seqs
+
+# remove NA taxa from PS obj
+Ps_obj_SIP %>% 
+  prune_taxa(DESeq_res_SIP_byTime_all_df$ASV, .) -> 
+  Ps_obj_SIP4tree_plot
+
+p_actino_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Class",
+                          subrank = "Order",
+                          Taxa2plot = "Actinobacteria")
+p_actino_HM <- plot_ggtree_heatmap(p_actino_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Class",
+                                 Taxa2plot = "Actinobacteria",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_actino_t + p_actino_HM
+
+p_Aproteo_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Class",
+                          subrank = "Order",
+                          Taxa2plot = "Alphaproteobacteria")
+p_Aproteo_HM <- plot_ggtree_heatmap(p_Aproteo_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Class",
+                                 Taxa2plot = "Alphaproteobacteria",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_Aproteo_t + p_Aproteo_HM
+
+p_Gproteo_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Class",
+                          subrank = "Order",
+                          Taxa2plot = "Gammaproteobacteria")
+p_Gproteo_HM <- plot_ggtree_heatmap(p_Gproteo_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Class",
+                                 Taxa2plot = "Gammaproteobacteria",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_Gproteo_t + p_Gproteo_HM
+
+p_acido_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Phylum",
+                          subrank = "Class",
+                          Taxa2plot = "Acidobacteriota")
+p_acido_HM <- plot_ggtree_heatmap(p_acido_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Phylum",
+                                 Taxa2plot = "Acidobacteriota",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_acido_t + p_acido_HM
+
+p_verruc_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Phylum",
+                          subrank = "Class",
+                          Taxa2plot = "Verrucomicrobiota")
+p_verruc_HM <- plot_ggtree_heatmap(p_verruc_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Phylum",
+                                 Taxa2plot = "Verrucomicrobiota",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_verruc_t + p_verruc_HM
+
+p_bacteroi_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Phylum",
+                          subrank = "Class",
+                          Taxa2plot = "Bacteroidota")
+p_bacteroi_HM <- plot_ggtree_heatmap(p_bacteroi_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Phylum",
+                                 Taxa2plot = "Bacteroidota",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_bacteroi_t + p_bacteroi_HM
+
+p_firmi_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
+                          rank = "Phylum",
+                          subrank = "Class",
+                          Taxa2plot = "Firmicutes")
+p_firmi_HM <- plot_ggtree_heatmap(p_firmi_t, 
+                                 Ps_obj_SIP4tree_plot,
+                                 DESeq_res_SIP_byTime_all_df, 
+                                 rank = "Phylum",
+                                 Taxa2plot = "Firmicutes",
+                                 sample_names = "Site_Oxygen_Hours",
+                                 sample_colours = rep(brewer.pal(n = 11, 
+                                                                 "RdYlGn")[c(1, 3, 11, 9)],
+                                                      each = 4))
+p_firmi_t + p_firmi_HM
+
+```
+```{r, eval=F}
+c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" ) %>% 
+ map_dfr(~tibble(!!.x := double())) ->
+  col_order
+
+DESeq_res_SIP_byTime_all_df_actino %>% 
+  filter(Labelled == "Labelled") %>% 
+  select(ASV, Site, Oxygen, Hours, log2FoldChange) %>% 
+  pivot_wider(names_from = c(Site, Oxygen, Hours), 
+              values_from = log2FoldChange,
+              names_sep = " ") %>% 
+  bind_rows(col_order, .) %>% 
+  # add_column(., !!!heatmap_blnk_df[setdiff(names(heatmap_blnk_df), names(.))])
+  # set_names() %>% 
+  # select(c("ASV", "Certovo Oxic_12 h", "Certovo Oxic_24 h", "Certovo Oxic_48 h", "Certovo Oxic_72 h", "Certovo Anoxic_12 h", "Certovo Anoxic_24 h", "Certovo Anoxic_48 h", "Certovo Anoxic_216 h", "Plesne Oxic_12 h", "Plesne Oxic_24 h", "Plesne Oxic_48 h", "Plesne Oxic_72 h", "Plesne Anoxic_12 h",  "Plesne Anoxic_24 h",  "Plesne Anoxic_48 h",  "Plesne Anoxic_216 h" )) %>%
+  # modify_if(is.double, ~replace_na(.x, "")) %>%
+  column_to_rownames("ASV") %>% 
+  set_colnames(labels) ->
+  DESeq_res_SIP_byTime_all_df_actino_hm 
+
+gheatmap(
+  p = p_actino_t, 
+  data = DESeq_res_SIP_byTime_all_df_actino_hm,
+  offset = 0, width = 1.6, font.size = 3, 
+  low = "grey", 
+  high = "darkred",
+  color = "grey95",
+  colnames_position = "bottom",
+  colnames_offset_x = -0.05,
+  colnames_offset_y = 1,
+  colnames_angle = 25, 
+  hjust = 0,
+  legend_title = "L2FC") +
+  theme_tree(legend.position = "bottom") +
+  theme(
+    axis.text.x = element_markdown(color = "red", size = 11)
+  ) +
+  guides(colour = guide_legend(nrow = 3, 
+                               byrow = TRUE))
+
+
+p <- ggtree(Actino_ps) + 
+  # geom_treescale() + 
+  geom_tiplab(size=2) +
+  # geom_treescale(x=2008, y=1, offset=2) 
+gheatmap(p, DESeq_res_SIP_byTime_all_df_actino_hm) +
+  # scale_fill_brewer()
+  scale_fill_manual(breaks=c("Unlabelled", "Labelled"), 
+                    values=c("firebrick", "darkgreen"), name="DESeq_res_SIP_byTime_all_df_actino_hm")
+
+
+gheatmap(p_actino_t, 
+         DESeq_res_SIP_byTime_all_df_actino_hm, offset = 10, color = NULL, 
+         colnames_position = "top", 
+         colnames_angle = 90, colnames_offset_y = 1, 
+         hjust = 0, font.size = 2)
+
+
++
+  scale_fill_manual(values = heatmap.colours, breaks=0:15)
+
+
+
+
+library(ggnewscale)
+
+# p_actino_t %<+%  DESeq_res_SIP_byTime_all_df_actino# add data
+# p_actino_t + 
+#         new_scale_colour() + 
+#   geom_fruit(
+#           data = DESeq_res_SIP_byTime_all_df_actino,
+#           geom = geom_point,
+#           mapping = aes(y = ASV, x = Site_oxygen, fill = Labelled),
+#           offset=0.08,   # The distance between layers, default is 0.03 of x range of tree.
+#           pwidth=0.25, # width of the layer, default is 0.2 of x range of tree.
+#           axis.params=list(                
+#                         axis="x",  # add axis text of the layer.
+#                         text.angle=-45, # the text size of axis.
+#                         hjust=0  # adust the horizontal position of text of axis.
+#                       )
+#       ) 
+
+beast_file <- system.file("examples/MCC_FluA_H3.tree", package="ggtree")
+beast_tree <- read.beast(beast_file)
+
+genotype_file <- system.file("examples/Genotype.txt", package="ggtree")
+genotype <- read.table(genotype_file, sep="\t", stringsAsFactor=F)
+colnames(genotype) <- sub("\\.$", "", colnames(genotype))
+p <- ggtree(beast_tree, mrsd="2013-01-01") + 
+  geom_treescale(x=2008, y=1, offset=2) + 
+  geom_tiplab(size=2)
+gheatmap(p, genotype, offset=5, width=0.5, font.size=3, 
+         colnames_angle=-45, hjust=0) +
+  scale_fill_manual(breaks=c("HuH3N2", "pdm", "trig"), 
+                    values=c("steelblue", "firebrick", "darkgreen"), name="genotype")
+
+
+```
+
+```{r colophon, eval=T}
+sessioninfo::session_info() %>%
+  details::details(
+    summary = 'Current session info',
+    open    = TRUE
+ )
+```
+
+## References
+
