@@ -517,7 +517,7 @@ readRDS(paste0(data_path, Ps_file)) %>%
 ### Subset the dataset
 Because the DESeq2 models will be run on each gradient separately, we need to subset This is easily done using `HTSSIP::phyloseq_subset` [@youngblut_htssip_2018]
 ```{r subset dataset, cache=T}
-
+# split, ignore time points (for labelled ASV plots)
 test_expr_1 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == 'Unlabelled') | (Site == '${Site}'  & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
 params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
                                    "Oxygen",
@@ -530,6 +530,7 @@ Ps_obj_SIP_noTime_l <- phyloseq_subset(Ps_obj_SIP, params_1, test_expr_1)
 #   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
 #   map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
 
+# split, include time points (for DESeq2 modelling)
 test_expr_2 <- "(Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
 params_2 <- get_treatment_params(Ps_obj_SIP, c("Site", 
                                    "Hours", 
@@ -543,26 +544,11 @@ names(Ps_obj_SIP_byTime_l) %<>%
   map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
   map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
-
-test_expr_3 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
-params_3 <- get_treatment_params(Ps_obj_SIP, c("Site", 
-                                   "Oxygen",
-                                   "Glucose",
-                                   "Label..13C."))
-
-# Generate a list of subsetted phyloseq objects
-Ps_obj_SIP_noTime_split_l <- phyloseq_subset(Ps_obj_SIP, params_3, test_expr_3) 
-names(Ps_obj_SIP_noTime_split_l) %<>% 
-  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
-  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
-  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
 ```
 
-
 ### Beta diversity analysis
-Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling)
+Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling).
 
-First let's built a joint model where 
 ```{r beta div ord joint, cache=T}
 (mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
@@ -635,62 +621,6 @@ p_ord_joint <- ggplot(Ord_plt) +
   facet_grid(Site ~ Hours) +
   ggtitle("Joint analysis")
 print(p_ord_joint)
-```
-
-```{r beta div ord split by time, cache=T}
-Ord_l <- mclapply(Ps_obj_SIP_byTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_2))
-
-explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_2))
-
-bind_rows(map(seq(1, length(Ps_obj_SIP_byTime_l)), ~plot_ordination(Ps_obj_SIP_byTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
-  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
-  Ord_plt_time_df 
-
-p_ord_split_time <- ggplot(Ord_plt_time_df) +
-  geom_point(aes(
-               x = CAP1,
-               y = MDS1,
-               color = Label..13C.,
-               size = Density..g.ml.1.,
-               shape = Oxygen
-             ), alpha = 2 / 3) +
-  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
-  ggsci::scale_colour_locuszoom() +
-  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
-       # y = sprintf("CAP2 (%s%%)", explained[2])) +
-  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
-   theme(legend.justification = "top") +
-  facet_grid(Site ~ Hours) +
-  ggtitle("Split analysis (incl. time)")
-print(p_ord_split_time)
-```
-
-```{r beta div ord split no time, cache=T}
-Ord_l <- mclapply(Ps_obj_SIP_noTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_1))
-
-explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_1))
-
-bind_rows(map(seq(1, length(Ps_obj_SIP_noTime_l)), ~plot_ordination(Ps_obj_SIP_noTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
-  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
-  Ord_plt_df 
-
-p_ord_split_time <- ggplot(Ord_plt_time_df) +
-  geom_point(aes(
-               x = CAP1,
-               y = MDS1,
-               color = Label..13C.,
-               size = Density..g.ml.1.,
-               shape = Oxygen
-             ), alpha = 2 / 3) +
-  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
-  ggsci::scale_colour_locuszoom() +
-  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
-       # y = sprintf("CAP2 (%s%%)", explained[2])) +
-  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
-   theme(legend.justification = "top") +
-  facet_grid(Site ~ Oxygen) +
-  ggtitle("Split analysis (excl. time)")
-print(p_ord_split_time)
 ```
 
 ```{r DESeq2 models by time, cache=T}
