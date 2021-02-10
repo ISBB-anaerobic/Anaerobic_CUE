@@ -10,3 +10,7 @@
 03_Filter_taxa_figures
 02_Decontamination_files
 Archive
+DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.ckp.gz
+DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.align.zip
+DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.mldist
+DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.model.gz

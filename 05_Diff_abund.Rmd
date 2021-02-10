@@ -603,8 +603,8 @@ wrap_ggtree_heatmap <- function(ps_obj,
 ```
 
 ## Differential abundance modelling of SIP gradients
-Here we attempt to detect ASVs that were labelled with 13C in our soil incubations using differential abundance modelling.
-Using DESeq2 [@love_moderated_2014] we compare the relative abundance of each ASV in the fractions where ^13^C-labelled RNA is supposed to be found (>1.795 g ml^-1^; AKA 'heavy' fractions) to the fractions where unlabelled RNA is supposed to be found (<1.795 g ml^-1^; AKA 'light' fractions). The method has been previously described in Angel et al., [-@angel_application_2018]
+Here we attempt to detect ASVs that were labelled with ^13^C in our soil incubations using differential abundance modelling.
+Using DESeq2 [@love_moderated_2014] we compare the relative abundance of each ASV in the fractions where ^13^C-labelled RNA is expected to be found (>1.795 g ml^-1^; AKA 'heavy' fractions) to the fractions where unlabelled RNA is expected to be found (<1.795 g ml^-1^; AKA 'light' fractions). The method has been previously described in Angel et al., [-@angel_application_2018].
 
 ### Setting general parameters:
 ```{r general parameters, cache=T}
@@ -942,7 +942,7 @@ Plesne_DESeq <- ((DESeq_plots[[16]] +
                    theme(legend.position = 'bottom'))
 
 save_figure(paste0(fig.path, "Plesne_DESeq2"), 
-            Certovo_DESeq, 
+            Plesne_DESeq, 
             pwidth = 14, 
             pheight = 12,
             dpi = 600)
