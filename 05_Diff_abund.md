@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "05 Differential abundance modelling"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "2021-02-09"
+date: "2021-02-10"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -29,7 +29,7 @@ output:
 
 ## Differential abundance modelling of SIP gradients
 Here we attempt to detect ASVs that were labelled with 13C in our soil incubations using differential abundance modelling.
-Using DESeq2 \citep(love_moderated_2014) we compare the relative abundance of each ASV in the fractions where ^^13^^C label is supposed to be found ()
+Using DESeq2 [@love_moderated_2014] we compare the relative abundance of each ASV in the fractions where ^13^C-labelled RNA is supposed to be found (>1.795 g ml^-1^; AKA 'heavy' fractions) to the fractions where unlabelled RNA is supposed to be found (<1.795 g ml^-1^; AKA 'light' fractions). The method has been previously described in Angel et al., [-@angel_application_2018]
 
 ### Setting general parameters:
 
@@ -59,11 +59,266 @@ readRDS(paste0(data_path, Ps_file)) %>%
   ) -> Ps_obj_SIP
 ```
 
-### Beta diversity analysis
-Let us look first at 
+### Subset the dataset
+Because the DESeq2 models will be run on each gradient separately, we need to subset This is easily done using `HTSSIP::phyloseq_subset` [@youngblut_htssip_2018]
 
 ```r
-Ord <- ordinate(Ps_obj_SIP, "CAP", "horn", formula =  ~ Oxygen + Density.zone)
+# split, ignore time points (for labelled ASV plots)
+test_expr_1 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == 'Unlabelled') | (Site == '${Site}'  & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
+params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
+                                   "Oxygen",
+                                   "Glucose",
+                                   "Label..13C."),
+                     "Label..13C. != 'Unlabelled'")
+Ps_obj_SIP_noTime_l <- phyloseq_subset(Ps_obj_SIP, params_1, test_expr_1) 
+# names(Ps_obj_SIP_noTime_l) %<>% 
+#   map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
+#   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
+#   map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
+
+# split, include time points (for DESeq2 modelling)
+test_expr_2 <- "(Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
+params_2 <- get_treatment_params(Ps_obj_SIP, c("Site", 
+                                   "Hours", 
+                                   "Oxygen",
+                                   "Glucose",
+                                   "Label..13C."))
+
+# Generate a list of subsetted phyloseq objects
+Ps_obj_SIP_byTime_l <- phyloseq_subset(Ps_obj_SIP, params_2, test_expr_2) 
+names(Ps_obj_SIP_byTime_l) %<>% 
+  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
+  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
+  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
+```
+
+### Beta diversity analysis
+Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling).
+
+
+```r
+(mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+  data = as(sample_data(Ps_obj_SIP), "data.frame"),
+  permutations = 999
+))
+```
+
+```
+## 
+## Call:
+## adonis(formula = vegdist(otu_table(Ps_obj_SIP), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP),      "data.frame"), permutations = 999) 
+## 
+## Permutation: free
+## Number of permutations: 999
+## 
+## Terms added sequentially (first to last)
+## 
+##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+## Site                1    27.443 27.4431  480.48 0.53921  0.001 ***
+## Oxygen              1     5.290  5.2896   92.61 0.10393  0.001 ***
+## Hours               1     0.160  0.1596    2.80 0.00314  0.054 .  
+## Lib.size            1     0.078  0.0777    1.36 0.00153  0.244    
+## Site:Oxygen         1     0.540  0.5404    9.46 0.01062  0.001 ***
+## Site:Hours          1     0.419  0.4191    7.34 0.00823  0.003 ** 
+## Oxygen:Hours        1     0.119  0.1185    2.08 0.00233  0.116    
+## Site:Oxygen:Hours   1     0.226  0.2259    3.96 0.00444  0.021 *  
+## Residuals         291    16.621  0.0571         0.32657           
+## Total             299    50.895                 1.00000           
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+plot_lib_dist(Ps_obj_SIP)
+```
+
+![](05_Diff_abund_figures/beta div joint-1.png)<!-- -->
+
+```r
+Ps_obj_SIP %>%
+  scale_libraries(round = "round") ->
+  Ps_obj_SIP_scaled
+  
+plot_lib_dist(Ps_obj_SIP_scaled)
+```
+
+![](05_Diff_abund_figures/beta div joint-2.png)<!-- -->
+
+```r
+(mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+  data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
+  permutations = 999
+))
+```
+
+```
+## 
+## Call:
+## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
+## 
+## Permutation: free
+## Number of permutations: 999
+## 
+## Terms added sequentially (first to last)
+## 
+##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+## Site                1    27.658 27.6580  482.57 0.53919  0.001 ***
+## Oxygen              1     5.381  5.3811   93.89 0.10490  0.001 ***
+## Hours               1     0.161  0.1611    2.81 0.00314  0.054 .  
+## Lib.size            1     0.069  0.0691    1.21 0.00135  0.304    
+## Site:Oxygen         1     0.582  0.5817   10.15 0.01134  0.001 ***
+## Site:Hours          1     0.426  0.4265    7.44 0.00831  0.001 ***
+## Oxygen:Hours        1     0.112  0.1115    1.95 0.00217  0.139    
+## Site:Oxygen:Hours   1     0.228  0.2279    3.98 0.00444  0.021 *  
+## Residuals         291    16.678  0.0573         0.32514           
+## Total             299    51.295                 1.00000           
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+(mod3 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+  data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
+  permutations = 999
+))
+```
+
+```
+## 
+## Call:
+## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours * Density.zone, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
+## 
+## Permutation: free
+## Number of permutations: 999
+## 
+## Terms added sequentially (first to last)
+## 
+##                                 Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+## Site                             1    27.658 27.6580  717.77 0.53919  0.001 ***
+## Oxygen                           1     5.381  5.3811  139.65 0.10490  0.001 ***
+## Hours                            1     0.161  0.1611    4.18 0.00314  0.025 *  
+## Density.zone                     1     2.449  2.4491   63.56 0.04774  0.001 ***
+## Site:Oxygen                      1     0.513  0.5133   13.32 0.01001  0.001 ***
+## Site:Hours                       1     0.405  0.4054   10.52 0.00790  0.001 ***
+## Oxygen:Hours                     1     0.078  0.0778    2.02 0.00152  0.139    
+## Site:Density.zone                1     0.189  0.1885    4.89 0.00367  0.006 ** 
+## Oxygen:Density.zone              1     2.813  2.8134   73.01 0.05485  0.001 ***
+## Hours:Density.zone               1     0.032  0.0320    0.83 0.00062  0.463    
+## Site:Oxygen:Hours                1     0.174  0.1735    4.50 0.00338  0.012 *  
+## Site:Oxygen:Density.zone         1     0.065  0.0654    1.70 0.00128  0.190    
+## Site:Hours:Density.zone          1     0.109  0.1088    2.82 0.00212  0.057 .  
+## Oxygen:Hours:Density.zone        1     0.229  0.2294    5.95 0.00447  0.002 ** 
+## Site:Oxygen:Hours:Density.zone   1     0.095  0.0946    2.46 0.00184  0.098 .  
+## Residuals                      284    10.943  0.0385         0.21334           
+## Total                          299    51.295                 1.00000           
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+Site_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Site"))
+permutest(Site_disp)
+```
+
+```
+## 
+## Permutation test for homogeneity of multivariate dispersions
+## Permutation: free
+## Number of permutations: 999
+## 
+## Response: Distances
+##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)  
+## Groups      1  0.2375 0.237546 5.5678    999  0.016 *
+## Residuals 298 12.7139 0.042664                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+plot(Site_disp)
+```
+
+![](05_Diff_abund_figures/beta div joint-3.png)<!-- -->
+
+```r
+Oxygen_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Oxygen"))
+permutest(Oxygen_disp)
+```
+
+```
+## 
+## Permutation test for homogeneity of multivariate dispersions
+## Permutation: free
+## Number of permutations: 999
+## 
+## Response: Distances
+##            Df  Sum Sq   Mean Sq      F N.Perm Pr(>F)  
+## Groups      1 0.03023 0.0302278 3.1681    999  0.087 .
+## Residuals 298 2.84331 0.0095413                       
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+plot(Oxygen_disp)
+```
+
+![](05_Diff_abund_figures/beta div joint-4.png)<!-- -->
+
+```r
+Hours_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Hours"))
+permutest(Hours_disp)
+```
+
+```
+## 
+## Permutation test for homogeneity of multivariate dispersions
+## Permutation: free
+## Number of permutations: 999
+## 
+## Response: Distances
+##            Df Sum Sq  Mean Sq      F N.Perm Pr(>F)   
+## Groups      4 0.2595 0.064877 4.7232    999  0.002 **
+## Residuals 295 4.0520 0.013736                        
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+plot(Hours_disp)
+```
+
+![](05_Diff_abund_figures/beta div joint-5.png)<!-- -->
+
+```r
+Density_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Density.zone"))
+permutest(Density_disp)
+```
+
+```
+## 
+## Permutation test for homogeneity of multivariate dispersions
+## Permutation: free
+## Number of permutations: 999
+## 
+## Response: Distances
+##            Df Sum Sq Mean Sq     F N.Perm Pr(>F)    
+## Groups      1 0.3893 0.38928 35.36    999  0.001 ***
+## Residuals 298 3.2806 0.01101                        
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+plot(Density_disp)
+```
+
+![](05_Diff_abund_figures/beta div joint-6.png)<!-- -->
+
+
+```r
+Ord <- ordinate(Ps_obj_SIP_scaled, "CAP", "horn", 
+                formula =  ~ Site * Oxygen * Hours * Density.zone)
 explained <- as.numeric(format(round(eigenvals(Ord)/sum(eigenvals(Ord)) * 100, 1), nsmall = 1))
 Ord_plt <- plot_ordination(Ps_obj_SIP, Ord, type = "samples", color = "Label..13C.", justDF = TRUE)
 
@@ -78,7 +333,7 @@ p_ord_joint <- ggplot(Ord_plt) +
   guides(colour = guide_legend(title = "Labelling"), 
          size = guide_legend(title = "Density (g ml<sup>-1</sup>)"),
          shape = guide_legend(title = "Oxygen")) +
-  ggsci::scale_colour_locuszoom() +
+  scale_colour_locuszoom() +
   # scale_colour_manual(values = Gradient.colours) +
   # scale_fill_manual(values = Gradient.colours, guide = "none") +
   labs(x = sprintf("CAP1 (%s%%)", explained[1]),
@@ -87,122 +342,28 @@ p_ord_joint <- ggplot(Ord_plt) +
    theme(legend.justification = "top",
          legend.title = element_markdown(size = 11)
          ) +
-  scale_size_continuous(breaks = c(seq(min(Ord_plt$Density..g.ml.1.), 
+  scale_size_continuous(breaks = round(c(seq(min(Ord_plt$Density..g.ml.1.), 
                                        max(Ord_plt$Density..g.ml.1.), 
                                        length.out = 5), 
-                                   1),
+                                   1), 4),
                         range = c(0.1, 5)) +
   facet_grid(Site ~ Hours) +
-  ggtitle("Joint analysis")
-print(p_ord_joint)
+  # ggtitle("Joint analysis") +
+  NULL
+
+save_figure(paste0(fig.path, "Oridnation"), 
+            p_ord_joint, 
+            pwidth = 10, 
+            pheight = 8,
+            dpi = 600)
+
+knitr::include_graphics(paste0(fig.path, "Oridnation", ".png"))
 ```
 
-![](05_Diff_abund_figures/beta div ord joint-1.png)<!-- -->
+<img src="05_Diff_abund_figures/Oridnation.png" width="1920" />
 
-
-```r
-test_expr_1 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == 'Unlabelled') | (Site == '${Site}'  & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
-params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
-                                   "Oxygen",
-                                   "Glucose",
-                                   "Label..13C."),
-                     "Label..13C. != 'Unlabelled'")
-Ps_obj_SIP_noTime_l <- phyloseq_subset(Ps_obj_SIP, params_1, test_expr_1) 
-# names(Ps_obj_SIP_noTime_l) %<>% 
-#   map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
-#   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
-#   map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
-
-test_expr_2 <- "(Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Hours == '${Hours}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
-params_2 <- get_treatment_params(Ps_obj_SIP, c("Site", 
-                                   "Hours", 
-                                   "Oxygen",
-                                   "Glucose",
-                                   "Label..13C."))
-
-# Generate a list of subsetted phyloseq objects
-Ps_obj_SIP_byTime_l <- phyloseq_subset(Ps_obj_SIP, params_2, test_expr_2) 
-names(Ps_obj_SIP_byTime_l) %<>% 
-  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
-  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
-  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
-
-test_expr_3 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}') | (Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
-params_3 <- get_treatment_params(Ps_obj_SIP, c("Site", 
-                                   "Oxygen",
-                                   "Glucose",
-                                   "Label..13C."))
-
-# Generate a list of subsetted phyloseq objects
-Ps_obj_SIP_noTime_split_l <- phyloseq_subset(Ps_obj_SIP, params_3, test_expr_3) 
-names(Ps_obj_SIP_noTime_split_l) %<>% 
-  map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
-  map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
-  map(., ~str_replace_all(.x, "([0-9]+)", "\\1 h")) 
-```
-
-
-```r
-Ord_l <- mclapply(Ps_obj_SIP_byTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_2))
-
-explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_2))
-
-bind_rows(map(seq(1, length(Ps_obj_SIP_byTime_l)), ~plot_ordination(Ps_obj_SIP_byTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
-  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
-  Ord_plt_time_df 
-
-p_ord_split_time <- ggplot(Ord_plt_time_df) +
-  geom_point(aes(
-               x = CAP1,
-               y = MDS1,
-               color = Label..13C.,
-               size = Density..g.ml.1.,
-               shape = Oxygen
-             ), alpha = 2 / 3) +
-  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
-  ggsci::scale_colour_locuszoom() +
-  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
-       # y = sprintf("CAP2 (%s%%)", explained[2])) +
-  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
-   theme(legend.justification = "top") +
-  facet_grid(Site ~ Hours) +
-  ggtitle("Split analysis (incl. time)")
-print(p_ord_split_time)
-```
-
-![](05_Diff_abund_figures/beta div ord split by time-1.png)<!-- -->
-
-
-```r
-Ord_l <- mclapply(Ps_obj_SIP_noTime_l, function(x) {ordinate(x, "CAP", "horn", formula = ~ Oxygen + Density.zone)}, mc.cores = nrow(params_1))
-
-explained <- mclapply(Ord_l, function(x) {as.numeric(format(round(eigenvals(x)/sum( eigenvals(x)) * 100, 1), nsmall = 1))}, mc.cores = nrow(params_1))
-
-bind_rows(map(seq(1, length(Ps_obj_SIP_noTime_l)), ~plot_ordination(Ps_obj_SIP_noTime_l[[.x]], Ord_l[[.x]], type = "samples", color = "Label..13C.", justDF = TRUE))) ->
-  # mutate(MDS1 = coalesce(MDS1, MDS2)) ->
-  Ord_plt_df 
-
-p_ord_split_time <- ggplot(Ord_plt_time_df) +
-  geom_point(aes(
-               x = CAP1,
-               y = MDS1,
-               color = Label..13C.,
-               size = Density..g.ml.1.,
-               shape = Oxygen
-             ), alpha = 2 / 3) +
-  # guides(colour = guide_legend(title = "Labelling"), shape = guide_legend(title = "Oxygen")) +
-  ggsci::scale_colour_locuszoom() +
-  # labs(x = sprintf("CAP1 (%s%%)", explained[1]), 
-       # y = sprintf("CAP2 (%s%%)", explained[2])) +
-  # coord_fixed(ratio = sqrt(explained[2] / explained[1])) +
-   theme(legend.justification = "top") +
-  facet_grid(Site ~ Oxygen) +
-  ggtitle("Split analysis (excl. time)")
-print(p_ord_split_time)
-```
-
-![](05_Diff_abund_figures/beta div ord split no time-1.png)<!-- -->
-
+### Differential abundance models
+Now run the differential abundance models using DESeq2. We then filter the resutls to include only ASVs with Log_2_ fold change >`LFC_thresh` and significant at P<`alpha_thresh`. Lastly, we run 'LFC-shrinking' based on Stephens [-@stephens_fdr_2016].
 
 ```r
 # generate a deseq object
@@ -267,255 +428,11 @@ plotMA(DESeq_res_SIP_byTime_LFC_shrink_l[[2]], ylim = c(-2,2))
 ```r
 # summarise results (lfcShrink doesn't change the values)
 # map2(DESeq_res_SIP_byTime_l, print(names(DESeq_res_SIP_byTime_l)), ~summary(.x)) # summarise results
-for (i in seq(1, length(DESeq_res_SIP_byTime_l))) { # didn't manage with map
-  print(names(DESeq_res_SIP_byTime_l[i]))
-  summary(DESeq_res_SIP_byTime_l[[i]])
-}
-```
+# for (i in seq(1, length(DESeq_res_SIP_byTime_l))) { # didn't manage with map
+#   print(names(DESeq_res_SIP_byTime_l[i]))
+#   summary(DESeq_res_SIP_byTime_l[[i]])
+# }
 
-```
-## [1] "Certovo & 12 h & Anoxic & Labelled"
-## 
-## out of 3026 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 19, 0.63%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 3, 0.099%
-## low counts [2]     : 2846, 94%
-## (mean count < 41)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 216 h & Anoxic & Labelled"
-## 
-## out of 2878 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 127, 4.4%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1374, 48%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 24 h & Anoxic & Labelled"
-## 
-## out of 2755 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 3, 0.11%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 4, 0.15%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 48 h & Anoxic & Labelled"
-## 
-## out of 2787 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 31, 1.1%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1541, 55%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 216 h & Anoxic & Unlabelled"
-## 
-## out of 2825 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 0, 0%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 5, 0.18%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 12 h & Oxic & Labelled"
-## 
-## out of 3053 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 14, 0.46%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 2408, 79%
-## (mean count < 5)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 24 h & Oxic & Labelled"
-## 
-## out of 2954 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 167, 5.7%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1188, 40%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 48 h & Oxic & Labelled"
-## 
-## out of 2882 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 160, 5.6%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 992, 34%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 72 h & Oxic & Labelled"
-## 
-## out of 2898 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 198, 6.8%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 1, 0.035%
-## low counts [2]     : 1274, 44%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 72 h & Oxic & Unlabelled"
-## 
-## out of 2979 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 6, 0.2%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 6, 0.2%
-## low counts [2]     : 0, 0%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 12 h & Anoxic & Labelled"
-## 
-## out of 3031 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 104, 3.4%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1562, 52%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 216 h & Anoxic & Labelled"
-## 
-## out of 3210 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 33, 1%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 116, 3.6%
-## low counts [2]     : 2445, 76%
-## (mean count < 11)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 24 h & Anoxic & Labelled"
-## 
-## out of 2848 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 69, 2.4%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1362, 48%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 48 h & Anoxic & Labelled"
-## 
-## out of 2758 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 13, 0.47%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 53, 1.9%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 216 h & Anoxic & Unlabelled"
-## 
-## out of 2862 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 1, 0.035%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 2, 0.07%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 12 h & Oxic & Labelled"
-## 
-## out of 2923 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 81, 2.8%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 1, 0.034%
-## low counts [2]     : 1846, 63%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 24 h & Oxic & Labelled"
-## 
-## out of 2548 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 137, 5.4%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1206, 47%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 48 h & Oxic & Labelled"
-## 
-## out of 2531 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 27, 1.1%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1485, 59%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 72 h & Oxic & Labelled"
-## 
-## out of 2556 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 158, 6.2%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1307, 51%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 72 h & Oxic & Unlabelled"
-## 
-## out of 2798 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0 (up)       : 20, 0.71%
-## LFC < 0 (down)     : 0, 0%
-## outliers [1]       : 7, 0.25%
-## low counts [2]     : 1546, 55%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-```
-
-```r
 for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
   print(names(DESeq_res_SIP_byTime_LFC_l[i]))
   summary(DESeq_res_SIP_byTime_LFC_l[[i]])
@@ -775,7 +692,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 #   write_csv(., file = "DESeq2_byTime_a-0.05.txt") ->
 #   DESeq_res_SIP_byTime_df
 
-DESeq_res_SIP_byTime_LFC_l %>% 
+DESeq_res_SIP_byTime_LFC_shrink_l %>% 
   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
   map(., ~as.data.frame(.x)) %>% 
   map(., ~rownames_to_column(.x, "ASV")) %>% 
@@ -786,6 +703,7 @@ DESeq_res_SIP_byTime_LFC_l %>%
   DESeq_res_SIP_byTime_LFC_sig_df
 ```
 
+#### Inspect results
 
 ```r
 DESeq_res_SIP_byTime_LFC_sig_df %>% 
@@ -805,131 +723,176 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
 
 ![](05_Diff_abund_figures/vis DES res-2.png)<!-- -->
 
+#### Plot differential abundance models
 
 ```r
 # ps_obj <- Ps_obj_SIP
 # DESeq_results <- DESeq_res_SIP_byTime_LFC0.322_l[9]
 # plot_DESeq(DESeq_results, ps_obj, plot_title = names(DESeq_results))
 
-DESeq_plots <- lapply(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
-                        function(x) {plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[x],  
-                                                Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[x]))})
+DESeq_plots <- map(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
+                        ~plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[.x],  
+                                                Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[.x])))
 
+Certovo_DESeq <- ((DESeq_plots[[6]] + 
+                     theme(legend.position = "none") +
+                     theme(axis.text.x = element_blank())) +
+                    (DESeq_plots[[1]] + 
+                       theme(legend.position = "none", 
+                             axis.text.x = element_blank(), 
+                             axis.title.y = element_blank())) +
+                    (DESeq_plots[[7]] + 
+                       theme(legend.position = "none",
+                             axis.text.x = element_blank())) +
+                    (DESeq_plots[[3]] + 
+                       theme(legend.position = "none", 
+                             axis.text.x = element_blank(), 
+                             axis.title.y = element_blank())) +
+                    (DESeq_plots[[8]] + 
+                       theme(legend.position = "none") +
+                       theme(legend.position = "none",
+                             axis.text.x = element_blank())) +
+                    (DESeq_plots[[4]] + 
+                       theme(legend.position = "none") +
+                       theme(legend.position = "none", 
+                             axis.text.x = element_blank(), 
+                             axis.title.y = element_blank()) +
+                       ylim(NA, 5)) +
+                    (DESeq_plots[[9]] + 
+                       theme(legend.position = "none",
+                             axis.text.x = element_blank())) +
+                    (DESeq_plots[[2]] + 
+                       theme(legend.position = "none", 
+                             axis.text.x = element_blank(), 
+                             axis.title.y = element_blank())) +
+                    (DESeq_plots[[10]] + 
+                       theme(legend.position = "none")) +
+                    (DESeq_plots[[5]] + 
+                       theme(legend.position = "none", 
+                             axis.title.y = element_blank())) + 
+                    plot_layout(ncol = 2, guides = "collect") & 
+                    theme(legend.position = 'bottom'))
 
-(DESeq_plots[[6]] + 
-    theme(legend.position = "none") +
-    theme(axis.text.x = element_blank())) +
-  (DESeq_plots[[1]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[7]] + 
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[3]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[8]] + 
-     theme(legend.position = "none") +
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[4]] + 
-     theme(legend.position = "none") +
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank()) +
-     ylim(NA, 5)) +
-  (DESeq_plots[[9]] + 
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[2]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[10]] + 
-     theme(legend.position = "none")) +
-  (DESeq_plots[[5]] + 
-     theme(legend.position = "none", 
-           axis.title.y = element_blank())) + 
-  plot_layout(ncol = 2, guides = "collect") & 
-  theme(legend.position = 'bottom')
+save_figure(paste0(fig.path, "Certovo_DESeq2"), 
+            Certovo_DESeq, 
+            pwidth = 14, 
+            pheight = 12,
+            dpi = 600)
+
+knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
 ```
 
-![](05_Diff_abund_figures/plot DESeq2 models-1.png)<!-- -->
+<img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="2688" />
 
 ```r
-(DESeq_plots[[16]] + 
-    theme(legend.position = "none") +
-    theme(axis.text.x = element_blank())) +
-  (DESeq_plots[[11]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[17]] + 
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[13]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[18]] + 
-     theme(legend.position = "none") +
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[14]] + 
-     theme(legend.position = "none") +
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank())) +
-  (DESeq_plots[[19]] + 
-     theme(legend.position = "none",
-           axis.text.x = element_blank())) +
-  (DESeq_plots[[12]] + 
-     theme(legend.position = "none", 
-           axis.text.x = element_blank(), 
-           axis.title.y = element_blank()) +
-     ylim(-3, NA)) +
-  (DESeq_plots[[20]] + 
-     theme(legend.position = "none")) +
-  (DESeq_plots[[15]] + 
-     theme(legend.position = "none", 
-           axis.title.y = element_blank())) + 
-  plot_layout(ncol = 2, guides = "collect") & 
-  theme(legend.position = 'bottom')
+Plesne_DESeq <- ((DESeq_plots[[16]] + 
+                    theme(legend.position = "none") +
+                    theme(axis.text.x = element_blank())) +
+                   (DESeq_plots[[11]] + 
+                      theme(legend.position = "none", 
+                            axis.text.x = element_blank(), 
+                            axis.title.y = element_blank())) +
+                   (DESeq_plots[[17]] + 
+                      theme(legend.position = "none",
+                            axis.text.x = element_blank())) +
+                   (DESeq_plots[[13]] + 
+                      theme(legend.position = "none", 
+                            axis.text.x = element_blank(), 
+                            axis.title.y = element_blank())) +
+                   (DESeq_plots[[18]] + 
+                      theme(legend.position = "none") +
+                      theme(legend.position = "none",
+                            axis.text.x = element_blank())) +
+                   (DESeq_plots[[14]] + 
+                      theme(legend.position = "none") +
+                      theme(legend.position = "none", 
+                            axis.text.x = element_blank(), 
+                            axis.title.y = element_blank())) +
+                   (DESeq_plots[[19]] + 
+                      theme(legend.position = "none",
+                            axis.text.x = element_blank())) +
+                   (DESeq_plots[[12]] + 
+                      theme(legend.position = "none", 
+                            axis.text.x = element_blank(), 
+                            axis.title.y = element_blank()) +
+                      ylim(-3, NA)) +
+                   (DESeq_plots[[20]] + 
+                      theme(legend.position = "none")) +
+                   (DESeq_plots[[15]] + 
+                      theme(legend.position = "none", 
+                            axis.title.y = element_blank())) + 
+                   plot_layout(ncol = 2, guides = "collect") & 
+                   theme(legend.position = 'bottom'))
+
+save_figure(paste0(fig.path, "Plesne_DESeq2"), 
+            Certovo_DESeq, 
+            pwidth = 14, 
+            pheight = 12,
+            dpi = 600)
+
+knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
 ```
 
-![](05_Diff_abund_figures/plot DESeq2 models-2.png)<!-- -->
+<img src="05_Diff_abund_figures/Plesne_DESeq2.png" width="2688" />
 
+### Plot labelled ASVs
 
 ```r
-plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[2]], 
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo", Oxygen == "Oxic"))
+plot_combintions <- crossing(Site = c("Certovo", "Plesne"), 
+         Oxygen = c("Oxic", "Anoxic"))
+
+Labelled_ASVs <- map(seq(length(Ps_obj_SIP_noTime_l)), ~plot_otus_by_density(Ps_obj_SIP_noTime_l[[.x]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == plot_combintions$Site[.x], Oxygen == plot_combintions$Oxygen[.x])))
+
+map(seq(length(Ps_obj_SIP_noTime_l)), 
+    ~save_figure(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_")), 
+                 Labelled_ASVs[[.x]], 
+                 pwidth = 16, 
+                 pheight = 12,
+                 dpi = 600))
 ```
 
-![](05_Diff_abund_figures/Plot incorporators-1.png)<!-- -->
+```
+## [[1]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.svgz"
+## 
+## [[2]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.svgz"
+## 
+## [[3]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.svgz"
+## 
+## [[4]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.svgz"
+```
 
 ```r
-plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[1]], 
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo", Oxygen == "Anoxic"))
+map(seq(length(Ps_obj_SIP_noTime_l)), ~knitr::include_graphics(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_"), ".png")))
 ```
 
-![](05_Diff_abund_figures/Plot incorporators-2.png)<!-- -->
-
-```r
-plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[4]], 
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne", Oxygen == "Oxic"))
+```
+## [[1]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.png"
+## attr(,"class")
+## [1] "knit_image_paths" "knit_asis"       
+## 
+## [[2]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.png"
+## attr(,"class")
+## [1] "knit_image_paths" "knit_asis"       
+## 
+## [[3]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.png"
+## attr(,"class")
+## [1] "knit_image_paths" "knit_asis"       
+## 
+## [[4]]
+## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.png"
+## attr(,"class")
+## [1] "knit_image_paths" "knit_asis"
 ```
 
-![](05_Diff_abund_figures/Plot incorporators-3.png)<!-- -->
-
-```r
-plot_otus_by_density(ps_obj = Ps_obj_SIP_noTime_l[[3]],
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne", Oxygen == "Anoxic"))
-```
-
-![](05_Diff_abund_figures/Plot incorporators-4.png)<!-- -->
-
+#### Plot phylogenetic trees with heatmaps
 
 ```r
 c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" )  ->
@@ -990,237 +953,62 @@ DESeq_res_SIP_byTime_all_df %<>%
 
 # remove NA taxa from PS obj
 Ps_obj_SIP %>% 
-  prune_taxa(DESeq_res_SIP_byTime_all_df$ASV, .) -> 
+  prune_taxa(setdiff(taxa_names(Ps_obj_SIP), "Seq_2375"), .) %>% # outlier
+  prune_taxa(DESeq_res_SIP_byTime_all_df$ASV, .) ->
   Ps_obj_SIP4tree_plot
 
-p_actino_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Class",
-                          subrank = "Order",
-                          Taxa2plot = "Actinobacteria")
-p_actino_HM <- plot_ggtree_heatmap(p_actino_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Class",
-                                 Taxa2plot = "Actinobacteria",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_actino_t + p_actino_HM
+taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)), 
+                    subrank = c(rep("Order", 3), rep("Class", 4)), 
+                    Taxa2plot = c("Actinobacteria", 
+                                  "Alphaproteobacteria", 
+                                  "Gammaproteobacteria", 
+                                  "Acidobacteriota",
+                                  "Verrucomicrobiota",
+                                  "Bacteroidota",
+                                  "Firmicutes"),
+                    pwidth = c(12, 14, 16, 8, 8, 8, 8), 
+                    pheight = c(rep(10, 7)))
+
+map(seq(nrow(taxa2plot)), 
+    ~wrap_ggtree_heatmap(Ps_obj_SIP4tree_plot,
+                         DESeq_res_SIP_byTime_all_df,
+                         rank = taxa2plot$rank[.x],
+                         subrank = taxa2plot$subrank[.x],
+                         Taxa2plot = taxa2plot$Taxa2plot[.x]))
 ```
 
-![](05_Diff_abund_figures/Plot trees-1.png)<!-- -->
+```
+## [[1]]
+## [1] "05_Diff_abund_figures/Tree_HM_Actinobacteria.svgz"
+## 
+## [[2]]
+## [1] "05_Diff_abund_figures/Tree_HM_Alphaproteobacteria.svgz"
+## 
+## [[3]]
+## [1] "05_Diff_abund_figures/Tree_HM_Gammaproteobacteria.svgz"
+## 
+## [[4]]
+## [1] "05_Diff_abund_figures/Tree_HM_Acidobacteriota.svgz"
+## 
+## [[5]]
+## [1] "05_Diff_abund_figures/Tree_HM_Verrucomicrobiota.svgz"
+## 
+## [[6]]
+## [1] "05_Diff_abund_figures/Tree_HM_Bacteroidota.svgz"
+## 
+## [[7]]
+## [1] "05_Diff_abund_figures/Tree_HM_Firmicutes.svgz"
+```
 
 ```r
-p_Aproteo_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Class",
-                          subrank = "Order",
-                          Taxa2plot = "Alphaproteobacteria")
-p_Aproteo_HM <- plot_ggtree_heatmap(p_Aproteo_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Class",
-                                 Taxa2plot = "Alphaproteobacteria",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_Aproteo_t + p_Aproteo_HM
+trees2display <- list.files(path = paste0(fig.path), 
+                    pattern = "^Tree_HM_(.*).png$",
+                    full.names = TRUE)
+
+knitr::include_graphics(trees2display)
 ```
 
-![](05_Diff_abund_figures/Plot trees-2.png)<!-- -->
-
-```r
-p_Gproteo_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Class",
-                          subrank = "Order",
-                          Taxa2plot = "Gammaproteobacteria")
-p_Gproteo_HM <- plot_ggtree_heatmap(p_Gproteo_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Class",
-                                 Taxa2plot = "Gammaproteobacteria",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_Gproteo_t + p_Gproteo_HM
-```
-
-![](05_Diff_abund_figures/Plot trees-3.png)<!-- -->
-
-```r
-p_acido_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Phylum",
-                          subrank = "Class",
-                          Taxa2plot = "Acidobacteriota")
-p_acido_HM <- plot_ggtree_heatmap(p_acido_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Phylum",
-                                 Taxa2plot = "Acidobacteriota",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_acido_t + p_acido_HM
-```
-
-![](05_Diff_abund_figures/Plot trees-4.png)<!-- -->
-
-```r
-p_verruc_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Phylum",
-                          subrank = "Class",
-                          Taxa2plot = "Verrucomicrobiota")
-p_verruc_HM <- plot_ggtree_heatmap(p_verruc_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Phylum",
-                                 Taxa2plot = "Verrucomicrobiota",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_verruc_t + p_verruc_HM
-```
-
-![](05_Diff_abund_figures/Plot trees-5.png)<!-- -->
-
-```r
-p_bacteroi_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Phylum",
-                          subrank = "Class",
-                          Taxa2plot = "Bacteroidota")
-p_bacteroi_HM <- plot_ggtree_heatmap(p_bacteroi_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Phylum",
-                                 Taxa2plot = "Bacteroidota",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_bacteroi_t + p_bacteroi_HM
-```
-
-![](05_Diff_abund_figures/Plot trees-6.png)<!-- -->
-
-```r
-p_firmi_t <- plot_ggtree(Ps_obj_SIP4tree_plot, 
-                          rank = "Phylum",
-                          subrank = "Class",
-                          Taxa2plot = "Firmicutes")
-p_firmi_HM <- plot_ggtree_heatmap(p_firmi_t, 
-                                 Ps_obj_SIP4tree_plot,
-                                 DESeq_res_SIP_byTime_all_df, 
-                                 rank = "Phylum",
-                                 Taxa2plot = "Firmicutes",
-                                 sample_names = "Site_Oxygen_Hours",
-                                 sample_colours = rep(brewer.pal(n = 11, 
-                                                                 "RdYlGn")[c(1, 3, 11, 9)],
-                                                      each = 4))
-p_firmi_t + p_firmi_HM
-```
-
-![](05_Diff_abund_figures/Plot trees-7.png)<!-- -->
-
-```r
-c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" ) %>% 
- map_dfr(~tibble(!!.x := double())) ->
-  col_order
-
-DESeq_res_SIP_byTime_all_df_actino %>% 
-  filter(Labelled == "Labelled") %>% 
-  select(ASV, Site, Oxygen, Hours, log2FoldChange) %>% 
-  pivot_wider(names_from = c(Site, Oxygen, Hours), 
-              values_from = log2FoldChange,
-              names_sep = " ") %>% 
-  bind_rows(col_order, .) %>% 
-  # add_column(., !!!heatmap_blnk_df[setdiff(names(heatmap_blnk_df), names(.))])
-  # set_names() %>% 
-  # select(c("ASV", "Certovo Oxic_12 h", "Certovo Oxic_24 h", "Certovo Oxic_48 h", "Certovo Oxic_72 h", "Certovo Anoxic_12 h", "Certovo Anoxic_24 h", "Certovo Anoxic_48 h", "Certovo Anoxic_216 h", "Plesne Oxic_12 h", "Plesne Oxic_24 h", "Plesne Oxic_48 h", "Plesne Oxic_72 h", "Plesne Anoxic_12 h",  "Plesne Anoxic_24 h",  "Plesne Anoxic_48 h",  "Plesne Anoxic_216 h" )) %>%
-  # modify_if(is.double, ~replace_na(.x, "")) %>%
-  column_to_rownames("ASV") %>% 
-  set_colnames(labels) ->
-  DESeq_res_SIP_byTime_all_df_actino_hm 
-
-gheatmap(
-  p = p_actino_t, 
-  data = DESeq_res_SIP_byTime_all_df_actino_hm,
-  offset = 0, width = 1.6, font.size = 3, 
-  low = "grey", 
-  high = "darkred",
-  color = "grey95",
-  colnames_position = "bottom",
-  colnames_offset_x = -0.05,
-  colnames_offset_y = 1,
-  colnames_angle = 25, 
-  hjust = 0,
-  legend_title = "L2FC") +
-  theme_tree(legend.position = "bottom") +
-  theme(
-    axis.text.x = element_markdown(color = "red", size = 11)
-  ) +
-  guides(colour = guide_legend(nrow = 3, 
-                               byrow = TRUE))
-
-
-p <- ggtree(Actino_ps) + 
-  # geom_treescale() + 
-  geom_tiplab(size=2) +
-  # geom_treescale(x=2008, y=1, offset=2) 
-gheatmap(p, DESeq_res_SIP_byTime_all_df_actino_hm) +
-  # scale_fill_brewer()
-  scale_fill_manual(breaks=c("Unlabelled", "Labelled"), 
-                    values=c("firebrick", "darkgreen"), name="DESeq_res_SIP_byTime_all_df_actino_hm")
-
-
-gheatmap(p_actino_t, 
-         DESeq_res_SIP_byTime_all_df_actino_hm, offset = 10, color = NULL, 
-         colnames_position = "top", 
-         colnames_angle = 90, colnames_offset_y = 1, 
-         hjust = 0, font.size = 2)
-
-
-+
-  scale_fill_manual(values = heatmap.colours, breaks=0:15)
-
-
-
-
-library(ggnewscale)
-
-# p_actino_t %<+%  DESeq_res_SIP_byTime_all_df_actino# add data
-# p_actino_t + 
-#         new_scale_colour() + 
-#   geom_fruit(
-#           data = DESeq_res_SIP_byTime_all_df_actino,
-#           geom = geom_point,
-#           mapping = aes(y = ASV, x = Site_oxygen, fill = Labelled),
-#           offset=0.08,   # The distance between layers, default is 0.03 of x range of tree.
-#           pwidth=0.25, # width of the layer, default is 0.2 of x range of tree.
-#           axis.params=list(                
-#                         axis="x",  # add axis text of the layer.
-#                         text.angle=-45, # the text size of axis.
-#                         hjust=0  # adust the horizontal position of text of axis.
-#                       )
-#       ) 
-
-beast_file <- system.file("examples/MCC_FluA_H3.tree", package="ggtree")
-beast_tree <- read.beast(beast_file)
-
-genotype_file <- system.file("examples/Genotype.txt", package="ggtree")
-genotype <- read.table(genotype_file, sep="\t", stringsAsFactor=F)
-colnames(genotype) <- sub("\\.$", "", colnames(genotype))
-p <- ggtree(beast_tree, mrsd="2013-01-01") + 
-  geom_treescale(x=2008, y=1, offset=2) + 
-  geom_tiplab(size=2)
-gheatmap(p, genotype, offset=5, width=0.5, font.size=3, 
-         colnames_angle=-45, hjust=0) +
-  scale_fill_manual(breaks=c("HuH3N2", "pdm", "trig"), 
-                    values=c("steelblue", "firebrick", "darkgreen"), name="genotype")
-```
+<img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="2688" />
 
 
 ```r
@@ -1246,7 +1034,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-09                  
+ date     2021-02-10                  
 
 ─ Packages ─────────────────────────────────────────────────────────────────────────────
  package              * version    date       lib
@@ -1276,7 +1064,7 @@ sessioninfo::session_info() %>%
  cluster                2.1.0      2019-06-19 [1]
  codetools              0.2-18     2020-11-04 [1]
  colorspace             2.0-0      2020-11-11 [1]
- crayon                 1.4.0      2021-01-30 [1]
+ crayon                 1.4.1      2021-02-08 [1]
  data.table             1.13.6     2020-12-30 [1]
  DBI                    1.1.1      2021-01-15 [1]
  dbplyr                 2.1.0      2021-02-03 [1]
@@ -1295,21 +1083,19 @@ sessioninfo::session_info() %>%
  forcats              * 0.5.1      2021-01-27 [1]
  foreach                1.5.1      2020-10-15 [1]
  fs                     1.5.0      2020-07-31 [1]
- gdtools                0.2.3      2021-01-06 [1]
+ gdtools              * 0.2.3      2021-01-06 [1]
  genefilter             1.70.0     2020-04-27 [1]
  geneplotter            1.66.0     2020-04-27 [1]
  generics               0.1.0      2020-10-31 [1]
  GenomeInfoDb         * 1.24.2     2020-06-15 [1]
  GenomeInfoDbData       1.2.3      2020-08-13 [1]
  GenomicRanges        * 1.40.0     2020-04-27 [1]
- ggnewscale             0.4.5      2021-01-11 [1]
  ggplot2              * 3.3.3      2020-12-30 [1]
  ggpomological        * 0.1.2      2020-08-13 [1]
  ggrepel              * 0.9.1      2021-01-15 [1]
- ggsci                  2.9        2018-05-14 [1]
+ ggsci                * 2.9        2018-05-14 [1]
  ggtext               * 0.1.1      2020-12-17 [1]
  ggtree               * 2.2.4      2020-07-28 [1]
- ggtreeExtra          * 1.1.4      2021-02-01 [1]
  glue                 * 1.4.2      2020-08-27 [1]
  gridExtra              2.3        2017-09-09 [1]
  gridtext               0.1.4      2020-12-10 [1]
@@ -1357,6 +1143,7 @@ sessioninfo::session_info() %>%
  progress               1.2.2      2019-05-16 [1]
  purrr                * 0.3.4      2020-04-17 [1]
  R6                     2.5.0      2020-10-28 [1]
+ ragg                 * 0.4.1      2021-01-11 [1]
  RColorBrewer         * 1.1-2      2014-12-07 [1]
  Rcpp                   1.0.6      2021-01-15 [1]
  RCurl                  1.98-1.2   2020-04-18 [1]
@@ -1384,7 +1171,8 @@ sessioninfo::session_info() %>%
  SummarizedExperiment * 1.18.2     2020-07-09 [1]
  survival               3.2-7      2020-09-28 [1]
  svglite              * 1.2.3.2    2020-07-07 [1]
- systemfonts            1.0.0      2021-02-01 [1]
+ systemfonts            1.0.1      2021-02-09 [1]
+ textshaping            0.2.1      2020-11-13 [1]
  tibble               * 3.0.6      2021-01-29 [1]
  tidyr                * 1.1.2      2020-08-27 [1]
  tidyselect             1.1.0      2020-05-11 [1]
@@ -1459,14 +1247,12 @@ sessioninfo::session_info() %>%
  Bioconductor                            
  Bioconductor                            
  Bioconductor                            
- CRAN (R 4.0.3)                          
  CRAN (R 4.0.2)                          
  Github (gadenbuie/ggpomological@69f3815)
  CRAN (R 4.0.3)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
  Bioconductor                            
- Github (xiangpin/ggtreeExtra@0c3e16c)   
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
@@ -1515,6 +1301,7 @@ sessioninfo::session_info() %>%
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
+ CRAN (R 4.0.2)                          
  CRAN (R 4.0.3)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
@@ -1542,6 +1329,7 @@ sessioninfo::session_info() %>%
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.3)                          
+ CRAN (R 4.0.2)                          
  CRAN (R 4.0.3)                          
  CRAN (R 4.0.2)                          
  CRAN (R 4.0.2)                          
@@ -1575,4 +1363,3 @@ sessioninfo::session_info() %>%
 <br>
 
 ## References
-
