@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "03 Filtering out rare taxa"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "2021-02-09"
+date: "2021-02-11"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -72,15 +72,7 @@ sample_data(Ps_obj_SIP) %<>%
 phyloseq_merge_samples(Ps_obj_SIP, "Identifier") %>% 
   filter_taxa(., function(x) sum(x) > 0, TRUE) ->
   Ps_obj_SIP_merged 
-```
 
-```
-## Warning in class(x) <- c(setdiff(subclass, tibble_class), tibble_class): Setting
-## class(x) to multiple strings ("tbl_df", "tbl", ...); result will no longer be an
-## S4 object
-```
-
-```r
 # Compute lib sizes
 sample_data(Ps_obj_SIP_merged)$Lib.size <- rowSums(otu_table(Ps_obj_SIP_merged))
 ```
@@ -92,7 +84,7 @@ First let's look at the count data distribution
 plot_lib_size(Ps_obj_SIP_merged, x = "Fraction.no.", fill = "Oxygen", facet1 = "Site", facet2 = "Hours")
 ```
 
-![](03_Filter_taxa_files/figure-html/plot abundance-1.png)<!-- -->
+![](03_Filter_taxa_figures/plot abundance-1.png)<!-- -->
 
 I will test now the effect of library size and all other experimental factors on the community composition and also plot 
 
@@ -132,54 +124,19 @@ I will test now the effect of library size and all other experimental factors on
 plot_lib_dist(Ps_obj_SIP_merged)
 ```
 
-```
-## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-```
-
-![](03_Filter_taxa_files/figure-html/mod abundance 1-1.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 1-1.png)<!-- -->
 
 ```r
 plot_read_dist(Ps_obj_SIP_merged)
 ```
 
-```
-## Warning: Transformation introduced infinite values in continuous y-axis
-```
-
-![](03_Filter_taxa_files/figure-html/mod abundance 1-2.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 1-2.png)<!-- -->
 
 ```r
 plot_mean_SD(Ps_obj_SIP_merged)
 ```
 
-```
-## Loading required package: vsn
-```
-
-```
-## Loading required package: Biobase
-```
-
-```
-## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     'browseVignettes()'. To cite Bioconductor, see
-##     'citation("Biobase")', and for packages 'citation("pkgname")'.
-```
-
-```
-## 
-## Attaching package: 'Biobase'
-```
-
-```
-## The following object is masked from 'package:phyloseq':
-## 
-##     sampleNames
-```
-
-![](03_Filter_taxa_files/figure-html/mod abundance 1-3.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 1-3.png)<!-- -->
 
 Modelling library size shows a significant effect of read depth on the community structure, but explaining only 9% of the variance.
 The reads histogram shows as expected a highly sparse and skewed sequence matrix.
@@ -301,33 +258,7 @@ Summary_pruned <- tibble(
       summarise(sum = sum(Abundance)) %>% .$sum %>% sum()
     )
   )
-```
 
-```
-## Warning in psmelt(Ps_obj_kingdoms): The sample variables: 
-## Sample
-##  have been renamed to: 
-## sample_Sample
-## to avoid conflicts with special phyloseq plot attribute names.
-```
-
-```
-## Warning in psmelt(Ps_obj_orders): The sample variables: 
-## Sample
-##  have been renamed to: 
-## sample_Sample
-## to avoid conflicts with special phyloseq plot attribute names.
-```
-
-```
-## Warning in psmelt(Ps_obj_families): The sample variables: 
-## Sample
-##  have been renamed to: 
-## sample_Sample
-## to avoid conflicts with special phyloseq plot attribute names.
-```
-
-```r
 Summary_pruned %>% 
   kable(., digits = c(0, 1, 0)) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
@@ -1552,7 +1483,7 @@ ggplot(prevdf_phylum_filt,
   theme(legend.position = "none")
 ```
 
-![](03_Filter_taxa_files/figure-html/prevalence phylum-1.png)<!-- -->
+![](03_Filter_taxa_figures/prevalence phylum-1.png)<!-- -->
 
 Plot general prevalence features of the top 20 orders
 
@@ -1588,7 +1519,7 @@ ggplot(prevdf_order_filt2,
   theme(legend.position = "none")
 ```
 
-![](03_Filter_taxa_files/figure-html/prevalence order-1.png)<!-- -->
+![](03_Filter_taxa_figures/prevalence order-1.png)<!-- -->
 
 #### Unsupervised filtering by prevalence
 I'll remove all sequences which appear in less than 5% of the samples
@@ -1707,27 +1638,19 @@ Test again the effect of library size and all other experimental factors on the 
 plot_lib_dist(Ps_obj_SIP_merged_filt3)
 ```
 
-```
-## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-```
-
-![](03_Filter_taxa_files/figure-html/mod abundance 2-1.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 2-1.png)<!-- -->
 
 ```r
 plot_read_dist(Ps_obj_SIP_merged_filt3)
 ```
 
-```
-## Warning: Transformation introduced infinite values in continuous y-axis
-```
-
-![](03_Filter_taxa_files/figure-html/mod abundance 2-2.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 2-2.png)<!-- -->
 
 ```r
 plot_mean_SD(Ps_obj_SIP_merged_filt3)
 ```
 
-![](03_Filter_taxa_files/figure-html/mod abundance 2-3.png)<!-- -->
+![](03_Filter_taxa_figures/mod abundance 2-3.png)<!-- -->
 
 #### Save filtered phyloseq object
 
@@ -1752,7 +1675,7 @@ sessioninfo::session_info() %>%
 
 ```r
 
-─ Session info ───────────────────────────────────────────────────────────────
+─ Session info ─────────────────────────────────────────────────────────────────────────
  setting  value                       
  version  R version 4.0.3 (2020-10-10)
  os       Ubuntu 18.04.5 LTS          
@@ -1762,9 +1685,9 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-09                  
+ date     2021-02-11                  
 
-─ Packages ───────────────────────────────────────────────────────────────────
+─ Packages ─────────────────────────────────────────────────────────────────────────────
  package        * version    date       lib source                           
  ade4             1.7-16     2020-10-28 [1] CRAN (R 4.0.2)                   
  affy             1.66.0     2020-04-27 [1] Bioconductor                     
@@ -1785,7 +1708,7 @@ sessioninfo::session_info() %>%
  cluster          2.1.0      2019-06-19 [1] CRAN (R 4.0.2)                   
  codetools        0.2-18     2020-11-04 [1] CRAN (R 4.0.2)                   
  colorspace       2.0-0      2020-11-11 [1] CRAN (R 4.0.2)                   
- crayon           1.4.0      2021-01-30 [1] CRAN (R 4.0.3)                   
+ crayon           1.4.1      2021-02-08 [1] CRAN (R 4.0.3)                   
  data.table       1.13.6     2020-12-30 [1] CRAN (R 4.0.2)                   
  DBI              1.1.1      2021-01-15 [1] CRAN (R 4.0.3)                   
  dbplyr           2.1.0      2021-02-03 [1] CRAN (R 4.0.3)                   
@@ -1869,7 +1792,7 @@ sessioninfo::session_info() %>%
  stringr        * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)                   
  survival         3.2-7      2020-09-28 [1] CRAN (R 4.0.2)                   
  svglite        * 1.2.3.2    2020-07-07 [1] CRAN (R 4.0.2)                   
- systemfonts      1.0.0      2021-02-01 [1] CRAN (R 4.0.3)                   
+ systemfonts      1.0.1      2021-02-09 [1] CRAN (R 4.0.3)                   
  tibble         * 3.0.6      2021-01-29 [1] CRAN (R 4.0.3)                   
  tidyr          * 1.1.2      2020-08-27 [1] CRAN (R 4.0.2)                   
  tidyselect       1.1.0      2020-05-11 [1] CRAN (R 4.0.2)                   

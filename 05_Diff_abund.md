@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "05 Differential abundance modelling"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "2021-02-10"
+date: "2021-02-11"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -194,22 +194,22 @@ plot_lib_dist(Ps_obj_SIP_scaled)
 ## Terms added sequentially (first to last)
 ## 
 ##                                 Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-## Site                             1    27.658 27.6580  717.77 0.53919  0.001 ***
-## Oxygen                           1     5.381  5.3811  139.65 0.10490  0.001 ***
-## Hours                            1     0.161  0.1611    4.18 0.00314  0.025 *  
-## Density.zone                     1     2.449  2.4491   63.56 0.04774  0.001 ***
-## Site:Oxygen                      1     0.513  0.5133   13.32 0.01001  0.001 ***
-## Site:Hours                       1     0.405  0.4054   10.52 0.00790  0.001 ***
-## Oxygen:Hours                     1     0.078  0.0778    2.02 0.00152  0.139    
-## Site:Density.zone                1     0.189  0.1885    4.89 0.00367  0.006 ** 
-## Oxygen:Density.zone              1     2.813  2.8134   73.01 0.05485  0.001 ***
-## Hours:Density.zone               1     0.032  0.0320    0.83 0.00062  0.463    
-## Site:Oxygen:Hours                1     0.174  0.1735    4.50 0.00338  0.012 *  
-## Site:Oxygen:Density.zone         1     0.065  0.0654    1.70 0.00128  0.190    
-## Site:Hours:Density.zone          1     0.109  0.1088    2.82 0.00212  0.057 .  
-## Oxygen:Hours:Density.zone        1     0.229  0.2294    5.95 0.00447  0.002 ** 
-## Site:Oxygen:Hours:Density.zone   1     0.095  0.0946    2.46 0.00184  0.098 .  
-## Residuals                      284    10.943  0.0385         0.21334           
+## Site                             1    27.658 27.6580  710.39 0.53919  0.001 ***
+## Oxygen                           1     5.381  5.3811  138.21 0.10490  0.001 ***
+## Hours                            1     0.161  0.1611    4.14 0.00314  0.026 *  
+## Density.zone                     2     2.417  1.2086   31.04 0.04712  0.001 ***
+## Site:Oxygen                      1     0.526  0.5265   13.52 0.01026  0.001 ***
+## Site:Hours                       1     0.407  0.4072   10.46 0.00794  0.001 ***
+## Oxygen:Hours                     1     0.088  0.0885    2.27 0.00172  0.105    
+## Site:Density.zone                1     0.175  0.1749    4.49 0.00341  0.010 ** 
+## Oxygen:Density.zone              1     2.770  2.7697   71.14 0.05400  0.001 ***
+## Hours:Density.zone               1     0.030  0.0296    0.76 0.00058  0.493    
+## Site:Oxygen:Hours                1     0.143  0.1426    3.66 0.00278  0.027 *  
+## Site:Oxygen:Density.zone         1     0.068  0.0682    1.75 0.00133  0.185    
+## Site:Hours:Density.zone          1     0.107  0.1072    2.75 0.00209  0.057 .  
+## Oxygen:Hours:Density.zone        1     0.260  0.2601    6.68 0.00507  0.002 ** 
+## Site:Oxygen:Hours:Density.zone   1     0.085  0.0850    2.18 0.00166  0.134    
+## Residuals                      283    11.018  0.0389         0.21480           
 ## Total                          299    51.295                 1.00000           
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -302,9 +302,9 @@ permutest(Density_disp)
 ## Number of permutations: 999
 ## 
 ## Response: Distances
-##            Df Sum Sq Mean Sq     F N.Perm Pr(>F)    
-## Groups      1 0.3893 0.38928 35.36    999  0.001 ***
-## Residuals 298 3.2806 0.01101                        
+##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)    
+## Groups      2 0.48515 0.242577 24.876    999  0.001 ***
+## Residuals 297 2.89621 0.009752                         
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
@@ -552,11 +552,11 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 ## 
 ## out of 2979 with nonzero total read count
 ## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 0, 0%
+## LFC > 0.26 (up)    : 33, 1.1%
 ## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 6, 0.2%
-## low counts [2]     : 0, 0%
-## (mean count < 0)
+## outliers [1]       : 4, 0.13%
+## low counts [2]     : 1995, 67%
+## (mean count < 4)
 ## [1] see 'cooksCutoff' argument of ?results
 ## [2] see 'independentFiltering' argument of ?results
 ## 
@@ -766,7 +766,8 @@ Certovo_DESeq <- ((DESeq_plots[[6]] +
                              axis.text.x = element_blank(), 
                              axis.title.y = element_blank())) +
                     (DESeq_plots[[10]] + 
-                       theme(legend.position = "none")) +
+                       theme(legend.position = "none") +
+                       ylim(NA, 5)) +
                     (DESeq_plots[[5]] + 
                        theme(legend.position = "none", 
                              axis.title.y = element_blank())) + 
@@ -867,30 +868,14 @@ map(seq(length(Ps_obj_SIP_noTime_l)),
 ```
 
 ```r
-map(seq(length(Ps_obj_SIP_noTime_l)), ~knitr::include_graphics(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_"), ".png")))
+plots2display <- list.files(path = paste0(fig.path), 
+                    pattern = "^Labelled_ASVs_(.*).png$",
+                    full.names = TRUE)
+
+knitr::include_graphics(plots2display)
 ```
 
-```
-## [[1]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.png"
-## attr(,"class")
-## [1] "knit_image_paths" "knit_asis"       
-## 
-## [[2]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.png"
-## attr(,"class")
-## [1] "knit_image_paths" "knit_asis"       
-## 
-## [[3]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.png"
-## attr(,"class")
-## [1] "knit_image_paths" "knit_asis"       
-## 
-## [[4]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.png"
-## attr(,"class")
-## [1] "knit_image_paths" "knit_asis"
-```
+<img src="05_Diff_abund_figures//Labelled_ASVs_Certovo_Anoxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Certovo_Oxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plesne_Anoxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plesne_Oxic.png" width="3072" />
 
 #### Plot phylogenetic trees with heatmaps
 
@@ -966,7 +951,7 @@ taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)),
                                   "Verrucomicrobiota",
                                   "Bacteroidota",
                                   "Firmicutes"),
-                    pwidth = c(12, 14, 16, 8, 8, 8, 8), 
+                    pwidth = c(12, 14, 18, 8, 8, 8, 8), 
                     pheight = c(rep(10, 7)))
 
 map(seq(nrow(taxa2plot)), 
@@ -1034,7 +1019,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-10                  
+ date     2021-02-11                  
 
 ─ Packages ─────────────────────────────────────────────────────────────────────────────
  package              * version    date       lib

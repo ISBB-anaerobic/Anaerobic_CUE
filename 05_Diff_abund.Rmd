@@ -366,7 +366,7 @@ plot_DESeq <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC = LF
       colour = !!sym("Significance"),
       size = !!sym("Mean abundance (%)")),
       position = pos,
-      alpha = 2 / 3,
+      alpha = 1 / 3,
       stroke = 0) +
     geom_linerange(aes(x = !!sym(rank),
                        y = !!sym(Y_val),
@@ -887,7 +887,8 @@ Certovo_DESeq <- ((DESeq_plots[[6]] +
                              axis.text.x = element_blank(), 
                              axis.title.y = element_blank())) +
                     (DESeq_plots[[10]] + 
-                       theme(legend.position = "none")) +
+                       theme(legend.position = "none") +
+                       ylim(NA, 5)) +
                     (DESeq_plots[[5]] + 
                        theme(legend.position = "none", 
                              axis.title.y = element_blank())) + 
@@ -965,7 +966,13 @@ map(seq(length(Ps_obj_SIP_noTime_l)),
                  pheight = 12,
                  dpi = 600))
 
-map(seq(length(Ps_obj_SIP_noTime_l)), ~knitr::include_graphics(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_"), ".png")))
+
+
+plots2display <- list.files(path = paste0(fig.path), 
+                    pattern = "^Labelled_ASVs_(.*).png$",
+                    full.names = TRUE)
+
+knitr::include_graphics(plots2display)
 ```
 
 #### Plot phylogenetic trees with heatmaps
@@ -1012,7 +1019,7 @@ taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)),
                                   "Verrucomicrobiota",
                                   "Bacteroidota",
                                   "Firmicutes"),
-                    pwidth = c(12, 14, 16, 8, 8, 8, 8), 
+                    pwidth = c(12, 14, 18, 8, 8, 8, 8), 
                     pheight = c(rep(10, 7)))
 
 map(seq(nrow(taxa2plot)), 

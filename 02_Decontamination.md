@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "02 Decontaminate dataset"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "2021-02-01"
+date: "2021-02-11"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -51,19 +51,7 @@ read_tsv(paste0(data_path, Seq_table),
   t() %>% 
   as.data.frame() -> # not tibble because we need row names
   abundance_mat # convert to abundance matrix
-```
 
-```
-## 
-## ── Column specification ────────────────────────────────────────────────────────
-## cols(
-##   .default = col_double(),
-##   ASV = col_character()
-## )
-## ℹ Use `spec()` for the full column specifications.
-```
-
-```r
 # get short names of samples
 # abundance_mat %>% 
 #   rownames() %>% 
@@ -88,28 +76,7 @@ read_csv(paste0(samples_prep_path, Metadata_table),
   mutate(`Density zone` = factor(ifelse(`Density (g ml-1)` > 1.795, "Heavy", "Light"), levels = c("Light", "Heavy"))) %>% # critical for DESeq2 that the reference is the first level
   column_to_rownames("to_names") ->
   Metadata
-```
 
-```
-## 
-## ── Column specification ────────────────────────────────────────────────────────
-## cols(
-##   .default = col_double(),
-##   merged_sample_name = col_character(),
-##   Read1_file = col_character(),
-##   Sample = col_character(),
-##   Site = col_character(),
-##   Oxygen = col_character(),
-##   Glucose = col_character(),
-##   `Label (13C)` = col_character(),
-##   `TNA ext. Date` = col_character(),
-##   `PCR date` = col_character(),
-##   Control = col_logical()
-## )
-## ℹ Use `spec()` for the full column specifications.
-```
-
-```r
 # Order abundance_mat samples according to the metadata
 sample_order <- match(str_remove(rownames(abundance_mat), "_L001"), rownames(Metadata))
 abundance_mat %<>% arrange(sample_order)
@@ -118,31 +85,6 @@ rownames(abundance_mat) <- rownames(Metadata) # needed for pyhloseq
 # read taxonomy from data file
 Raw_tax_data <- read_tsv(paste0(data_path, Tax_table), 
                         trim_ws = TRUE, col_names = TRUE)
-```
-
-```
-## 
-## ── Column specification ────────────────────────────────────────────────────────
-## cols(
-##   ASV = col_character(),
-##   Kingdom = col_character(),
-##   Phylum = col_character(),
-##   Class = col_character(),
-##   Order = col_character(),
-##   Family = col_character(),
-##   Genus = col_character(),
-##   Species = col_character(),
-##   `Kingdom (BS)` = col_double(),
-##   `Phylum (BS)` = col_double(),
-##   `Class (BS)` = col_double(),
-##   `Order (BS)` = col_double(),
-##   `Family (BS)` = col_double(),
-##   `Genus (BS)` = col_double(),
-##   `Species (BS)` = col_double()
-## )
-```
-
-```r
 Raw_tax_data %<>%
   mutate_all(~(replace(., is.na(.), "Unclassified"))) # I think mutaute_all is unnecessary here because replace(., is.na(.), "Unclassified") alone should work
 
@@ -196,12 +138,7 @@ Ps_obj %>%
   vis_dat()
 ```
 
-```
-## Warning: attributes are not identical across measure variables;
-## they will be dropped
-```
-
-![](02_Decontamination_files/figure-html/data-1.png)<!-- -->
+![](02_Decontamination_figures/data-1.png)<!-- -->
 
 ```r
 Ps_obj %>% 
@@ -210,7 +147,7 @@ Ps_obj %>%
   vis_cor()
 ```
 
-![](02_Decontamination_files/figure-html/data-2.png)<!-- -->
+![](02_Decontamination_figures/data-2.png)<!-- -->
 
 ### Inspect Library sizes
 
@@ -234,11 +171,7 @@ ggplot(data = Ps_obj_df,
   scale_color_brewer(type = 'qual', palette = 'Set1', direction = -1)
 ```
 
-```
-## Warning: Transformation introduced infinite values in continuous y-axis
-```
-
-![](02_Decontamination_files/figure-html/Library Sizes-1.png)<!-- -->
+![](02_Decontamination_figures/Library Sizes-1.png)<!-- -->
 
 ```r
 summary(sample_sums(Ps_obj))
@@ -291,8 +224,8 @@ which(contamdf.freq$contaminant)
 ```
 
 ```
-##  [1]  2752  3799  4049  4326  5490  5951  6616  6965  7201  7972  8601 10101
-## [13] 10188 10500 11115 11252 11352 12399 12419 12517
+##  [1]  2752  3799  4049  4326  5490  5951  6616  6965  7201  7972  8601 10101 10188 10500
+## [15] 11115 11252 11352 12399 12419 12517
 ```
 
 Plot the frequency of sequnce 1 and 3 (non-contaminants) against the DNA concentration, as an example.
@@ -301,15 +234,7 @@ Plot the frequency of sequnce 1 and 3 (non-contaminants) against the DNA concent
 plot_frequency(Ps_obj, taxa_names(Ps_obj)[c(1, 3)], conc = "X16S.copies")
 ```
 
-```
-## Warning: Transformation introduced infinite values in continuous y-axis
-```
-
-```
-## Warning: Removed 1 row(s) containing missing values (geom_path).
-```
-
-![](02_Decontamination_files/figure-html/plot frequency 1-1.png)<!-- -->
+![](02_Decontamination_figures/plot frequency 1-1.png)<!-- -->
 
 Plot the frequency of the contaminant sequences against the DNA concentration.
 
@@ -317,15 +242,7 @@ Plot the frequency of the contaminant sequences against the DNA concentration.
 plot_frequency(Ps_obj, taxa_names(Ps_obj)[which(contamdf.freq$contaminant)[1:20]], conc = "X16S.copies")
 ```
 
-```
-## Warning: Transformation introduced infinite values in continuous y-axis
-```
-
-```
-## Warning: Removed 1 row(s) containing missing values (geom_path).
-```
-
-![](02_Decontamination_files/figure-html/plot frequency 2-1.png)<!-- -->
+![](02_Decontamination_figures/plot frequency 2-1.png)<!-- -->
 
 The frequency analysis detected $20$ sequences as contaminants.
 
@@ -350,10 +267,9 @@ which(contamdf.prev$contaminant)
 ```
 
 ```
-##  [1]    35  2427  2983  3367  3783  4294  4469  5105  6815  6881  6903  7226
-## [13]  7354  7385  7705  7728  7986  8444  8460  8508  8810  8831  8835  8869
-## [25]  9031  9078  9151  9183  9240  9603  9881 10033 10089 10100 10522 10653
-## [37] 11275 11291 11972 12261
+##  [1]    35  2427  2983  3367  3783  4294  4469  5105  6815  6881  6903  7226  7354  7385
+## [15]  7705  7728  7986  8444  8460  8508  8810  8831  8835  8869  9031  9078  9151  9183
+## [29]  9240  9603  9881 10033 10089 10100 10522 10653 11275 11291 11972 12261
 ```
 
 ```r
@@ -388,7 +304,7 @@ ggplot(data = df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) + geom_po
   xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
 ```
 
-![](02_Decontamination_files/figure-html/prevalence-1.png)<!-- -->
+![](02_Decontamination_figures/prevalence-1.png)<!-- -->
 
 The frequency analysis detected $40$ sequences as contaminants.
 In total $60$ were detected as contaminants and will be removed.
@@ -458,7 +374,7 @@ sessioninfo::session_info() %>%
 
 ```r
 
-─ Session info ───────────────────────────────────────────────────────────────
+─ Session info ─────────────────────────────────────────────────────────────────────────
  setting  value                       
  version  R version 4.0.3 (2020-10-10)
  os       Ubuntu 18.04.5 LTS          
@@ -468,9 +384,9 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-01                  
+ date     2021-02-11                  
 
-─ Packages ───────────────────────────────────────────────────────────────────
+─ Packages ─────────────────────────────────────────────────────────────────────────────
  package      * version    date       lib source                          
  ade4           1.7-16     2020-10-28 [1] CRAN (R 4.0.2)                  
  ape            5.4-1      2020-08-13 [1] CRAN (R 4.0.2)                  
@@ -487,15 +403,15 @@ sessioninfo::session_info() %>%
  cluster        2.1.0      2019-06-19 [1] CRAN (R 4.0.2)                  
  codetools      0.2-18     2020-11-04 [1] CRAN (R 4.0.2)                  
  colorspace     2.0-0      2020-11-11 [1] CRAN (R 4.0.2)                  
- crayon         1.4.0      2021-01-30 [1] CRAN (R 4.0.3)                  
+ crayon         1.4.1      2021-02-08 [1] CRAN (R 4.0.3)                  
  data.table     1.13.6     2020-12-30 [1] CRAN (R 4.0.2)                  
  DBI            1.1.1      2021-01-15 [1] CRAN (R 4.0.3)                  
- dbplyr         2.0.0      2020-11-03 [1] CRAN (R 4.0.2)                  
+ dbplyr         2.1.0      2021-02-03 [1] CRAN (R 4.0.3)                  
  decontam     * 1.8.0      2020-04-27 [1] Bioconductor                    
  desc           1.2.0      2018-05-01 [1] CRAN (R 4.0.2)                  
  details        0.2.1      2020-01-12 [1] CRAN (R 4.0.2)                  
  digest         0.6.27     2020-10-24 [1] CRAN (R 4.0.2)                  
- dplyr        * 1.0.3      2021-01-15 [1] CRAN (R 4.0.3)                  
+ dplyr        * 1.0.4      2021-02-02 [1] CRAN (R 4.0.3)                  
  ellipsis       0.3.1      2020-05-15 [1] CRAN (R 4.0.2)                  
  evaluate       0.14       2019-05-28 [1] CRAN (R 4.0.2)                  
  extrafont    * 0.17       2014-12-08 [1] CRAN (R 4.0.2)                  
@@ -530,7 +446,7 @@ sessioninfo::session_info() %>%
  modelr         0.1.8      2020-05-19 [1] CRAN (R 4.0.2)                  
  multtest       2.44.0     2020-04-27 [1] Bioconductor                    
  munsell        0.5.0      2018-06-12 [1] CRAN (R 4.0.2)                  
- nlme           3.1-151    2020-12-10 [1] CRAN (R 4.0.2)                  
+ nlme           3.1-152    2021-02-04 [1] CRAN (R 4.0.3)                  
  permute        0.9-5      2019-03-12 [1] CRAN (R 4.0.2)                  
  phyloseq     * 1.32.0     2020-04-27 [1] Bioconductor                    
  pillar         1.4.7      2020-11-20 [1] CRAN (R 4.0.2)                  
@@ -562,7 +478,7 @@ sessioninfo::session_info() %>%
  stringr      * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)                  
  survival       3.2-7      2020-09-28 [1] CRAN (R 4.0.2)                  
  svglite      * 1.2.3.2    2020-07-07 [1] CRAN (R 4.0.2)                  
- systemfonts    0.3.2      2020-09-29 [1] CRAN (R 4.0.2)                  
+ systemfonts    1.0.1      2021-02-09 [1] CRAN (R 4.0.3)                  
  tibble       * 3.0.6      2021-01-29 [1] CRAN (R 4.0.3)                  
  tidyr        * 1.1.2      2020-08-27 [1] CRAN (R 4.0.2)                  
  tidyselect     1.1.0      2020-05-11 [1] CRAN (R 4.0.2)                  
