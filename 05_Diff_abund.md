@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "05 Differential abundance modelling"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "2021-02-11"
+date: "2021-02-15"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -892,7 +892,13 @@ DESeq_res_SIP_byTime_LFC_l %>%
   # arrange(Comparison, desc(baseMean)) %>% 
   separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") %>% 
   mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) %>% 
-  mutate(across(Site_Oxygen_Hours, ~factor(., levels = col_order))) ->
+  mutate(across(Site_Oxygen_Hours, ~factor(., levels = col_order))) %>% 
+  mutate(Site_Oxygen = factor(paste0(Site, "-", Oxygen),
+                              levels = c("Plesne-Oxic", "Plesne-Anoxic", "Certovo-Oxic", "Certovo-Anoxic"),
+                              labels = c("Pl-Ox", "Pl-Anox", "Ct-Ox", "Ct-Anox"))) %>%
+  mutate(across(c("Hours"), ~factor(., 
+                                    levels = c("12 h", "24 h", "48 h", "72 h", "216 h"),
+                                    labels = c("12", "24", "48", "72", "216")))) ->
   # mutate(Site_oxygen = paste(Site, Oxygen)) ->
   DESeq_res_SIP_byTime_all_df
 
@@ -942,6 +948,11 @@ Ps_obj_SIP %>%
   prune_taxa(DESeq_res_SIP_byTime_all_df$ASV, .) ->
   Ps_obj_SIP4tree_plot
 
+
+# Remove long name
+tax_table(Ps_obj_SIP4tree_plot)[, "Order"] %<>%  str_replace_all(., "Gammaproteobacteria Incertae Sedis", "Incertae Sedis")
+
+
 taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)), 
                     subrank = c(rep("Order", 3), rep("Class", 4)), 
                     Taxa2plot = c("Actinobacteria", 
@@ -951,41 +962,20 @@ taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)),
                                   "Verrucomicrobiota",
                                   "Bacteroidota",
                                   "Firmicutes"),
-                    pwidth = c(12, 14, 18, 8, 8, 8, 8), 
-                    pheight = c(rep(10, 7)))
+                    l_rows = c(4, 5, 6, 3, 3, 3, 3),
+                    pwidth = c(5, 6, 8, 3, 3, 3, 3), 
+                    pheight = c(rep(10, 7)),)
 
-map(seq(nrow(taxa2plot)), 
-    ~wrap_ggtree_heatmap(Ps_obj_SIP4tree_plot,
-                         DESeq_res_SIP_byTime_all_df,
-                         rank = taxa2plot$rank[.x],
-                         subrank = taxa2plot$subrank[.x],
-                         Taxa2plot = taxa2plot$Taxa2plot[.x]))
-```
+tree_p_l <- map(seq(nrow(taxa2plot)), 
+                ~wrap_ggtree_heatmap(Ps_obj_SIP4tree_plot,
+                                     DESeq_res_SIP_byTime_all_df,
+                                     rank = taxa2plot$rank[.x],
+                                     subrank = taxa2plot$subrank[.x],
+                                     Taxa2plot = taxa2plot$Taxa2plot[.x],
+                                     l_rows = 8,
+                                     pwidth = 4,
+                                     pheight = 10))
 
-```
-## [[1]]
-## [1] "05_Diff_abund_figures/Tree_HM_Actinobacteria.svgz"
-## 
-## [[2]]
-## [1] "05_Diff_abund_figures/Tree_HM_Alphaproteobacteria.svgz"
-## 
-## [[3]]
-## [1] "05_Diff_abund_figures/Tree_HM_Gammaproteobacteria.svgz"
-## 
-## [[4]]
-## [1] "05_Diff_abund_figures/Tree_HM_Acidobacteriota.svgz"
-## 
-## [[5]]
-## [1] "05_Diff_abund_figures/Tree_HM_Verrucomicrobiota.svgz"
-## 
-## [[6]]
-## [1] "05_Diff_abund_figures/Tree_HM_Bacteroidota.svgz"
-## 
-## [[7]]
-## [1] "05_Diff_abund_figures/Tree_HM_Firmicutes.svgz"
-```
-
-```r
 trees2display <- list.files(path = paste0(fig.path), 
                     pattern = "^Tree_HM_(.*).png$",
                     full.names = TRUE)
@@ -993,7 +983,17 @@ trees2display <- list.files(path = paste0(fig.path),
 knitr::include_graphics(trees2display)
 ```
 
-<img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="2688" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="2688" />
+<img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="768" />
+
+```r
+all_trees <- ((tree_p_l[[1]] | tree_p_l[[2]] + guides(fill = FALSE) | tree_p_l[[3]] + guides(fill = FALSE) | tree_p_l[[4]] + guides(fill = FALSE)) / (tree_p_l[[5]] + guides(fill = FALSE) | tree_p_l[[6]] + guides(fill = FALSE) | tree_p_l[[7]] + guides(fill = FALSE) | plot_spacer())) + plot_layout(heights = c(2, 1))
+
+save_figure(paste0(fig.path, "all_trees"), 
+            all_trees, 
+            pwidth = 16, 
+            pheight = 18,
+            dpi = 900)
+```
 
 
 ```r
@@ -1019,7 +1019,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-11                  
+ date     2021-02-15                  
 
 ─ Packages ─────────────────────────────────────────────────────────────────────────────
  package              * version    date       lib
