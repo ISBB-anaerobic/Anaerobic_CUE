@@ -7,18 +7,15 @@ date: "`r Sys.Date()`"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
+always_allow_html: true
 output:
- rmarkdown::html_document:
-  toc: true
-  toc_float: true
-  keep_md: true
-  number_sections: false
-  highlight: "pygments"
-  theme: "flatly"
-  dev: "png"
-  df_print: "kable"
-  fig_caption: true
-  code_folding: "show"
+  rmarkdown::github_document:
+    toc: true
+    toc_depth: 5
+    number_sections: false
+    dev: "png"
+    df_print: "kable"
+    keep_html: true
 ---
 
 ```{r libraries, include=F, message=FALSE, warning = FALSE}

@@ -1,39 +1,23 @@
----
-title: "Anaerobic CUE"
-subtitle: "05 Differential abundance modelling"
-author: "Roey Angel"
-email: "roey.angel@bc.cas.cz"
-date: "2021-02-15"
-bibliography: references.bib
-link-citations: yes
-csl: fems-microbiology-ecology.csl
-output:
- rmarkdown::html_document:
-  toc: true
-  toc_float: true
-  keep_md: true
-  number_sections: false
-  highlight: "pygments"
-  theme: "flatly"
-  dev: "png"
-  df_print: "kable"
-  fig_caption: true
-  code_folding: "show"
----
-
-
-
-
-
-
+Anaerobic CUE
+================
+Roey Angel
+2021-02-20
 
 ## Differential abundance modelling of SIP gradients
-Here we attempt to detect ASVs that were labelled with ^13^C in our soil incubations using differential abundance modelling.
-Using DESeq2 [@love_moderated_2014] we compare the relative abundance of each ASV in the fractions where ^13^C-labelled RNA is expected to be found (>1.795 g ml^-1^; AKA 'heavy' fractions) to the fractions where unlabelled RNA is expected to be found (<1.795 g ml^-1^; AKA 'light' fractions). The method has been previously described in Angel et al., [-@angel_application_2018].
+
+Here we attempt to detect ASVs that were labelled with <sup>13</sup>C in
+our soil incubations using differential abundance modelling. Using
+DESeq2 (Love, Huber and Anders [2014](#ref-love_moderated_2014)) we
+compare the relative abundance of each ASV in the fractions where
+<sup>13</sup>C-labelled RNA is expected to be found (\>1.795 g
+ml<sup>-1</sup>; AKA ‘heavy’ fractions) to the fractions where
+unlabelled RNA is expected to be found (\<1.795 g ml<sup>-1</sup>; AKA
+‘light’ fractions). The method has been previously described in Angel
+et al., ([2018](#ref-angel_application_2018)).
 
 ### Setting general parameters:
 
-```r
+``` r
 set.seed(2021)
 alpha_thresh <- 0.05
 LFC_thresh <- 0.26
@@ -48,7 +32,7 @@ Tree_file <- "./Tree/DADA2.Seqs_decontam_filtered.filtered.align.treefile"
 
 ### Read phyloseq object
 
-```r
+``` r
 # Load phylogenetic tree
 Tree <- read_tree(paste0(data_path, Tree_file))
 
@@ -60,9 +44,12 @@ readRDS(paste0(data_path, Ps_file)) %>%
 ```
 
 ### Subset the dataset
-Because the DESeq2 models will be run on each gradient separately, we need to subset This is easily done using `HTSSIP::phyloseq_subset` [@youngblut_htssip_2018]
 
-```r
+Because the DESeq2 models will be run on each gradient separately, we
+need to subset This is easily done using `HTSSIP::phyloseq_subset`
+(Youngblut, Barnett and Buckley [2018](#ref-youngblut_htssip_2018))
+
+``` r
 # split, ignore time points (for labelled ASV plots)
 test_expr_1 <- "(Site == '${Site}' & Oxygen == '${Oxygen}' & Label..13C. == 'Unlabelled') | (Site == '${Site}'  & Oxygen == '${Oxygen}' & Label..13C. == '${Label..13C.}')"
 params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
@@ -93,48 +80,52 @@ names(Ps_obj_SIP_byTime_l) %<>%
 ```
 
 ### Beta diversity analysis
-Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling).
 
+Let us look first at the dissimilarity in community composition between
+the different fractions. If the labelling was strong enough we should
+see a deivation of (some of) the heavy fractions from the light ones.
+However, a lack of a significant deviation does not mean unsuccesful
+labelling because if only a small minority of the community was labelled
+we might not see it here (but we will, hopefully, see it using DESeq2
+modelling).
 
-```r
+``` r
 (mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
   permutations = 999
 ))
 ```
 
-```
-## 
-## Call:
-## adonis(formula = vegdist(otu_table(Ps_obj_SIP), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP),      "data.frame"), permutations = 999) 
-## 
-## Permutation: free
-## Number of permutations: 999
-## 
-## Terms added sequentially (first to last)
-## 
-##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-## Site                1    27.443 27.4431  480.48 0.53921  0.001 ***
-## Oxygen              1     5.290  5.2896   92.61 0.10393  0.001 ***
-## Hours               1     0.160  0.1596    2.80 0.00314  0.054 .  
-## Lib.size            1     0.078  0.0777    1.36 0.00153  0.244    
-## Site:Oxygen         1     0.540  0.5404    9.46 0.01062  0.001 ***
-## Site:Hours          1     0.419  0.4191    7.34 0.00823  0.003 ** 
-## Oxygen:Hours        1     0.119  0.1185    2.08 0.00233  0.116    
-## Site:Oxygen:Hours   1     0.226  0.2259    3.96 0.00444  0.021 *  
-## Residuals         291    16.621  0.0571         0.32657           
-## Total             299    50.895                 1.00000           
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Call:
+    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP),      "data.frame"), permutations = 999) 
+    ## 
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Terms added sequentially (first to last)
+    ## 
+    ##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+    ## Site                1    27.443 27.4431  480.48 0.53921  0.001 ***
+    ## Oxygen              1     5.290  5.2896   92.61 0.10393  0.001 ***
+    ## Hours               1     0.160  0.1596    2.80 0.00314  0.054 .  
+    ## Lib.size            1     0.078  0.0777    1.36 0.00153  0.244    
+    ## Site:Oxygen         1     0.540  0.5404    9.46 0.01062  0.001 ***
+    ## Site:Hours          1     0.419  0.4191    7.34 0.00823  0.003 ** 
+    ## Oxygen:Hours        1     0.119  0.1185    2.08 0.00233  0.116    
+    ## Site:Oxygen:Hours   1     0.226  0.2259    3.96 0.00444  0.021 *  
+    ## Residuals         291    16.621  0.0571         0.32657           
+    ## Total             299    50.895                 1.00000           
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 plot_lib_dist(Ps_obj_SIP)
 ```
 
-![](05_Diff_abund_figures/beta div joint-1.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-1.png)<!-- -->
 
-```r
+``` r
 Ps_obj_SIP %>%
   scale_libraries(round = "round") ->
   Ps_obj_SIP_scaled
@@ -142,181 +133,168 @@ Ps_obj_SIP %>%
 plot_lib_dist(Ps_obj_SIP_scaled)
 ```
 
-![](05_Diff_abund_figures/beta div joint-2.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-2.png)<!-- -->
 
-```r
+``` r
 (mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
 
-```
-## 
-## Call:
-## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
-## 
-## Permutation: free
-## Number of permutations: 999
-## 
-## Terms added sequentially (first to last)
-## 
-##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-## Site                1    27.658 27.6580  482.57 0.53919  0.001 ***
-## Oxygen              1     5.381  5.3811   93.89 0.10490  0.001 ***
-## Hours               1     0.161  0.1611    2.81 0.00314  0.054 .  
-## Lib.size            1     0.069  0.0691    1.21 0.00135  0.304    
-## Site:Oxygen         1     0.582  0.5817   10.15 0.01134  0.001 ***
-## Site:Hours          1     0.426  0.4265    7.44 0.00831  0.001 ***
-## Oxygen:Hours        1     0.112  0.1115    1.95 0.00217  0.139    
-## Site:Oxygen:Hours   1     0.228  0.2279    3.98 0.00444  0.021 *  
-## Residuals         291    16.678  0.0573         0.32514           
-## Total             299    51.295                 1.00000           
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Call:
+    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
+    ## 
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Terms added sequentially (first to last)
+    ## 
+    ##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+    ## Site                1    27.658 27.6580  482.57 0.53919  0.001 ***
+    ## Oxygen              1     5.381  5.3811   93.89 0.10490  0.001 ***
+    ## Hours               1     0.161  0.1611    2.81 0.00314  0.054 .  
+    ## Lib.size            1     0.069  0.0691    1.21 0.00135  0.304    
+    ## Site:Oxygen         1     0.582  0.5817   10.15 0.01134  0.001 ***
+    ## Site:Hours          1     0.426  0.4265    7.44 0.00831  0.001 ***
+    ## Oxygen:Hours        1     0.112  0.1115    1.95 0.00217  0.139    
+    ## Site:Oxygen:Hours   1     0.228  0.2279    3.98 0.00444  0.021 *  
+    ## Residuals         291    16.678  0.0573         0.32514           
+    ## Total             299    51.295                 1.00000           
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 (mod3 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
 
-```
-## 
-## Call:
-## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours * Density.zone, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
-## 
-## Permutation: free
-## Number of permutations: 999
-## 
-## Terms added sequentially (first to last)
-## 
-##                                 Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-## Site                             1    27.658 27.6580  710.39 0.53919  0.001 ***
-## Oxygen                           1     5.381  5.3811  138.21 0.10490  0.001 ***
-## Hours                            1     0.161  0.1611    4.14 0.00314  0.026 *  
-## Density.zone                     2     2.417  1.2086   31.04 0.04712  0.001 ***
-## Site:Oxygen                      1     0.526  0.5265   13.52 0.01026  0.001 ***
-## Site:Hours                       1     0.407  0.4072   10.46 0.00794  0.001 ***
-## Oxygen:Hours                     1     0.088  0.0885    2.27 0.00172  0.105    
-## Site:Density.zone                1     0.175  0.1749    4.49 0.00341  0.010 ** 
-## Oxygen:Density.zone              1     2.770  2.7697   71.14 0.05400  0.001 ***
-## Hours:Density.zone               1     0.030  0.0296    0.76 0.00058  0.493    
-## Site:Oxygen:Hours                1     0.143  0.1426    3.66 0.00278  0.027 *  
-## Site:Oxygen:Density.zone         1     0.068  0.0682    1.75 0.00133  0.185    
-## Site:Hours:Density.zone          1     0.107  0.1072    2.75 0.00209  0.057 .  
-## Oxygen:Hours:Density.zone        1     0.260  0.2601    6.68 0.00507  0.002 ** 
-## Site:Oxygen:Hours:Density.zone   1     0.085  0.0850    2.18 0.00166  0.134    
-## Residuals                      283    11.018  0.0389         0.21480           
-## Total                          299    51.295                 1.00000           
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Call:
+    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours * Density.zone, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
+    ## 
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Terms added sequentially (first to last)
+    ## 
+    ##                                 Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
+    ## Site                             1    27.658 27.6580  710.39 0.53919  0.001 ***
+    ## Oxygen                           1     5.381  5.3811  138.21 0.10490  0.001 ***
+    ## Hours                            1     0.161  0.1611    4.14 0.00314  0.026 *  
+    ## Density.zone                     2     2.417  1.2086   31.04 0.04712  0.001 ***
+    ## Site:Oxygen                      1     0.526  0.5265   13.52 0.01026  0.001 ***
+    ## Site:Hours                       1     0.407  0.4072   10.46 0.00794  0.001 ***
+    ## Oxygen:Hours                     1     0.088  0.0885    2.27 0.00172  0.105    
+    ## Site:Density.zone                1     0.175  0.1749    4.49 0.00341  0.010 ** 
+    ## Oxygen:Density.zone              1     2.770  2.7697   71.14 0.05400  0.001 ***
+    ## Hours:Density.zone               1     0.030  0.0296    0.76 0.00058  0.493    
+    ## Site:Oxygen:Hours                1     0.143  0.1426    3.66 0.00278  0.027 *  
+    ## Site:Oxygen:Density.zone         1     0.068  0.0682    1.75 0.00133  0.185    
+    ## Site:Hours:Density.zone          1     0.107  0.1072    2.75 0.00209  0.057 .  
+    ## Oxygen:Hours:Density.zone        1     0.260  0.2601    6.68 0.00507  0.002 ** 
+    ## Site:Oxygen:Hours:Density.zone   1     0.085  0.0850    2.18 0.00166  0.134    
+    ## Residuals                      283    11.018  0.0389         0.21480           
+    ## Total                          299    51.295                 1.00000           
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 Site_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Site"))
 permutest(Site_disp)
 ```
 
-```
-## 
-## Permutation test for homogeneity of multivariate dispersions
-## Permutation: free
-## Number of permutations: 999
-## 
-## Response: Distances
-##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)  
-## Groups      1  0.2375 0.237546 5.5678    999  0.016 *
-## Residuals 298 12.7139 0.042664                       
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Response: Distances
+    ##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)  
+    ## Groups      1  0.2375 0.237546 5.5678    999  0.016 *
+    ## Residuals 298 12.7139 0.042664                       
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 plot(Site_disp)
 ```
 
-![](05_Diff_abund_figures/beta div joint-3.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-3.png)<!-- -->
 
-```r
+``` r
 Oxygen_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Oxygen"))
 permutest(Oxygen_disp)
 ```
 
-```
-## 
-## Permutation test for homogeneity of multivariate dispersions
-## Permutation: free
-## Number of permutations: 999
-## 
-## Response: Distances
-##            Df  Sum Sq   Mean Sq      F N.Perm Pr(>F)  
-## Groups      1 0.03023 0.0302278 3.1681    999  0.087 .
-## Residuals 298 2.84331 0.0095413                       
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Response: Distances
+    ##            Df  Sum Sq   Mean Sq      F N.Perm Pr(>F)  
+    ## Groups      1 0.03023 0.0302278 3.1681    999  0.087 .
+    ## Residuals 298 2.84331 0.0095413                       
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 plot(Oxygen_disp)
 ```
 
-![](05_Diff_abund_figures/beta div joint-4.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-4.png)<!-- -->
 
-```r
+``` r
 Hours_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Hours"))
 permutest(Hours_disp)
 ```
 
-```
-## 
-## Permutation test for homogeneity of multivariate dispersions
-## Permutation: free
-## Number of permutations: 999
-## 
-## Response: Distances
-##            Df Sum Sq  Mean Sq      F N.Perm Pr(>F)   
-## Groups      4 0.2595 0.064877 4.7232    999  0.002 **
-## Residuals 295 4.0520 0.013736                        
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Response: Distances
+    ##            Df Sum Sq  Mean Sq      F N.Perm Pr(>F)   
+    ## Groups      4 0.2595 0.064877 4.7232    999  0.002 **
+    ## Residuals 295 4.0520 0.013736                        
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 plot(Hours_disp)
 ```
 
-![](05_Diff_abund_figures/beta div joint-5.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-5.png)<!-- -->
 
-```r
+``` r
 Density_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Density.zone"))
 permutest(Density_disp)
 ```
 
-```
-## 
-## Permutation test for homogeneity of multivariate dispersions
-## Permutation: free
-## Number of permutations: 999
-## 
-## Response: Distances
-##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)    
-## Groups      2 0.48515 0.242577 24.876    999  0.001 ***
-## Residuals 297 2.89621 0.009752                         
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
+    ## 
+    ## Permutation test for homogeneity of multivariate dispersions
+    ## Permutation: free
+    ## Number of permutations: 999
+    ## 
+    ## Response: Distances
+    ##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)    
+    ## Groups      2 0.48515 0.242577 24.876    999  0.001 ***
+    ## Residuals 297 2.89621 0.009752                         
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-```r
+``` r
 plot(Density_disp)
 ```
 
-![](05_Diff_abund_figures/beta div joint-6.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-6.png)<!-- -->
 
-
-```r
+``` r
 Ord <- ordinate(Ps_obj_SIP_scaled, "CAP", "horn", 
                 formula =  ~ Site * Oxygen * Hours * Density.zone)
 explained <- as.numeric(format(round(eigenvals(Ord)/sum(eigenvals(Ord)) * 100, 1), nsmall = 1))
@@ -363,9 +341,13 @@ knitr::include_graphics(paste0(fig.path, "Oridnation", ".png"))
 <img src="05_Diff_abund_figures/Oridnation.png" width="1920" />
 
 ### Differential abundance models
-Now run the differential abundance models using DESeq2. We then filter the resutls to include only ASVs with Log_2_ fold change >`LFC_thresh` and significant at P<`alpha_thresh`. Lastly, we run 'LFC-shrinking' based on Stephens [-@stephens_fdr_2016].
 
-```r
+Now run the differential abundance models using DESeq2. We then filter
+the resutls to include only ASVs with Log\_2\_ fold change
+\>`LFC_thresh` and significant at P\<`alpha_thresh`. Lastly, we run
+‘LFC-shrinking’ based on Stephens ([2016](#ref-stephens_fdr_2016)).
+
+``` r
 # generate a deseq object
 DESeq_obj_SIP_byTime_l <- mclapply(Ps_obj_SIP_byTime_l, 
                                    function(x) {phyloseq_to_deseq2_safe(x, 
@@ -411,21 +393,21 @@ names(DESeq_res_SIP_byTime_LFC_shrink_l) <- names(DESeq_res_SIP_byTime_LFC_l)
 plotMA(DESeq_res_SIP_byTime_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_figures/DESeq2 models by time-1.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-1.png)<!-- -->
 
-```r
+``` r
 plotMA(DESeq_res_SIP_byTime_LFC_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_figures/DESeq2 models by time-2.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-2.png)<!-- -->
 
-```r
+``` r
 plotMA(DESeq_res_SIP_byTime_LFC_shrink_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_figures/DESeq2 models by time-3.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-3.png)<!-- -->
 
-```r
+``` r
 # summarise results (lfcShrink doesn't change the values)
 # map2(DESeq_res_SIP_byTime_l, print(names(DESeq_res_SIP_byTime_l)), ~summary(.x)) # summarise results
 # for (i in seq(1, length(DESeq_res_SIP_byTime_l))) { # didn't manage with map
@@ -439,249 +421,247 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 }
 ```
 
-```
-## [1] "Certovo & 12 h & Anoxic & Labelled"
-## 
-## out of 3026 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 0, 0%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 3, 0.099%
-## low counts [2]     : 7, 0.23%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 216 h & Anoxic & Labelled"
-## 
-## out of 2878 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 37, 1.3%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1484, 52%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 24 h & Anoxic & Labelled"
-## 
-## out of 2755 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 1, 0.036%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 4, 0.15%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 48 h & Anoxic & Labelled"
-## 
-## out of 2787 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 15, 0.54%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1222, 44%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 216 h & Anoxic & Unlabelled"
-## 
-## out of 2825 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 0, 0%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 5, 0.18%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 12 h & Oxic & Labelled"
-## 
-## out of 3053 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 7, 0.23%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 8, 0.26%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 24 h & Oxic & Labelled"
-## 
-## out of 2954 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 107, 3.6%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 905, 31%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 48 h & Oxic & Labelled"
-## 
-## out of 2882 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 122, 4.2%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 331, 11%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 72 h & Oxic & Labelled"
-## 
-## out of 2898 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 142, 4.9%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 1, 0.035%
-## low counts [2]     : 1329, 46%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Certovo & 72 h & Oxic & Unlabelled"
-## 
-## out of 2979 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 33, 1.1%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 4, 0.13%
-## low counts [2]     : 1995, 67%
-## (mean count < 4)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 12 h & Anoxic & Labelled"
-## 
-## out of 3031 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 27, 0.89%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1678, 55%
-## (mean count < 3)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 216 h & Anoxic & Labelled"
-## 
-## out of 3210 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 0, 0%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 116, 3.6%
-## low counts [2]     : 3, 0.093%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 24 h & Anoxic & Labelled"
-## 
-## out of 2848 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 22, 0.77%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 2340, 82%
-## (mean count < 15)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 48 h & Anoxic & Labelled"
-## 
-## out of 2758 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 12, 0.44%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1527, 55%
-## (mean count < 2)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 216 h & Anoxic & Unlabelled"
-## 
-## out of 2862 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 0, 0%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 2, 0.07%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 12 h & Oxic & Labelled"
-## 
-## out of 2923 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 57, 2%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 1, 0.034%
-## low counts [2]     : 1790, 61%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 24 h & Oxic & Labelled"
-## 
-## out of 2548 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 101, 4%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1061, 42%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 48 h & Oxic & Labelled"
-## 
-## out of 2531 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 13, 0.51%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1820, 72%
-## (mean count < 3)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 72 h & Oxic & Labelled"
-## 
-## out of 2556 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 115, 4.5%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 0, 0%
-## low counts [2]     : 1113, 44%
-## (mean count < 1)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-## 
-## [1] "Plesne & 72 h & Oxic & Unlabelled"
-## 
-## out of 2798 with nonzero total read count
-## adjusted p-value < 0.05
-## LFC > 0.26 (up)    : 3, 0.11%
-## LFC < -0.26 (down) : 0, 0%
-## outliers [1]       : 7, 0.25%
-## low counts [2]     : 0, 0%
-## (mean count < 0)
-## [1] see 'cooksCutoff' argument of ?results
-## [2] see 'independentFiltering' argument of ?results
-```
+    ## [1] "Certovo & 12 h & Anoxic & Labelled"
+    ## 
+    ## out of 3026 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 0, 0%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 3, 0.099%
+    ## low counts [2]     : 7, 0.23%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 216 h & Anoxic & Labelled"
+    ## 
+    ## out of 2878 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 37, 1.3%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1484, 52%
+    ## (mean count < 2)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 24 h & Anoxic & Labelled"
+    ## 
+    ## out of 2755 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 1, 0.036%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 4, 0.15%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 48 h & Anoxic & Labelled"
+    ## 
+    ## out of 2787 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 15, 0.54%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1222, 44%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 216 h & Anoxic & Unlabelled"
+    ## 
+    ## out of 2825 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 0, 0%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 5, 0.18%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 12 h & Oxic & Labelled"
+    ## 
+    ## out of 3053 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 7, 0.23%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 8, 0.26%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 24 h & Oxic & Labelled"
+    ## 
+    ## out of 2954 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 107, 3.6%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 905, 31%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 48 h & Oxic & Labelled"
+    ## 
+    ## out of 2882 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 122, 4.2%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 331, 11%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 72 h & Oxic & Labelled"
+    ## 
+    ## out of 2898 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 142, 4.9%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 1, 0.035%
+    ## low counts [2]     : 1329, 46%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Certovo & 72 h & Oxic & Unlabelled"
+    ## 
+    ## out of 2979 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 33, 1.1%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 4, 0.13%
+    ## low counts [2]     : 1995, 67%
+    ## (mean count < 4)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 12 h & Anoxic & Labelled"
+    ## 
+    ## out of 3031 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 27, 0.89%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1678, 55%
+    ## (mean count < 3)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 216 h & Anoxic & Labelled"
+    ## 
+    ## out of 3210 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 0, 0%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 116, 3.6%
+    ## low counts [2]     : 3, 0.093%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 24 h & Anoxic & Labelled"
+    ## 
+    ## out of 2848 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 22, 0.77%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 2340, 82%
+    ## (mean count < 15)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 48 h & Anoxic & Labelled"
+    ## 
+    ## out of 2758 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 12, 0.44%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1527, 55%
+    ## (mean count < 2)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 216 h & Anoxic & Unlabelled"
+    ## 
+    ## out of 2862 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 0, 0%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 2, 0.07%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 12 h & Oxic & Labelled"
+    ## 
+    ## out of 2923 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 57, 2%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 1, 0.034%
+    ## low counts [2]     : 1790, 61%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 24 h & Oxic & Labelled"
+    ## 
+    ## out of 2548 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 101, 4%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1061, 42%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 48 h & Oxic & Labelled"
+    ## 
+    ## out of 2531 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 13, 0.51%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1820, 72%
+    ## (mean count < 3)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 72 h & Oxic & Labelled"
+    ## 
+    ## out of 2556 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 115, 4.5%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 0, 0%
+    ## low counts [2]     : 1113, 44%
+    ## (mean count < 1)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
+    ## 
+    ## [1] "Plesne & 72 h & Oxic & Unlabelled"
+    ## 
+    ## out of 2798 with nonzero total read count
+    ## adjusted p-value < 0.05
+    ## LFC > 0.26 (up)    : 3, 0.11%
+    ## LFC < -0.26 (down) : 0, 0%
+    ## outliers [1]       : 7, 0.25%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 0)
+    ## [1] see 'cooksCutoff' argument of ?results
+    ## [2] see 'independentFiltering' argument of ?results
 
-```r
+``` r
 # Store labelled OTUs and save them to a file
 # DESeq_res_SIP_byTime_l %>% 
 #   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
@@ -705,27 +685,27 @@ DESeq_res_SIP_byTime_LFC_shrink_l %>%
 
 #### Inspect results
 
-```r
+``` r
 DESeq_res_SIP_byTime_LFC_sig_df %>% 
   get_variable() %>% 
   select_if(is.numeric) %>% 
   vis_value()
 ```
 
-![](05_Diff_abund_figures/vis DES res-1.png)<!-- -->
+![](05_Diff_abund_figures/vis%20DES%20res-1.png)<!-- -->
 
-```r
+``` r
 DESeq_res_SIP_byTime_LFC_sig_df %>% 
   get_variable() %>% 
   select_if(is.numeric) %>% 
   vis_cor()
 ```
 
-![](05_Diff_abund_figures/vis DES res-2.png)<!-- -->
+![](05_Diff_abund_figures/vis%20DES%20res-2.png)<!-- -->
 
 #### Plot differential abundance models
 
-```r
+``` r
 # ps_obj <- Ps_obj_SIP
 # DESeq_results <- DESeq_res_SIP_byTime_LFC0.322_l[9]
 # plot_DESeq(DESeq_results, ps_obj, plot_title = names(DESeq_results))
@@ -785,7 +765,7 @@ knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
 
 <img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="2688" />
 
-```r
+``` r
 Plesne_DESeq <- ((DESeq_plots[[16]] + 
                     theme(legend.position = "none") +
                     theme(axis.text.x = element_blank())) +
@@ -838,7 +818,7 @@ knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
 
 ### Plot labelled ASVs
 
-```r
+``` r
 plot_combintions <- crossing(Site = c("Certovo", "Plesne"), 
          Oxygen = c("Oxic", "Anoxic"))
 
@@ -853,21 +833,19 @@ map(seq(length(Ps_obj_SIP_noTime_l)),
                  dpi = 600))
 ```
 
-```
-## [[1]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.svgz"
-## 
-## [[2]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.svgz"
-## 
-## [[3]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.svgz"
-## 
-## [[4]]
-## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.svgz"
-```
+    ## [[1]]
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.svgz"
+    ## 
+    ## [[2]]
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.svgz"
+    ## 
+    ## [[3]]
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.svgz"
+    ## 
+    ## [[4]]
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.svgz"
 
-```r
+``` r
 plots2display <- list.files(path = paste0(fig.path), 
                     pattern = "^Labelled_ASVs_(.*).png$",
                     full.names = TRUE)
@@ -879,7 +857,7 @@ knitr::include_graphics(plots2display)
 
 #### Plot phylogenetic trees with heatmaps
 
-```r
+``` r
 c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" )  ->
   col_order
 
@@ -911,31 +889,84 @@ DESeq_res_SIP_byTime_all_df %>%
 <div class="kable-table">
 
 <table>
- <thead>
-  <tr>
-   <th style="text-align:left;"> Labelled </th>
-   <th style="text-align:right;"> n </th>
-  </tr>
- </thead>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+Labelled
+
+</th>
+
+<th style="text-align:right;">
+
+n
+
+</th>
+
+</tr>
+
+</thead>
+
 <tbody>
-  <tr>
-   <td style="text-align:left;"> Labelled </td>
-   <td style="text-align:right;"> 778 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Unlabelled </td>
-   <td style="text-align:right;"> 37162 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:right;"> 21148 </td>
-  </tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+Labelled
+
+</td>
+
+<td style="text-align:right;">
+
+778
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+Unlabelled
+
+</td>
+
+<td style="text-align:right;">
+
+37162
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+NA
+
+</td>
+
+<td style="text-align:right;">
+
+21148
+
+</td>
+
+</tr>
+
 </tbody>
+
 </table>
 
 </div>
 
-```r
+``` r
 # detect taxa with NA from DESeq analysis
 DESeq_res_SIP_byTime_all_df %<>% 
   filter(!is.na(Labelled)) #%>% 
@@ -985,7 +1016,7 @@ knitr::include_graphics(trees2display)
 
 <img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="768" />
 
-```r
+``` r
 all_trees <- ((tree_p_l[[1]] | tree_p_l[[2]] + guides(fill = FALSE) | tree_p_l[[3]] + guides(fill = FALSE) | tree_p_l[[4]] + guides(fill = FALSE)) / (tree_p_l[[5]] + guides(fill = FALSE) | tree_p_l[[6]] + guides(fill = FALSE) | tree_p_l[[7]] + guides(fill = FALSE) | plot_spacer())) + plot_layout(heights = c(2, 1))
 
 save_figure(paste0(fig.path, "all_trees"), 
@@ -995,8 +1026,7 @@ save_figure(paste0(fig.path, "all_trees"),
             dpi = 900)
 ```
 
-
-```r
+``` r
 sessioninfo::session_info() %>%
   details::details(
     summary = 'Current session info',
@@ -1005,9 +1035,11 @@ sessioninfo::session_info() %>%
 ```
 
 <details open>
-<summary> <span title='Click to Expand'> Current session info </span> </summary>
 
-```r
+<summary> <span title="Click to Expand"> Current session info </span>
+</summary>
+
+``` r
 
 ─ Session info ─────────────────────────────────────────────────────────────────────────
  setting  value                       
@@ -1341,10 +1373,44 @@ sessioninfo::session_info() %>%
 [2] /usr/local/lib/R/site-library
 [3] /usr/lib/R/site-library
 [4] /usr/lib/R/library
-
 ```
 
 </details>
+
 <br>
 
 ## References
+
+<div id="refs" class="references">
+
+<div id="ref-angel_application_2018">
+
+Angel R, Panhölzl C, Gabriel R *et al.* Application of stable-isotope
+labelling techniques for the detection of active diazotrophs. *Environ
+Microbiol* 2018;**20**:44–61.
+
+</div>
+
+<div id="ref-love_moderated_2014">
+
+Love MI, Huber W, Anders S. Moderated estimation of fold change and
+dispersion for RNA-seq data with DESeq2. *Genome Biol* 2014;**15**:550.
+
+</div>
+
+<div id="ref-stephens_fdr_2016">
+
+Stephens M. False discovery rates: a new deal. *Biostatistics*
+2016;**18**:275–94.
+
+</div>
+
+<div id="ref-youngblut_htssip_2018">
+
+Youngblut ND, Barnett SE, Buckley DH. HTSSIP: An R package for analysis
+of high throughput sequencing data from nucleic acid stable isotope
+probing (SIP) experiments. *PLOS ONE* 2018;**13**:e0189616.
+
+</div>
+
+</div>
