@@ -10,6 +10,30 @@ Analysis of stable-isotope probing experiment included in the paper: [Aeration a
 Overview
 --------
     ├── DADA2_pseudo # ASV table, taxonomy phylogenetic tree and other data files
+        ├── 01_run_DADA2_16S_pseudo_V8.6.log
+        ├── DADA2.Seqs_decontam.fa
+        ├── DADA2.Seqs_decontam_filtered.fa
+        ├── DADA2.Seqs.fa
+        ├── DADA2.seqtab_nochim_decontam.tsv
+        ├── DADA2.seqtab_nochim.RDS
+        ├── DADA2.seqtab_nochim.tsv
+        ├── DADA2.taxa_silva_decontam.tsv
+        ├── DADA2.taxa_silva.tsv
+        ├── DADA2.track_each.tsv
+        ├── decontam_contaminants.csv
+        ├── Ps_obj_decontam_filt3.Rds
+        ├── Ps_obj_decontam.Rds
+        ├── QualProf.pdf
+        ├── Read1Errors.pdf
+        ├── Read2Errors.pdf
+        └── Tree
+            ├── DADA2.filter
+            ├── DADA2.Seqs_decontam_filtered.filtered.align
+            ├── DADA2.Seqs_decontam_filtered.filtered.align.bionj
+            ├── DADA2.Seqs_decontam_filtered.filtered.align.iqtree
+            ├── DADA2.Seqs_decontam_filtered.filtered.align.log
+            ├── DADA2.Seqs_decontam_filtered.filtered.align.treefile
+            └── DADA2.Seqs_decontam_filtered.FT.tree
     ├── 00_cutadapt.log
     ├── 00_cutadapt_v2.0.sh
     ├── 01_DADA2_16S_merge_V8.6.R
@@ -35,6 +59,7 @@ Overview
     ├── README.md # Overview of the repo
     └── references.bib  # Bibtex formatted refereces cited in the RMD file
 
-Reproducing the analysis
+Viewing and reproducing the analysis
 --------
-The RMD file is best executed using [knitr](https://yihui.name/knitr/) on [RStudio](https://www.rstudio.com/). 
+The MD files can be used to display the output on github, while HTML files can be used for offline viewing. 
+The RMD files are best compiled using [knitr](https://yihui.name/knitr/) on [RStudio](https://www.rstudio.com/). 
