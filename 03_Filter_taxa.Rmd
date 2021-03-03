@@ -309,7 +309,7 @@ sample_data(Ps_obj_SIP_merged)$Lib.size <- rowSums(otu_table(Ps_obj_SIP_merged))
 ```
 
 ### Exploring dataset features
-First let's look at the count data distribution
+First let us look at the count data distribution
 ```{r plot abundance, cache=T}
 plot_lib_size(Ps_obj_SIP_merged, x = "Fraction.no.", fill = "Oxygen", facet1 = "Site", facet2 = "Hours")
 ```
@@ -331,13 +331,13 @@ The reads histogram shows as expected a highly sparse and skewed sequence matrix
 The mean vs SD also shows as expected large dependency of SD on the mean reads of a sequence across all samples.
 
 #### Taxa-based filtering 
-Frist let's look at the taxonomic distribution
+Now let us look at the taxonomic distribution
 ```{r taxa table, cache=T}
 table(tax_table(Ps_obj_SIP_merged)[, "Kingdom"], exclude = NULL)
 table(tax_table(Ps_obj_SIP_merged)[, "Class"], exclude = NULL)
 # table(tax_table(Ps_obj)[, "Family"], exclude = NULL)
 ```
-Now let's remove some taxa which are obvious artefacts or those which aren't bacteria or archaea
+Accordingly, we will remove some taxa which are obvious artefacts or those which aren't bacteria or archaea
 ```{r remove unwated taxa, cache=T}
 kingdoms2remove <- c("", "Eukaryota", "Unclassified")
 orders2remove <- c("Chloroplast")

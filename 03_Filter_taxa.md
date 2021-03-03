@@ -1,7 +1,7 @@
 Anaerobic CUE
 ================
 Roey Angel
-2021-02-20
+2021-03-02
 
 ## Filter out rare taxa and those not classified as bacteria or archaea
 
@@ -49,27 +49,21 @@ sample_data(Ps_obj_SIP) %<>%
 phyloseq_merge_samples(Ps_obj_SIP, "Identifier") %>% 
   filter_taxa(., function(x) sum(x) > 0, TRUE) ->
   Ps_obj_SIP_merged 
-```
 
-    ## Warning in class(x) <- c(setdiff(subclass, tibble_class), tibble_class): Setting
-    ## class(x) to multiple strings ("tbl_df", "tbl", ...); result will no longer be an
-    ## S4 object
-
-``` r
 # Compute lib sizes
 sample_data(Ps_obj_SIP_merged)$Lib.size <- rowSums(otu_table(Ps_obj_SIP_merged))
 ```
 
 ### Exploring dataset features
 
-First let’s look at the count data
+First let us look at the count data
 distribution
 
 ``` r
 plot_lib_size(Ps_obj_SIP_merged, x = "Fraction.no.", fill = "Oxygen", facet1 = "Site", facet2 = "Hours")
 ```
 
-![](03_Filter_taxa_files/figure-gfm/plot%20abundance-1.png)<!-- -->
+![](03_Filter_taxa_figures/plot%20abundance-1.png)<!-- -->
 
 I will test now the effect of library size and all other experimental
 factors on the community composition and also
@@ -109,40 +103,19 @@ plot
 plot_lib_dist(Ps_obj_SIP_merged)
 ```
 
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%201-1.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%201-1.png)<!-- -->
 
 ``` r
 plot_read_dist(Ps_obj_SIP_merged)
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous y-axis
-
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%201-2.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%201-2.png)<!-- -->
 
 ``` r
 plot_mean_SD(Ps_obj_SIP_merged)
 ```
 
-    ## Loading required package: vsn
-
-    ## Loading required package: Biobase
-
-    ## Welcome to Bioconductor
-    ## 
-    ##     Vignettes contain introductory material; view with
-    ##     'browseVignettes()'. To cite Bioconductor, see
-    ##     'citation("Biobase")', and for packages 'citation("pkgname")'.
-
-    ## 
-    ## Attaching package: 'Biobase'
-
-    ## The following object is masked from 'package:phyloseq':
-    ## 
-    ##     sampleNames
-
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%201-3.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%201-3.png)<!-- -->
 
 Modelling library size shows a significant effect of read depth on the
 community structure, but explaining only 9% of the variance. The reads
@@ -152,7 +125,7 @@ reads of a sequence across all samples.
 
 #### Taxa-based filtering
 
-Frist let’s look at the taxonomic distribution
+Now let us look at the taxonomic distribution
 
 ``` r
 table(tax_table(Ps_obj_SIP_merged)[, "Kingdom"], exclude = NULL)
@@ -222,8 +195,8 @@ table(tax_table(Ps_obj_SIP_merged)[, "Class"], exclude = NULL)
 # table(tax_table(Ps_obj)[, "Family"], exclude = NULL)
 ```
 
-Now let’s remove some taxa which are obvious artefacts or those which
-aren’t bacteria or archaea
+Accordingly, we will remove some taxa which are obvious artefacts or
+those which aren’t bacteria or archaea
 
 ``` r
 kingdoms2remove <- c("", "Eukaryota", "Unclassified")
@@ -264,27 +237,7 @@ Summary_pruned <- tibble(
       summarise(sum = sum(Abundance)) %>% .$sum %>% sum()
     )
   )
-```
 
-    ## Warning in psmelt(Ps_obj_kingdoms): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Warning in psmelt(Ps_obj_orders): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Warning in psmelt(Ps_obj_families): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-``` r
 Summary_pruned %>% 
   kable(., digits = c(0, 1, 0)) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
@@ -5264,7 +5217,7 @@ ggplot(prevdf_phylum_filt,
   theme(legend.position = "none")
 ```
 
-![](03_Filter_taxa_files/figure-gfm/prevalence%20phylum-1.png)<!-- -->
+![](03_Filter_taxa_figures/prevalence%20phylum-1.png)<!-- -->
 
 Plot general prevalence features of the top 20 orders
 
@@ -5300,7 +5253,7 @@ ggplot(prevdf_order_filt2,
   theme(legend.position = "none")
 ```
 
-![](03_Filter_taxa_files/figure-gfm/prevalence%20order-1.png)<!-- -->
+![](03_Filter_taxa_figures/prevalence%20order-1.png)<!-- -->
 
 #### Unsupervised filtering by prevalence
 
@@ -5472,23 +5425,19 @@ filtering
 plot_lib_dist(Ps_obj_SIP_merged_filt3)
 ```
 
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%202-1.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%202-1.png)<!-- -->
 
 ``` r
 plot_read_dist(Ps_obj_SIP_merged_filt3)
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous y-axis
-
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%202-2.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%202-2.png)<!-- -->
 
 ``` r
 plot_mean_SD(Ps_obj_SIP_merged_filt3)
 ```
 
-![](03_Filter_taxa_files/figure-gfm/mod%20abundance%202-3.png)<!-- -->
+![](03_Filter_taxa_figures/mod%20abundance%202-3.png)<!-- -->
 
 #### Save filtered phyloseq object
 
@@ -5514,7 +5463,7 @@ sessioninfo::session_info() %>%
 
 ``` r
 
-─ Session info ───────────────────────────────────────────────────────────────
+─ Session info ─────────────────────────────────────────────────────────────────────────
  setting  value                       
  version  R version 4.0.3 (2020-10-10)
  os       Ubuntu 18.04.5 LTS          
@@ -5524,9 +5473,9 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8                 
  ctype    en_US.UTF-8                 
  tz       Europe/Prague               
- date     2021-02-20                  
+ date     2021-03-02                  
 
-─ Packages ───────────────────────────────────────────────────────────────────
+─ Packages ─────────────────────────────────────────────────────────────────────────────
  package        * version    date       lib source                           
  ade4             1.7-16     2020-10-28 [1] CRAN (R 4.0.2)                   
  affy             1.66.0     2020-04-27 [1] Bioconductor                     
@@ -5542,13 +5491,14 @@ sessioninfo::session_info() %>%
  Biostrings     * 2.56.0     2020-04-27 [1] Bioconductor                     
  broom            0.7.5      2021-02-19 [1] CRAN (R 4.0.3)                   
  cellranger       1.1.0      2016-07-27 [1] CRAN (R 4.0.2)                   
- cli              2.3.0      2021-01-31 [1] CRAN (R 4.0.3)                   
+ cli              2.3.1      2021-02-23 [1] CRAN (R 4.0.3)                   
  clipr            0.7.1      2020-10-08 [1] CRAN (R 4.0.2)                   
  cluster          2.1.1      2021-02-14 [1] CRAN (R 4.0.3)                   
+ coda             0.19-4     2020-09-30 [1] CRAN (R 4.0.2)                   
  codetools        0.2-18     2020-11-04 [1] CRAN (R 4.0.2)                   
  colorspace       2.0-0      2020-11-11 [1] CRAN (R 4.0.2)                   
  crayon           1.4.1      2021-02-08 [1] CRAN (R 4.0.3)                   
- data.table       1.13.6     2020-12-30 [1] CRAN (R 4.0.2)                   
+ data.table       1.14.0     2021-02-21 [1] CRAN (R 4.0.3)                   
  DBI              1.1.1      2021-01-15 [1] CRAN (R 4.0.3)                   
  dbplyr           2.1.0      2021-02-03 [1] CRAN (R 4.0.3)                   
  desc             1.2.0      2018-05-01 [1] CRAN (R 4.0.2)                   
@@ -5557,10 +5507,13 @@ sessioninfo::session_info() %>%
  dplyr          * 1.0.4      2021-02-02 [1] CRAN (R 4.0.3)                   
  effectsize       0.4.3      2021-01-18 [1] CRAN (R 4.0.3)                   
  ellipsis         0.3.1      2020-05-15 [1] CRAN (R 4.0.2)                   
+ emmeans          1.5.4      2021-02-03 [1] CRAN (R 4.0.3)                   
+ estimability     1.3        2018-02-11 [1] CRAN (R 4.0.2)                   
  evaluate         0.14       2019-05-28 [1] CRAN (R 4.0.2)                   
  extrafont      * 0.17       2014-12-08 [1] CRAN (R 4.0.2)                   
  extrafontdb      1.0        2012-06-11 [1] CRAN (R 4.0.2)                   
- farver           2.0.3      2020-01-16 [1] CRAN (R 4.0.2)                   
+ fansi            0.4.2      2021-01-15 [1] CRAN (R 4.0.3)                   
+ farver           2.1.0      2021-02-28 [1] CRAN (R 4.0.3)                   
  forcats        * 0.5.1      2021-01-27 [1] CRAN (R 4.0.3)                   
  foreach          1.5.1      2020-10-15 [1] CRAN (R 4.0.2)                   
  fs               1.5.0      2020-07-31 [1] CRAN (R 4.0.2)                   
@@ -5576,7 +5529,7 @@ sessioninfo::session_info() %>%
  htmltools        0.5.1.1    2021-01-22 [1] CRAN (R 4.0.3)                   
  httr             1.4.2      2020-07-20 [1] CRAN (R 4.0.2)                   
  igraph           1.2.6      2020-10-06 [1] CRAN (R 4.0.2)                   
- insight          0.13.0     2021-02-15 [1] CRAN (R 4.0.3)                   
+ insight          0.13.1     2021-02-22 [1] CRAN (R 4.0.3)                   
  IRanges        * 2.22.2     2020-05-21 [1] Bioconductor                     
  iterators        1.0.13     2020-10-15 [1] CRAN (R 4.0.2)                   
  jsonlite         1.7.2      2020-12-09 [1] CRAN (R 4.0.2)                   
@@ -5586,19 +5539,21 @@ sessioninfo::session_info() %>%
  lattice        * 0.20-41    2020-04-02 [1] CRAN (R 4.0.2)                   
  lifecycle        1.0.0      2021-02-15 [1] CRAN (R 4.0.3)                   
  limma            3.44.3     2020-06-12 [1] Bioconductor                     
- lubridate        1.7.9.2    2020-11-13 [1] CRAN (R 4.0.2)                   
+ lubridate        1.7.10     2021-02-26 [1] CRAN (R 4.0.3)                   
  magrittr       * 2.0.1      2020-11-17 [1] CRAN (R 4.0.2)                   
  MASS             7.3-53.1   2021-02-12 [1] CRAN (R 4.0.3)                   
  Matrix           1.3-2      2021-01-06 [1] CRAN (R 4.0.2)                   
  mgcv             1.8-34     2021-02-16 [1] CRAN (R 4.0.3)                   
  modelr           0.1.8      2020-05-19 [1] CRAN (R 4.0.2)                   
+ multcomp         1.4-16     2021-02-08 [1] CRAN (R 4.0.3)                   
  multtest         2.44.0     2020-04-27 [1] Bioconductor                     
  munsell          0.5.0      2018-06-12 [1] CRAN (R 4.0.2)                   
+ mvtnorm          1.1-1      2020-06-09 [1] CRAN (R 4.0.2)                   
  nlme             3.1-152    2021-02-04 [1] CRAN (R 4.0.3)                   
- parameters       0.11.0     2021-01-15 [1] CRAN (R 4.0.3)                   
+ parameters       0.12.0     2021-02-21 [1] CRAN (R 4.0.3)                   
  permute        * 0.9-5      2019-03-12 [1] CRAN (R 4.0.2)                   
  phyloseq       * 1.32.0     2020-04-27 [1] Bioconductor                     
- pillar           1.4.7      2020-11-20 [1] CRAN (R 4.0.2)                   
+ pillar           1.5.0      2021-02-22 [1] CRAN (R 4.0.3)                   
  pkgconfig        2.0.3      2019-09-22 [1] CRAN (R 4.0.2)                   
  plyr             1.8.6      2020-03-03 [1] CRAN (R 4.0.2)                   
  png              0.1-7      2013-12-03 [1] CRAN (R 4.0.2)                   
@@ -5622,6 +5577,7 @@ sessioninfo::session_info() %>%
  Rttf2pt1         1.3.8      2020-01-10 [1] CRAN (R 4.0.2)                   
  rvest            0.3.6      2020-07-25 [1] CRAN (R 4.0.2)                   
  S4Vectors      * 0.26.1     2020-05-16 [1] Bioconductor                     
+ sandwich         3.0-0      2020-10-02 [1] CRAN (R 4.0.2)                   
  scales         * 1.1.1      2020-05-11 [1] CRAN (R 4.0.2)                   
  see            * 0.6.2      2021-02-04 [1] CRAN (R 4.0.3)                   
  sessioninfo      1.1.1      2018-11-05 [1] CRAN (R 4.0.2)                   
@@ -5631,10 +5587,12 @@ sessioninfo::session_info() %>%
  survival         3.2-7      2020-09-28 [1] CRAN (R 4.0.2)                   
  svglite        * 2.0.0      2021-02-20 [1] CRAN (R 4.0.3)                   
  systemfonts      1.0.1      2021-02-09 [1] CRAN (R 4.0.3)                   
- tibble         * 3.0.6      2021-01-29 [1] CRAN (R 4.0.3)                   
+ TH.data          1.0-10     2019-01-21 [1] CRAN (R 4.0.2)                   
+ tibble         * 3.1.0      2021-02-25 [1] CRAN (R 4.0.3)                   
  tidyr          * 1.1.2      2020-08-27 [1] CRAN (R 4.0.2)                   
  tidyselect       1.1.0      2020-05-11 [1] CRAN (R 4.0.2)                   
  tidyverse      * 1.3.0      2019-11-21 [1] CRAN (R 4.0.2)                   
+ utf8             1.1.4      2018-05-24 [1] CRAN (R 4.0.2)                   
  vctrs            0.3.6      2020-12-17 [1] CRAN (R 4.0.2)                   
  vegan          * 2.5-7      2020-11-28 [1] CRAN (R 4.0.2)                   
  viridisLite      0.3.0      2018-02-01 [1] CRAN (R 4.0.2)                   
@@ -5643,9 +5601,11 @@ sessioninfo::session_info() %>%
  withr            2.4.1      2021-01-26 [1] CRAN (R 4.0.3)                   
  xfun             0.21       2021-02-10 [1] CRAN (R 4.0.3)                   
  xml2             1.3.2      2020-04-23 [1] CRAN (R 4.0.2)                   
+ xtable           1.8-4      2019-04-21 [1] CRAN (R 4.0.2)                   
  XVector        * 0.28.0     2020-04-27 [1] Bioconductor                     
  yaml             2.2.1      2020-02-01 [1] CRAN (R 4.0.2)                   
  zlibbioc         1.34.0     2020-04-27 [1] Bioconductor                     
+ zoo              1.8-8      2020-05-02 [1] CRAN (R 4.0.2)                   
 
 [1] /home/angel/R/library
 [2] /usr/local/lib/R/site-library
