@@ -987,8 +987,6 @@ map(seq(length(Ps_obj_SIP_noTime_l)),
                  pheight = 12,
                  dpi = 600))
 
-
-
 plots2display <- list.files(path = paste0(fig.path), 
                     pattern = "^Labelled_ASVs_(.*).png$",
                     full.names = TRUE)

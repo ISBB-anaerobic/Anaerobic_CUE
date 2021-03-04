@@ -46,7 +46,6 @@ Overview
     ├── 03_Filter_taxa.Rmd
     ├── 04_calc_tree.log
     ├── 04_calc_tree_V2.0.sh
-    ├── 05_calc_tree.log
     ├── 05_Diff_abund.html
     ├── 05_Diff_abund.md
     ├── 05_Diff_abund.Rmd
