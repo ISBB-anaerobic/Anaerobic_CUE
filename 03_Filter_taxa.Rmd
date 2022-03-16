@@ -491,7 +491,7 @@ ggplot(prevdf_order_filt2,
 ```
 
 #### Unsupervised filtering by prevalence
-I'll remove all sequences which appear in less than 5% of the samples
+I'll remove all sequences which appear in less than 10% of the samples
 ```{r unsupervised prevalence filtering, cache=T}
 # Define prevalence threshold as 5% of total samples
 prevalenceThreshold <- prev_thresh * nsamples(Ps_obj_SIP_merged_filt2)
