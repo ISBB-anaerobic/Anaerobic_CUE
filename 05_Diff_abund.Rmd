@@ -3,7 +3,7 @@ title: "Anaerobic CUE"
 subtitle: "05 Differential abundance modelling"
 author: "Roey Angel"
 email: "roey.angel@bc.cas.cz"
-date: "`r Sys.Date()`"
+date: "`2021-02-20`"
 bibliography: references.bib
 link-citations: yes
 csl: fems-microbiology-ecology.csl
@@ -148,26 +148,6 @@ save_figure <- function(filename = "Rplot",
   gz(paste0(filename, ".svg"), paste0(filename, ".svgz"))
 }
 
-#' scale_libraries
-#'
-#' Scales libraries by:
-#' 1) Taking proportions
-#' 2) Multiplying by a given library size of n
-#' 3) Rounding
-#'
-#' @param ps_obj (Required) A phyloseq object
-#'
-#' @param n (Optional) Library size to scale to (Default: min(sample_sums(physeq)))
-#'
-#' @param round (Optional) Rounding method. Either "floor" (default) or "round"
-#'
-#' @author https://github.com/DenefLab/MicrobeMiseq/blob/master/R/miseqR.R
-#' @return A phyloseq objectn ordered data frame with the columns: ASV names, taxonomic rank names and abundance
-#' @usage scale_libraries(Ps_obj, n = min(sample_sums(physeq)), round = "floor")
-#' @export
-#'
-#'
-
 #' plot_lib_dist
 #' Plot distribution of amplicon library sizes as a histogram
 #'
@@ -191,6 +171,25 @@ plot_lib_dist <- function(Ps_obj){
   return(lib_dist_plot)
 }
 
+#' scale_libraries
+#'
+#' Scales libraries by:
+#' 1) Taking proportions
+#' 2) Multiplying by a given library size of n
+#' 3) Rounding
+#'
+#' @param ps_obj (Required) A phyloseq object
+#'
+#' @param n (Optional) Library size to scale to (Default: min(sample_sums(physeq)))
+#'
+#' @param round (Optional) Rounding method. Either "floor" (default) or "round"
+#'
+#' @author https://github.com/DenefLab/MicrobeMiseq/blob/master/R/miseqR.R
+#' @return A phyloseq objectn ordered data frame with the columns: ASV names, taxonomic rank names and abundance
+#' @usage scale_libraries(Ps_obj, n = min(sample_sums(physeq)), round = "floor")
+#' @export
+#'
+#'
 scale_libraries <- function(physeq, n = min(sample_sums(physeq)), round = "floor") {
   require(phyloseq)
 
@@ -427,6 +426,7 @@ plot_otus_by_density <- function(ps_obj = Ps_obj_SIP_noTime_l[[1]],
   require(dplyr)
   require(phyloseq)
   require(speedyseq)
+  require(ggtext)
   
   ps_obj %>% 
     transform_sample_counts(function(x) x/sum(x) * 100) %>% 
@@ -448,12 +448,11 @@ plot_otus_by_density <- function(ps_obj = Ps_obj_SIP_noTime_l[[1]],
     guides(colour = guide_legend(title = "Hours"), 
            shape = guide_legend(title = "Label <sup>13</sup>C")) +
     labs(x = "Density (g ml<sup>-1</sup>)",
+         y = "Abundance (%)",
          title = paste(ASV2plot$Site[1], "&", ASV2plot$Oxygen[1])) +
     theme(legend.title = element_markdown(),
           axis.title.x = element_markdown(),
           plot.title = element_markdown())
-  
-  
 }
 
 plot_ggtree <- function(ps_obj, 
@@ -562,8 +561,7 @@ labels <- setNames(glue("<i style='colors:{colors}'>{labels2draw}</i>"), labels2
                                title.position = "top")) +
     facet_wrap(vars(!!sym("Site_Oxygen")), 
                labeller = as_labeller(labels),
-               nrow = 1, 
-               scales = "free") +
+               nrow = 1) +
     theme(axis.text.x = element_markdown(size = f_size - 6,
                                          angle = 45, 
                                          vjust = 1, 
