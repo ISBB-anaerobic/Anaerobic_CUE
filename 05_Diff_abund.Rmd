@@ -310,6 +310,7 @@ prep_DESeq_data <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC
   if (!is.list(DESeq_results)) {DESeq_results <- list(DESeq_results)} # convert to list if it is not (to support a vectorised run of DESEq2)
   
   # mark rare phyla
+  # We're doing this now and not after removing 0-abundance ASVs because we want the order to be consistent over all the DESeq plots we create from the dataset
   ps_obj %>% mark_rare_taxa(., rank = rank, rare_thresh = rare_thresh) -> ps_obj
   
   # group dataframe by OTU, calculate median rel. abundance
@@ -326,7 +327,7 @@ prep_DESeq_data <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC
     as.data.frame() %>% 
     rownames_to_column(var = "OTU") %>% 
     left_join(., baseMean, by = "OTU") %>% # add mean abundance to results table
-    bind_cols(., as(tax_table(ps_obj)[taxa_names(ps_obj) %in% .$OTU, ], "data.frame")) %>% # add taxnomy
+    bind_cols(., as(tax_table(ps_obj)[taxa_names(ps_obj) %in% .$OTU, ], "data.frame")) %>% # add taxonomy
     mutate(across(rank, ~factor(., levels = levels(Taxa_order$Phylum)))) %>% # order taxa by abundance
     mutate(Significance = if_else(padj < sig_level &
                             !is.na(padj) &
@@ -334,7 +335,9 @@ prep_DESeq_data <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC
                             "Pass",
                             "Fail"))  %>% 
     mutate(ymin = if_else(Significance == "Pass", log2FoldChange - lfcSE, NA_real_),
-           ymax = if_else(Significance == "Pass", log2FoldChange + lfcSE, NA_real_)) -> # add error
+           ymax = if_else(Significance == "Pass", log2FoldChange + lfcSE, NA_real_)) %>% # add error
+    filter(baseMean > 0) %>% 
+    identity() ->
     DESeq2plot
 
   return(DESeq2plot)
@@ -866,9 +869,8 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
 
 #### Plot differential abundance models
 ```{r plot DESeq2 models, fig.height=14, fig.width=12, cache=T}
-# ps_obj <- Ps_obj_SIP
-# DESeq_results <- DESeq_res_SIP_byTime_LFC0.322_l[9]
-# plot_DESeq(DESeq_results, ps_obj, plot_title = names(DESeq_results))
+# DESeq_results <- DESeq_res_SIP_byTime_LFC_shrink_l[2]
+# plot_DESeq(DESeq_results, Ps_obj_SIP, plot_title = names(DESeq_results))
 
 DESeq_plots <- map(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
                         ~plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[.x],  

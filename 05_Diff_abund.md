@@ -906,16 +906,25 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
 #### Plot differential abundance models
 
 ``` r
-# ps_obj <- Ps_obj_SIP
-# DESeq_results <- DESeq_res_SIP_byTime_LFC0.322_l[9]
-# plot_DESeq(DESeq_results, ps_obj, plot_title = names(DESeq_results))
+# DESeq_results <- DESeq_res_SIP_byTime_LFC_shrink_l[2]
+# plot_DESeq(DESeq_results, Ps_obj_SIP, plot_title = names(DESeq_results))
 
 DESeq_plots <- map(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
                         ~plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[.x],  
                                                 Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[.x])))
 ```
 
-    ## Loading required package: ggrepel
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
 
     ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
 
@@ -3003,53 +3012,53 @@ save_figure(paste0(fig.path, "Certovo_DESeq2"),
             dpi = 600)
 ```
 
-    ## Warning: Removed 3686 rows containing missing values (geom_segment).
+    ## Warning: Removed 3046 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
+    ## Warning: Removed 3026 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3601 rows containing missing values (geom_segment).
+    ## Warning: Removed 2862 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
+    ## Warning: Removed 2755 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3586 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 1 rows containing missing values (geom_point).
-
-    ## Warning: Removed 3680 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3580 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3671 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 5 rows containing missing values (geom_point).
-
-    ## Warning: Removed 3683 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3686 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3601 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3586 rows containing missing values (geom_segment).
+    ## Warning: Removed 2775 rows containing missing values (geom_segment).
 
     ## Warning: Removed 1 rows containing missing values (geom_point).
 
-    ## Warning: Removed 3680 rows containing missing values (geom_segment).
+    ## Warning: Removed 2774 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3580 rows containing missing values (geom_segment).
+    ## Warning: Removed 2785 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3671 rows containing missing values (geom_segment).
+    ## Warning: Removed 2856 rows containing missing values (geom_segment).
 
     ## Warning: Removed 5 rows containing missing values (geom_point).
 
-    ## Warning: Removed 3683 rows containing missing values (geom_segment).
+    ## Warning: Removed 2969 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
+    ## Warning: Removed 2825 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 3046 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 3026 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2862 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2755 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2775 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 1 rows containing missing values (geom_point).
+
+    ## Warning: Removed 2774 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2785 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2856 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 5 rows containing missing values (geom_point).
+
+    ## Warning: Removed 2969 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2825 rows containing missing values (geom_segment).
 
 ``` r
 knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
@@ -3104,49 +3113,49 @@ save_figure(paste0(fig.path, "Plesne_DESeq2"),
             dpi = 600)
 ```
 
-    ## Warning: Removed 3637 rows containing missing values (geom_segment).
+    ## Warning: Removed 2867 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3674 rows containing missing values (geom_segment).
+    ## Warning: Removed 3012 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3608 rows containing missing values (geom_segment).
+    ## Warning: Removed 2463 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3686 rows containing missing values (geom_segment).
+    ## Warning: Removed 2841 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3680 rows containing missing values (geom_segment).
+    ## Warning: Removed 2518 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3681 rows containing missing values (geom_segment).
+    ## Warning: Removed 2746 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3597 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 11 rows containing missing values (geom_point).
-
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3690 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3637 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3674 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3608 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3686 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3680 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3681 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3597 rows containing missing values (geom_segment).
+    ## Warning: Removed 2460 rows containing missing values (geom_segment).
 
     ## Warning: Removed 11 rows containing missing values (geom_point).
 
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
+    ## Warning: Removed 3210 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3690 rows containing missing values (geom_segment).
+    ## Warning: Removed 2795 rows containing missing values (geom_segment).
 
-    ## Warning: Removed 3693 rows containing missing values (geom_segment).
+    ## Warning: Removed 2862 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2867 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 3012 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2463 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2841 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2518 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2746 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2460 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 11 rows containing missing values (geom_point).
+
+    ## Warning: Removed 3210 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2795 rows containing missing values (geom_segment).
+
+    ## Warning: Removed 2862 rows containing missing values (geom_segment).
 
 ``` r
 knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
@@ -3943,7 +3952,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Prague
- date     2022-03-16
+ date     2022-03-17
  pandoc   2.11.4 @ /usr/lib/rstudio-server/bin/pandoc/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────
@@ -3953,7 +3962,6 @@ sessioninfo::session_info() %>%
  AnnotationDbi          1.56.2     2021-11-09 [1] Bioconductor
  ape                    5.6-1      2022-01-07 [1] CRAN (R 4.1.2)
  aplot                  0.1.2      2022-01-10 [1] CRAN (R 4.1.2)
- ashr                   2.2-47     2020-02-20 [1] CRAN (R 4.0.2)
  assertthat             0.2.1      2019-03-21 [1] CRAN (R 4.0.2)
  backports              1.4.1      2021-12-13 [1] CRAN (R 4.1.2)
  Biobase              * 2.54.0     2021-10-26 [1] Bioconductor
@@ -4019,9 +4027,7 @@ sessioninfo::session_info() %>%
  HTSSIP               * 1.4.1      2021-01-15 [1] Github (buckleylab/HTSSIP@29ec56b)
  httr                   1.4.2      2020-07-20 [1] CRAN (R 4.0.2)
  igraph                 1.2.11     2022-01-04 [1] CRAN (R 4.1.2)
- invgamma               1.1        2017-05-07 [1] CRAN (R 4.0.2)
  IRanges              * 2.28.0     2021-10-26 [1] Bioconductor
- irlba                  2.3.5      2021-12-06 [1] CRAN (R 4.1.2)
  iterators              1.0.14     2022-02-05 [1] CRAN (R 4.1.2)
  jsonlite               1.7.3      2022-01-17 [1] CRAN (R 4.1.2)
  kableExtra           * 1.3.4      2021-02-20 [1] CRAN (R 4.0.3)
@@ -4041,7 +4047,6 @@ sessioninfo::session_info() %>%
  matrixStats          * 0.61.0     2021-09-17 [1] CRAN (R 4.1.1)
  memoise                2.0.1      2021-11-26 [1] CRAN (R 4.1.2)
  mgcv                   1.8-38     2021-10-06 [1] CRAN (R 4.1.1)
- mixsqp                 0.3-43     2020-05-14 [1] CRAN (R 4.0.2)
  modelr                 0.1.8      2020-05-19 [1] CRAN (R 4.0.2)
  multtest               2.50.0     2021-10-26 [1] Bioconductor
  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.0.2)
@@ -4077,7 +4082,6 @@ sessioninfo::session_info() %>%
  scales               * 1.1.1      2020-05-11 [1] CRAN (R 4.0.2)
  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
  speedyseq            * 0.5.3.9018 2021-08-11 [1] Github (mikemc/speedyseq@ceb941f)
- SQUAREM                2021.1     2021-01-13 [1] CRAN (R 4.0.2)
  stringi                1.7.6      2021-11-29 [1] CRAN (R 4.1.2)
  stringr              * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)
  SummarizedExperiment * 1.24.0     2021-10-26 [1] Bioconductor
@@ -4091,7 +4095,6 @@ sessioninfo::session_info() %>%
  tidytree               0.3.7      2022-01-10 [1] CRAN (R 4.1.2)
  tidyverse            * 1.3.1      2021-04-15 [1] CRAN (R 4.0.3)
  treeio                 1.18.1     2021-11-14 [1] Bioconductor
- truncnorm              1.0-8      2018-02-27 [1] CRAN (R 4.0.2)
  tzdb                   0.2.0      2021-10-27 [1] CRAN (R 4.1.1)
  utf8                   1.2.2      2021-07-24 [1] CRAN (R 4.1.0)
  vctrs                  0.3.8      2021-04-29 [1] CRAN (R 4.0.3)
@@ -4099,7 +4102,6 @@ sessioninfo::session_info() %>%
  viridis              * 0.6.2      2021-10-13 [1] CRAN (R 4.1.1)
  viridisLite          * 0.4.0      2021-04-13 [1] CRAN (R 4.0.3)
  visdat               * 0.6.0.9000 2022-02-18 [1] Github (ropensci/visdat@daa162f)
- vroom                  1.5.7      2021-11-30 [1] CRAN (R 4.1.2)
  webshot                0.5.2      2019-11-22 [1] CRAN (R 4.0.2)
  withr                  2.4.3      2021-11-30 [1] CRAN (R 4.1.2)
  xfun                   0.29       2021-12-14 [1] CRAN (R 4.1.2)
