@@ -16,6 +16,7 @@ Roey Angel
     -   [Plot labelled ASVs](#plot-labelled-asvs)
         -   [Plot phylogenetic trees with
             heatmaps](#plot-phylogenetic-trees-with-heatmaps)
+        -   [Calculate NTI](#calculate-nti)
 -   [References](#references)
 
 ## Differential abundance modelling of SIP gradients
@@ -914,17 +915,7 @@ DESeq_plots <- map(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)),
                                                 Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[.x])))
 ```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
+    ## Loading required package: ggrepel
 
     ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
 
@@ -3007,8 +2998,8 @@ Certovo_DESeq <- ((DESeq_plots[[6]] +
 
 save_figure(paste0(fig.path, "Certovo_DESeq2"), 
             Certovo_DESeq, 
-            pwidth = 14, 
-            pheight = 12,
+            pwidth = 8, 
+            pheight = 10,
             dpi = 600)
 ```
 
@@ -3064,7 +3055,7 @@ save_figure(paste0(fig.path, "Certovo_DESeq2"),
 knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
 ```
 
-<img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="8400" />
+<img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="4800" />
 
 ``` r
 Plesne_DESeq <- ((DESeq_plots[[16]] + 
@@ -3108,8 +3099,8 @@ Plesne_DESeq <- ((DESeq_plots[[16]] +
 
 save_figure(paste0(fig.path, "Plesne_DESeq2"), 
             Plesne_DESeq, 
-            pwidth = 14, 
-            pheight = 12,
+            pwidth = 8, 
+            pheight = 10,
             dpi = 600)
 ```
 
@@ -3161,7 +3152,7 @@ save_figure(paste0(fig.path, "Plesne_DESeq2"),
 knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
 ```
 
-<img src="05_Diff_abund_figures/Plesne_DESeq2.png" width="8400" />
+<img src="05_Diff_abund_figures/Plesne_DESeq2.png" width="4800" />
 
 ### Plot labelled ASVs
 
@@ -3928,6 +3919,154 @@ save_figure(paste0(fig.path, "all_trees"),
             dpi = 900)
 ```
 
+#### Calculate NTI
+
+``` r
+# grab names of labelled ASVs
+DESeq_res_SIP_byTime_all_df %>% 
+  as.data.frame %>% 
+  # rownames_to_column("ASV") %>% 
+  filter(padj < alpha_thresh) %>% 
+  filter(log2FoldChange > LFC_thresh) %>% 
+  pull(ASV) %>% 
+  unique() ->
+  Labelled_ASVs_char
+
+# keep only labelled gradients and heavy fractions  
+Ps_obj_SIP4tree_plot %>% 
+  subset_samples(Label..13C. == "Labelled") %>% 
+  subset_samples(Density.zone == "Heavy") %>% 
+  prune_taxa(Labelled_ASVs_char, .) ->
+  Ps_obj_SIP4tree_plot_labelled 
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+``` r
+Ps_obj_SIP4tree_plot_labelled %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  {if(taxa_are_rows(Ps_obj_SIP4tree_plot_labelled)) t(.) else .}  %>% 
+  {ifelse(. > 0, 1, 0)} ->
+  presence_matrix
+
+# Ps_tree <- phy_tree(Ps_obj_top)
+all.equal(phy_tree(Ps_obj_SIP4tree_plot_labelled)$tip.label, colnames(otu_table(Ps_obj_SIP4tree_plot_labelled))) # just a test (should be TRUE)
+```
+
+    ## [1] TRUE
+
+``` r
+weights <- colSums(otu_table(Ps_obj_SIP4tree_plot_labelled)) / sum(colSums(otu_table(Ps_obj_SIP4tree_plot_labelled)))
+
+# # Calculate MNTD using PhyloMeasures.
+# MNTD_PM <- tibble(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), MNTD = mntd.query(tree = phy_tree(Ps_obj_SIP4tree_plot_labelled), matrix = presence_matrix, standardize = F, null.model = "frequency.by.richness", abundance.weights = weights)) # faster but results differ from picante 
+
+# Using picante
+MNTD_Pic <- tibble(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), MNTD = mntd(samp = as(otu_table(Ps_obj_SIP4tree_plot_labelled), "matrix"), dis = cophenetic(phy_tree(Ps_obj_SIP4tree_plot_labelled)), abundance.weighted = TRUE))
+
+# # are the values equal?
+# (MNTD_PM$MNTD == MNTD_Pic$MNTD)
+# # Unfortunately not!
+
+# I'll stick to picante's version
+# add MNTD data to metadata 
+Ps_obj_SIP4tree_plot_labelled %>%
+  get_variable() %>% 
+  left_join(., MNTD_Pic, "Identifier") %>% 
+  mutate(Site_Oxygen = paste(Site, Oxygen)) %>% 
+  mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) ->
+  MNTD_DF
+```
+
+``` r
+# Calculate NTI using PhyloMeasures.
+# NTI_PM <- tibble(Sample = rownames(otu_table(Ps_obj_top)), MNTD = -1 * mntd.query(tree = phy_tree(Ps_obj_top), matrix = otu_table(Ps_obj_top), standardize = T, null.model = "frequency.by.richness", abundance.weights = colSums(otu_table(Ps_obj_top)))) # only works on rooted trees
+
+# using picante
+NTI_Pic <- bind_cols(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), 
+                     ses.mntd(samp = as(otu_table(Ps_obj_SIP4tree_plot_labelled), "matrix"), 
+                              dis = cophenetic(phy_tree(Ps_obj_SIP4tree_plot_labelled)), 
+                              null.model = "taxa.labels",
+                              runs = 999, 
+                              iterations = 999, 
+                              abundance.weighted = TRUE))
+
+# transform z-scores in NTI by multiplying by -1
+NTI_Pic %<>% mutate(NTI = mntd.obs.z * -1)
+
+save(NTI_Pic, file = "NTI.RData")
+# load("NTI.RData")
+
+# add MNTD data to metadata
+MNTD_DF %<>%
+  left_join(., NTI_Pic, "Identifier")
+```
+
+``` r
+NTI_fig <- ggplot(data = MNTD_DF, 
+                  aes(x = as.factor(Hours), 
+                      y = NTI,  
+           colour = Density..g.ml.1.)) +
+  see::geom_point2(position = position_jitterdodge(), 
+             size = 4, 
+             alpha = 4/5)  +
+  # geom_violinhalf(colour = "grey", scale = "area", trim = FALSE) +
+  stat_summary(aes(group = as.factor(Hours)),
+               fun.data = mean_cl_normal,
+               fun.args = list(mult = 1),
+               geom = "pointrange",
+               colour = "black",
+               alpha = 2/5,
+               position = position_dodge(width = 0.5)) +
+  facet_grid(Site ~ Oxygen) +
+  scale_colour_viridis_c(name = "Density g ml^-1") +
+  labs(x = "Incubation time (h)", 
+       y = "NTI") +
+  theme(legend.title = element_markdown(), 
+        text = element_text(size = f_size + 2))
+
+save_figure(paste0(fig.path, "NTI_fig"), 
+            NTI_fig, 
+            # pwidth = 16, 
+            # pheight = 18,
+            dpi = 300)
+```
+
 ``` r
 sessioninfo::session_info() %>%
   details::details(
@@ -3944,7 +4083,7 @@ sessioninfo::session_info() %>%
 ``` r
 ─ Session info ───────────────────────────────────────────────────────────────
  setting  value
- version  R version 4.1.2 (2021-11-01)
+ version  R version 4.1.3 (2022-03-10)
  os       Ubuntu 18.04.6 LTS
  system   x86_64, linux-gnu
  ui       X11
@@ -3952,7 +4091,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Prague
- date     2022-03-17
+ date     2022-04-11
  pandoc   2.11.4 @ /usr/lib/rstudio-server/bin/pandoc/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────
@@ -3960,10 +4099,12 @@ sessioninfo::session_info() %>%
  ade4                   1.7-18     2021-09-16 [1] CRAN (R 4.1.1)
  annotate               1.72.0     2021-10-26 [1] Bioconductor
  AnnotationDbi          1.56.2     2021-11-09 [1] Bioconductor
- ape                    5.6-1      2022-01-07 [1] CRAN (R 4.1.2)
- aplot                  0.1.2      2022-01-10 [1] CRAN (R 4.1.2)
+ ape                  * 5.6-2      2022-03-02 [1] CRAN (R 4.1.2)
+ aplot                  0.1.3      2022-04-01 [1] CRAN (R 4.1.3)
+ ashr                   2.2-54     2022-02-22 [1] CRAN (R 4.1.2)
  assertthat             0.2.1      2019-03-21 [1] CRAN (R 4.0.2)
  backports              1.4.1      2021-12-13 [1] CRAN (R 4.1.2)
+ base64enc              0.1-3      2015-07-28 [1] CRAN (R 4.0.2)
  Biobase              * 2.54.0     2021-10-26 [1] Bioconductor
  BiocGenerics         * 0.40.0     2021-10-26 [1] Bioconductor
  BiocParallel           1.28.3     2021-12-09 [1] Bioconductor
@@ -3976,30 +4117,33 @@ sessioninfo::session_info() %>%
  broom                  0.7.12     2022-01-28 [1] CRAN (R 4.1.2)
  cachem                 1.0.6      2021-08-19 [1] CRAN (R 4.1.1)
  cellranger             1.1.0      2016-07-27 [1] CRAN (R 4.0.2)
+ checkmate              2.0.0      2020-02-06 [1] CRAN (R 4.0.2)
  cli                    3.2.0      2022-02-14 [1] CRAN (R 4.1.2)
- clipr                  0.7.1      2020-10-08 [1] CRAN (R 4.0.2)
- cluster                2.1.2      2021-04-17 [1] CRAN (R 4.0.3)
+ clipr                  0.8.0      2022-02-22 [1] CRAN (R 4.1.2)
+ cluster                2.1.3      2022-03-28 [1] CRAN (R 4.1.2)
  codetools              0.2-18     2020-11-04 [1] CRAN (R 4.0.2)
- colorspace             2.0-2      2021-06-24 [1] CRAN (R 4.1.0)
- crayon                 1.5.0      2022-02-14 [1] CRAN (R 4.1.2)
+ colorspace             2.0-3      2022-02-21 [1] CRAN (R 4.1.2)
+ crayon                 1.5.1      2022-03-26 [1] CRAN (R 4.1.2)
  data.table             1.14.2     2021-09-27 [1] CRAN (R 4.1.1)
  DBI                    1.1.2      2021-12-20 [1] CRAN (R 4.1.2)
  dbplyr                 2.1.1      2021-04-06 [1] CRAN (R 4.0.3)
  DelayedArray           0.20.0     2021-10-26 [1] Bioconductor
- desc                   1.4.0      2021-09-28 [1] CRAN (R 4.1.1)
+ desc                   1.4.1      2022-03-06 [1] CRAN (R 4.1.2)
  DESeq2               * 1.34.0     2021-10-26 [1] Bioconductor
- details                0.2.1      2020-01-12 [1] CRAN (R 4.0.2)
+ details                0.3.0      2022-03-27 [1] CRAN (R 4.1.3)
  digest                 0.6.29     2021-12-01 [1] CRAN (R 4.1.2)
  dplyr                * 1.0.8      2022-02-08 [1] CRAN (R 4.1.2)
  ellipsis               0.3.2      2021-04-29 [1] CRAN (R 4.0.3)
- evaluate               0.14       2019-05-28 [1] CRAN (R 4.0.2)
+ evaluate               0.15       2022-02-18 [1] CRAN (R 4.1.2)
  extrafont            * 0.17       2014-12-08 [1] CRAN (R 4.1.0)
  extrafontdb            1.0        2012-06-11 [1] CRAN (R 4.0.2)
- fansi                  1.0.2      2022-01-14 [1] CRAN (R 4.1.2)
+ fansi                  1.0.3      2022-03-24 [1] CRAN (R 4.1.2)
  farver                 2.1.0      2021-02-28 [1] CRAN (R 4.0.3)
  fastmap                1.1.0      2021-01-25 [1] CRAN (R 4.0.3)
  forcats              * 0.5.1      2021-01-27 [1] CRAN (R 4.0.3)
  foreach                1.5.2      2022-02-02 [1] CRAN (R 4.1.2)
+ foreign                0.8-82     2022-01-13 [1] CRAN (R 4.1.2)
+ Formula                1.2-4      2020-10-16 [1] CRAN (R 4.0.2)
  fs                     1.5.2      2021-12-08 [1] CRAN (R 4.1.2)
  genefilter             1.76.0     2021-10-26 [1] Bioconductor
  geneplotter            1.72.0     2021-10-26 [1] Bioconductor
@@ -4007,7 +4151,7 @@ sessioninfo::session_info() %>%
  GenomeInfoDb         * 1.30.1     2022-01-30 [1] Bioconductor
  GenomeInfoDbData       1.2.7      2022-01-10 [1] Bioconductor
  GenomicRanges        * 1.46.1     2021-11-18 [1] Bioconductor
- ggfun                  0.0.5      2022-01-20 [1] CRAN (R 4.1.2)
+ ggfun                  0.0.6      2022-04-01 [1] CRAN (R 4.1.2)
  ggplot2              * 3.3.5      2021-06-25 [1] CRAN (R 4.1.0)
  ggplotify              0.1.0      2021-09-02 [1] CRAN (R 4.1.1)
  ggpomological        * 0.1.2      2020-08-13 [1] Github (gadenbuie/ggpomological@69f3815)
@@ -4015,101 +4159,116 @@ sessioninfo::session_info() %>%
  ggsci                * 2.9        2018-05-14 [1] CRAN (R 4.0.2)
  ggtext               * 0.1.1      2020-12-17 [1] CRAN (R 4.0.2)
  ggtree               * 3.2.1      2021-11-16 [1] Bioconductor
- glue                 * 1.6.1      2022-01-22 [1] CRAN (R 4.1.2)
+ glue                 * 1.6.2      2022-02-24 [1] CRAN (R 4.1.2)
  gridExtra              2.3        2017-09-09 [1] CRAN (R 4.0.2)
  gridGraphics           0.5-1      2020-12-13 [1] CRAN (R 4.0.2)
  gridtext               0.1.4      2020-12-10 [1] CRAN (R 4.0.2)
  gtable                 0.3.0      2019-03-25 [1] CRAN (R 4.0.2)
  haven                  2.4.3      2021-08-04 [1] CRAN (R 4.1.0)
  highr                  0.9        2021-04-16 [1] CRAN (R 4.0.3)
+ Hmisc                  4.6-0      2021-10-07 [1] CRAN (R 4.1.1)
  hms                    1.1.1      2021-09-26 [1] CRAN (R 4.1.1)
+ htmlTable              2.4.0      2022-01-04 [1] CRAN (R 4.1.2)
  htmltools              0.5.2      2021-08-25 [1] CRAN (R 4.1.1)
+ htmlwidgets            1.5.4      2021-09-08 [1] CRAN (R 4.1.1)
  HTSSIP               * 1.4.1      2021-01-15 [1] Github (buckleylab/HTSSIP@29ec56b)
  httr                   1.4.2      2020-07-20 [1] CRAN (R 4.0.2)
- igraph                 1.2.11     2022-01-04 [1] CRAN (R 4.1.2)
+ igraph                 1.3.0      2022-04-01 [1] CRAN (R 4.1.3)
+ invgamma               1.1        2017-05-07 [1] CRAN (R 4.0.2)
  IRanges              * 2.28.0     2021-10-26 [1] Bioconductor
+ irlba                  2.3.5      2021-12-06 [1] CRAN (R 4.1.2)
  iterators              1.0.14     2022-02-05 [1] CRAN (R 4.1.2)
- jsonlite               1.7.3      2022-01-17 [1] CRAN (R 4.1.2)
+ jpeg                   0.1-9      2021-07-24 [1] CRAN (R 4.1.0)
+ jsonlite               1.8.0      2022-02-22 [1] CRAN (R 4.1.2)
  kableExtra           * 1.3.4      2021-02-20 [1] CRAN (R 4.0.3)
  KEGGREST               1.34.0     2021-10-26 [1] Bioconductor
- knitr                  1.37       2021-12-16 [1] CRAN (R 4.1.2)
+ knitr                  1.38       2022-03-25 [1] CRAN (R 4.1.2)
  labeling               0.4.2      2020-10-20 [1] CRAN (R 4.0.2)
  lattice              * 0.20-45    2021-09-22 [1] CRAN (R 4.1.1)
+ latticeExtra           0.6-29     2019-12-19 [1] CRAN (R 4.0.2)
  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 4.0.2)
  lifecycle              1.0.1      2021-09-24 [1] CRAN (R 4.1.1)
- locfit                 1.5-9.4    2020-03-25 [1] CRAN (R 4.0.2)
+ locfit                 1.5-9.5    2022-03-03 [1] CRAN (R 4.1.2)
  lubridate              1.8.0      2021-10-07 [1] CRAN (R 4.1.1)
- magrittr             * 2.0.2      2022-01-26 [1] CRAN (R 4.1.2)
+ magrittr             * 2.0.3      2022-03-30 [1] CRAN (R 4.1.3)
  markdown               1.1        2019-08-07 [1] CRAN (R 4.0.2)
- MASS                   7.3-55     2022-01-13 [1] CRAN (R 4.1.2)
- Matrix                 1.4-0      2021-12-08 [1] CRAN (R 4.1.2)
+ MASS                   7.3-56     2022-03-23 [1] CRAN (R 4.1.2)
+ Matrix                 1.4-1      2022-03-23 [1] CRAN (R 4.1.3)
  MatrixGenerics       * 1.6.0      2021-10-26 [1] Bioconductor
  matrixStats          * 0.61.0     2021-09-17 [1] CRAN (R 4.1.1)
  memoise                2.0.1      2021-11-26 [1] CRAN (R 4.1.2)
- mgcv                   1.8-38     2021-10-06 [1] CRAN (R 4.1.1)
+ mgcv                   1.8-40     2022-03-29 [1] CRAN (R 4.1.3)
+ mixsqp                 0.3-43     2020-05-14 [1] CRAN (R 4.0.2)
  modelr                 0.1.8      2020-05-19 [1] CRAN (R 4.0.2)
  multtest               2.50.0     2021-10-26 [1] Bioconductor
  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.0.2)
- nlme                   3.1-155    2022-01-13 [1] CRAN (R 4.1.2)
+ nlme                 * 3.1-157    2022-03-25 [1] CRAN (R 4.1.3)
+ nnet                   7.3-17     2022-01-13 [1] CRAN (R 4.1.2)
  patchwork            * 1.1.1      2020-12-17 [1] CRAN (R 4.0.2)
  permute              * 0.9-7      2022-01-27 [1] CRAN (R 4.1.2)
  phyloseq             * 1.38.0     2021-10-26 [1] Bioconductor
+ picante              * 1.8.2      2020-06-10 [1] CRAN (R 4.0.2)
  pillar                 1.7.0      2022-02-01 [1] CRAN (R 4.1.2)
  pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.0.2)
- plyr                   1.8.6      2020-03-03 [1] CRAN (R 4.0.2)
+ plyr                   1.8.7      2022-03-24 [1] CRAN (R 4.1.3)
  png                    0.1-7      2013-12-03 [1] CRAN (R 4.0.2)
  purrr                * 0.3.4      2020-04-17 [1] CRAN (R 4.0.2)
  R6                     2.5.1      2021-08-19 [1] CRAN (R 4.1.1)
- ragg                 * 1.2.1      2021-12-06 [1] CRAN (R 4.1.2)
- RColorBrewer         * 1.1-2      2014-12-07 [1] CRAN (R 4.0.2)
- Rcpp                   1.0.8      2022-01-13 [1] CRAN (R 4.1.2)
+ ragg                 * 1.2.2      2022-02-21 [1] CRAN (R 4.1.2)
+ RColorBrewer         * 1.1-3      2022-04-03 [1] CRAN (R 4.1.3)
+ Rcpp                   1.0.8.3    2022-03-17 [1] CRAN (R 4.1.2)
  RCurl                  1.98-1.6   2022-02-08 [1] CRAN (R 4.1.2)
  readr                * 2.1.2      2022-01-30 [1] CRAN (R 4.1.2)
- readxl                 1.3.1      2019-03-13 [1] CRAN (R 4.0.2)
+ readxl                 1.4.0      2022-03-28 [1] CRAN (R 4.1.3)
  reprex                 2.0.1      2021-08-05 [1] CRAN (R 4.1.0)
  reshape2               1.4.4      2020-04-09 [1] CRAN (R 4.0.2)
  rhdf5                  2.38.0     2021-10-26 [1] Bioconductor
  rhdf5filters           1.6.0      2021-10-26 [1] Bioconductor
  Rhdf5lib               1.16.0     2021-10-26 [1] Bioconductor
- rlang                  1.0.1      2022-02-03 [1] CRAN (R 4.1.2)
- rmarkdown              2.11       2021-09-14 [1] CRAN (R 4.1.1)
- rprojroot              2.0.2      2020-11-15 [1] CRAN (R 4.0.2)
- RSQLite                2.2.9      2021-12-06 [1] CRAN (R 4.1.2)
+ rlang                  1.0.2      2022-03-04 [1] CRAN (R 4.1.2)
+ rmarkdown              2.13       2022-03-10 [1] CRAN (R 4.1.2)
+ rpart                  4.1.16     2022-01-24 [1] CRAN (R 4.1.2)
+ rprojroot              2.0.3      2022-04-02 [1] CRAN (R 4.1.3)
+ RSQLite                2.2.12     2022-04-02 [1] CRAN (R 4.1.3)
  rstudioapi             0.13       2020-11-12 [1] CRAN (R 4.0.2)
  Rttf2pt1               1.3.10     2022-02-07 [1] CRAN (R 4.1.2)
  rvest                  1.0.2      2021-10-16 [1] CRAN (R 4.1.1)
  S4Vectors            * 0.32.3     2021-11-21 [1] Bioconductor
  scales               * 1.1.1      2020-05-11 [1] CRAN (R 4.0.2)
+ see                    0.7.0      2022-03-31 [1] CRAN (R 4.1.3)
  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
  speedyseq            * 0.5.3.9018 2021-08-11 [1] Github (mikemc/speedyseq@ceb941f)
+ SQUAREM                2021.1     2021-01-13 [1] CRAN (R 4.0.2)
  stringi                1.7.6      2021-11-29 [1] CRAN (R 4.1.2)
  stringr              * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)
  SummarizedExperiment * 1.24.0     2021-10-26 [1] Bioconductor
- survival               3.2-13     2021-08-24 [1] CRAN (R 4.1.1)
+ survival               3.3-1      2022-03-03 [1] CRAN (R 4.1.2)
  svglite              * 2.1.0      2022-02-03 [1] CRAN (R 4.1.2)
  systemfonts            1.0.4      2022-02-11 [1] CRAN (R 4.1.2)
  textshaping            0.3.6      2021-10-13 [1] CRAN (R 4.1.1)
  tibble               * 3.1.6      2021-11-07 [1] CRAN (R 4.1.2)
  tidyr                * 1.2.0      2022-02-01 [1] CRAN (R 4.1.2)
- tidyselect             1.1.1      2021-04-30 [1] CRAN (R 4.0.3)
- tidytree               0.3.7      2022-01-10 [1] CRAN (R 4.1.2)
+ tidyselect             1.1.2      2022-02-21 [1] CRAN (R 4.1.2)
+ tidytree               0.3.9      2022-03-04 [1] CRAN (R 4.1.2)
  tidyverse            * 1.3.1      2021-04-15 [1] CRAN (R 4.0.3)
  treeio                 1.18.1     2021-11-14 [1] Bioconductor
- tzdb                   0.2.0      2021-10-27 [1] CRAN (R 4.1.1)
+ truncnorm              1.0-8      2018-02-27 [1] CRAN (R 4.0.2)
+ tzdb                   0.3.0      2022-03-28 [1] CRAN (R 4.1.3)
  utf8                   1.2.2      2021-07-24 [1] CRAN (R 4.1.0)
- vctrs                  0.3.8      2021-04-29 [1] CRAN (R 4.0.3)
+ vctrs                  0.4.0      2022-03-30 [1] CRAN (R 4.1.3)
  vegan                * 2.5-7      2020-11-28 [1] CRAN (R 4.0.3)
  viridis              * 0.6.2      2021-10-13 [1] CRAN (R 4.1.1)
  viridisLite          * 0.4.0      2021-04-13 [1] CRAN (R 4.0.3)
  visdat               * 0.6.0.9000 2022-02-18 [1] Github (ropensci/visdat@daa162f)
+ vroom                  1.5.7      2021-11-30 [1] CRAN (R 4.1.2)
  webshot                0.5.2      2019-11-22 [1] CRAN (R 4.0.2)
- withr                  2.4.3      2021-11-30 [1] CRAN (R 4.1.2)
- xfun                   0.29       2021-12-14 [1] CRAN (R 4.1.2)
- XML                    3.99-0.8   2021-09-17 [1] CRAN (R 4.1.1)
+ withr                  2.5.0      2022-03-03 [1] CRAN (R 4.1.2)
+ xfun                   0.30       2022-03-02 [1] CRAN (R 4.1.2)
+ XML                    3.99-0.9   2022-02-24 [1] CRAN (R 4.1.2)
  xml2                   1.3.3      2021-11-30 [1] CRAN (R 4.1.2)
  xtable                 1.8-4      2019-04-21 [1] CRAN (R 4.0.2)
  XVector              * 0.34.0     2021-10-26 [1] Bioconductor
- yaml                   2.2.2      2022-01-25 [1] CRAN (R 4.1.2)
+ yaml                   2.3.5      2022-02-21 [1] CRAN (R 4.1.2)
  yulab.utils            0.0.4      2021-10-09 [1] CRAN (R 4.1.1)
  zlibbioc               1.40.0     2021-10-26 [1] Bioconductor
 

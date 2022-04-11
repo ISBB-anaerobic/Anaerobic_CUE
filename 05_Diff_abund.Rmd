@@ -41,6 +41,7 @@ library(Biostrings) # Efficient manipulation of biological strings, Bioconductor
 library(HTSSIP) # High Throughput Sequencing of Stable Isotope Probing Data Analysis, CRAN v1.4.1 
 library(DESeq2) # Differential gene expression analysis based on the negative binomial distribution, Bioconductor v1.28.1 
 library(ggtree) # an R package for visualization of tree and annotation data, Bioconductor v2.2.4  # don't load here because of conflict with phyloseq
+library(picante) # Integrating Phylogenies and Ecology, CRAN v1.8.2 
 ```
 
 ```{r style settings, echo=F, message=F, warning=F, results="asis", cache=T}
@@ -918,8 +919,8 @@ Certovo_DESeq <- ((DESeq_plots[[6]] +
 
 save_figure(paste0(fig.path, "Certovo_DESeq2"), 
             Certovo_DESeq, 
-            pwidth = 14, 
-            pheight = 12,
+            pwidth = 8, 
+            pheight = 10,
             dpi = 600)
 
 knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
@@ -965,8 +966,8 @@ Plesne_DESeq <- ((DESeq_plots[[16]] +
 
 save_figure(paste0(fig.path, "Plesne_DESeq2"), 
             Plesne_DESeq, 
-            pwidth = 14, 
-            pheight = 12,
+            pwidth = 8, 
+            pheight = 10,
             dpi = 600)
 
 knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
@@ -1077,6 +1078,110 @@ save_figure(paste0(fig.path, "all_trees"),
             pheight = 18,
             dpi = 900)
 ```
+
+#### Calculate NTI
+```{r MNTD, cache=T}
+# grab names of labelled ASVs
+DESeq_res_SIP_byTime_all_df %>% 
+  as.data.frame %>% 
+  # rownames_to_column("ASV") %>% 
+  filter(padj < alpha_thresh) %>% 
+  filter(log2FoldChange > LFC_thresh) %>% 
+  pull(ASV) %>% 
+  unique() ->
+  Labelled_ASVs_char
+
+# keep only labelled gradients and heavy fractions  
+Ps_obj_SIP4tree_plot %>% 
+  subset_samples(Label..13C. == "Labelled") %>% 
+  subset_samples(Density.zone == "Heavy") %>% 
+  prune_taxa(Labelled_ASVs_char, .) ->
+  Ps_obj_SIP4tree_plot_labelled 
+
+Ps_obj_SIP4tree_plot_labelled %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  {if(taxa_are_rows(Ps_obj_SIP4tree_plot_labelled)) t(.) else .}  %>% 
+  {ifelse(. > 0, 1, 0)} ->
+  presence_matrix
+
+# Ps_tree <- phy_tree(Ps_obj_top)
+all.equal(phy_tree(Ps_obj_SIP4tree_plot_labelled)$tip.label, colnames(otu_table(Ps_obj_SIP4tree_plot_labelled))) # just a test (should be TRUE)
+weights <- colSums(otu_table(Ps_obj_SIP4tree_plot_labelled)) / sum(colSums(otu_table(Ps_obj_SIP4tree_plot_labelled)))
+
+# # Calculate MNTD using PhyloMeasures.
+# MNTD_PM <- tibble(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), MNTD = mntd.query(tree = phy_tree(Ps_obj_SIP4tree_plot_labelled), matrix = presence_matrix, standardize = F, null.model = "frequency.by.richness", abundance.weights = weights)) # faster but results differ from picante 
+
+# Using picante
+MNTD_Pic <- tibble(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), MNTD = mntd(samp = as(otu_table(Ps_obj_SIP4tree_plot_labelled), "matrix"), dis = cophenetic(phy_tree(Ps_obj_SIP4tree_plot_labelled)), abundance.weighted = TRUE))
+
+# # are the values equal?
+# (MNTD_PM$MNTD == MNTD_Pic$MNTD)
+# # Unfortunately not!
+
+# I'll stick to picante's version
+# add MNTD data to metadata 
+Ps_obj_SIP4tree_plot_labelled %>%
+  get_variable() %>% 
+  left_join(., MNTD_Pic, "Identifier") %>% 
+  mutate(Site_Oxygen = paste(Site, Oxygen)) %>% 
+  mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) ->
+  MNTD_DF
+```
+
+```{r NTI, cache=T}
+# Calculate NTI using PhyloMeasures.
+# NTI_PM <- tibble(Sample = rownames(otu_table(Ps_obj_top)), MNTD = -1 * mntd.query(tree = phy_tree(Ps_obj_top), matrix = otu_table(Ps_obj_top), standardize = T, null.model = "frequency.by.richness", abundance.weights = colSums(otu_table(Ps_obj_top)))) # only works on rooted trees
+
+# using picante
+NTI_Pic <- bind_cols(Identifier = rownames(otu_table(Ps_obj_SIP4tree_plot_labelled)), 
+                     ses.mntd(samp = as(otu_table(Ps_obj_SIP4tree_plot_labelled), "matrix"), 
+                              dis = cophenetic(phy_tree(Ps_obj_SIP4tree_plot_labelled)), 
+                              null.model = "taxa.labels",
+                              runs = 999, 
+                              iterations = 999, 
+                              abundance.weighted = TRUE))
+
+# transform z-scores in NTI by multiplying by -1
+NTI_Pic %<>% mutate(NTI = mntd.obs.z * -1)
+
+save(NTI_Pic, file = "NTI.RData")
+# load("NTI.RData")
+
+# add MNTD data to metadata
+MNTD_DF %<>%
+  left_join(., NTI_Pic, "Identifier")
+```
+```{r plot NTI, fig.height=5, fig.width=6, cache=T}
+NTI_fig <- ggplot(data = MNTD_DF, 
+                  aes(x = as.factor(Hours), 
+                      y = NTI,  
+           colour = Density..g.ml.1.)) +
+  see::geom_point2(position = position_jitterdodge(), 
+             size = 4, 
+             alpha = 4/5)  +
+  # geom_violinhalf(colour = "grey", scale = "area", trim = FALSE) +
+  stat_summary(aes(group = as.factor(Hours)),
+               fun.data = mean_cl_normal,
+               fun.args = list(mult = 1),
+               geom = "pointrange",
+               colour = "black",
+               alpha = 2/5,
+               position = position_dodge(width = 0.5)) +
+  facet_grid(Site ~ Oxygen) +
+  scale_colour_viridis_c(name = "Density g ml^-1") +
+  labs(x = "Incubation time (h)", 
+       y = "NTI") +
+  theme(legend.title = element_markdown(), 
+        text = element_text(size = f_size + 2))
+
+save_figure(paste0(fig.path, "NTI_fig"), 
+            NTI_fig, 
+            # pwidth = 16, 
+            # pheight = 18,
+            dpi = 300)
+```
+
 
 ```{r colophon, eval=T}
 sessioninfo::session_info() %>%
