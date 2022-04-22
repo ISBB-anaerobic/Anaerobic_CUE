@@ -874,10 +874,21 @@ DESeq_res_SIP_byTime_LFC_shrink_l %>%
   map(., ~rownames_to_column(.x, "ASV")) %>% 
   bind_rows(., .id = "Comparison") %>% 
   arrange(Comparison, desc(baseMean)) %>% 
-  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") %T>% 
-  write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt") ->
+  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") ->
   DESeq_res_SIP_byTime_LFC_sig_df
+
+prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, Ps_obj_SIP) %>% 
+  tax_table() %>% 
+  as("data.frame") %>% 
+  rownames_to_column("ASV") %>% 
+  merge(., DESeq_res_SIP_byTime_LFC_sig_df, by = "ASV") %>%  # watch out: this merge recycles values!
+  arrange(Site, Oxygen, Hours, baseMean) %>% 
+  write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt")
 ```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
 
 #### Inspect results
 
@@ -4091,7 +4102,7 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Prague
- date     2022-04-11
+ date     2022-04-22
  pandoc   2.11.4 @ /usr/lib/rstudio-server/bin/pandoc/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────
@@ -4104,7 +4115,6 @@ sessioninfo::session_info() %>%
  ashr                   2.2-54     2022-02-22 [1] CRAN (R 4.1.2)
  assertthat             0.2.1      2019-03-21 [1] CRAN (R 4.0.2)
  backports              1.4.1      2021-12-13 [1] CRAN (R 4.1.2)
- base64enc              0.1-3      2015-07-28 [1] CRAN (R 4.0.2)
  Biobase              * 2.54.0     2021-10-26 [1] Bioconductor
  BiocGenerics         * 0.40.0     2021-10-26 [1] Bioconductor
  BiocParallel           1.28.3     2021-12-09 [1] Bioconductor
@@ -4117,7 +4127,6 @@ sessioninfo::session_info() %>%
  broom                  0.7.12     2022-01-28 [1] CRAN (R 4.1.2)
  cachem                 1.0.6      2021-08-19 [1] CRAN (R 4.1.1)
  cellranger             1.1.0      2016-07-27 [1] CRAN (R 4.0.2)
- checkmate              2.0.0      2020-02-06 [1] CRAN (R 4.0.2)
  cli                    3.2.0      2022-02-14 [1] CRAN (R 4.1.2)
  clipr                  0.8.0      2022-02-22 [1] CRAN (R 4.1.2)
  cluster                2.1.3      2022-03-28 [1] CRAN (R 4.1.2)
@@ -4138,12 +4147,9 @@ sessioninfo::session_info() %>%
  extrafont            * 0.17       2014-12-08 [1] CRAN (R 4.1.0)
  extrafontdb            1.0        2012-06-11 [1] CRAN (R 4.0.2)
  fansi                  1.0.3      2022-03-24 [1] CRAN (R 4.1.2)
- farver                 2.1.0      2021-02-28 [1] CRAN (R 4.0.3)
  fastmap                1.1.0      2021-01-25 [1] CRAN (R 4.0.3)
  forcats              * 0.5.1      2021-01-27 [1] CRAN (R 4.0.3)
  foreach                1.5.2      2022-02-02 [1] CRAN (R 4.1.2)
- foreign                0.8-82     2022-01-13 [1] CRAN (R 4.1.2)
- Formula                1.2-4      2020-10-16 [1] CRAN (R 4.0.2)
  fs                     1.5.2      2021-12-08 [1] CRAN (R 4.1.2)
  genefilter             1.76.0     2021-10-26 [1] Bioconductor
  geneplotter            1.72.0     2021-10-26 [1] Bioconductor
@@ -4166,11 +4172,8 @@ sessioninfo::session_info() %>%
  gtable                 0.3.0      2019-03-25 [1] CRAN (R 4.0.2)
  haven                  2.4.3      2021-08-04 [1] CRAN (R 4.1.0)
  highr                  0.9        2021-04-16 [1] CRAN (R 4.0.3)
- Hmisc                  4.6-0      2021-10-07 [1] CRAN (R 4.1.1)
  hms                    1.1.1      2021-09-26 [1] CRAN (R 4.1.1)
- htmlTable              2.4.0      2022-01-04 [1] CRAN (R 4.1.2)
  htmltools              0.5.2      2021-08-25 [1] CRAN (R 4.1.1)
- htmlwidgets            1.5.4      2021-09-08 [1] CRAN (R 4.1.1)
  HTSSIP               * 1.4.1      2021-01-15 [1] Github (buckleylab/HTSSIP@29ec56b)
  httr                   1.4.2      2020-07-20 [1] CRAN (R 4.0.2)
  igraph                 1.3.0      2022-04-01 [1] CRAN (R 4.1.3)
@@ -4178,20 +4181,16 @@ sessioninfo::session_info() %>%
  IRanges              * 2.28.0     2021-10-26 [1] Bioconductor
  irlba                  2.3.5      2021-12-06 [1] CRAN (R 4.1.2)
  iterators              1.0.14     2022-02-05 [1] CRAN (R 4.1.2)
- jpeg                   0.1-9      2021-07-24 [1] CRAN (R 4.1.0)
  jsonlite               1.8.0      2022-02-22 [1] CRAN (R 4.1.2)
  kableExtra           * 1.3.4      2021-02-20 [1] CRAN (R 4.0.3)
  KEGGREST               1.34.0     2021-10-26 [1] Bioconductor
  knitr                  1.38       2022-03-25 [1] CRAN (R 4.1.2)
- labeling               0.4.2      2020-10-20 [1] CRAN (R 4.0.2)
  lattice              * 0.20-45    2021-09-22 [1] CRAN (R 4.1.1)
- latticeExtra           0.6-29     2019-12-19 [1] CRAN (R 4.0.2)
  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 4.0.2)
  lifecycle              1.0.1      2021-09-24 [1] CRAN (R 4.1.1)
  locfit                 1.5-9.5    2022-03-03 [1] CRAN (R 4.1.2)
  lubridate              1.8.0      2021-10-07 [1] CRAN (R 4.1.1)
  magrittr             * 2.0.3      2022-03-30 [1] CRAN (R 4.1.3)
- markdown               1.1        2019-08-07 [1] CRAN (R 4.0.2)
  MASS                   7.3-56     2022-03-23 [1] CRAN (R 4.1.2)
  Matrix                 1.4-1      2022-03-23 [1] CRAN (R 4.1.3)
  MatrixGenerics       * 1.6.0      2021-10-26 [1] Bioconductor
@@ -4203,7 +4202,6 @@ sessioninfo::session_info() %>%
  multtest               2.50.0     2021-10-26 [1] Bioconductor
  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.0.2)
  nlme                 * 3.1-157    2022-03-25 [1] CRAN (R 4.1.3)
- nnet                   7.3-17     2022-01-13 [1] CRAN (R 4.1.2)
  patchwork            * 1.1.1      2020-12-17 [1] CRAN (R 4.0.2)
  permute              * 0.9-7      2022-01-27 [1] CRAN (R 4.1.2)
  phyloseq             * 1.38.0     2021-10-26 [1] Bioconductor
@@ -4227,7 +4225,6 @@ sessioninfo::session_info() %>%
  Rhdf5lib               1.16.0     2021-10-26 [1] Bioconductor
  rlang                  1.0.2      2022-03-04 [1] CRAN (R 4.1.2)
  rmarkdown              2.13       2022-03-10 [1] CRAN (R 4.1.2)
- rpart                  4.1.16     2022-01-24 [1] CRAN (R 4.1.2)
  rprojroot              2.0.3      2022-04-02 [1] CRAN (R 4.1.3)
  RSQLite                2.2.12     2022-04-02 [1] CRAN (R 4.1.3)
  rstudioapi             0.13       2020-11-12 [1] CRAN (R 4.0.2)
@@ -4235,7 +4232,6 @@ sessioninfo::session_info() %>%
  rvest                  1.0.2      2021-10-16 [1] CRAN (R 4.1.1)
  S4Vectors            * 0.32.3     2021-11-21 [1] Bioconductor
  scales               * 1.1.1      2020-05-11 [1] CRAN (R 4.0.2)
- see                    0.7.0      2022-03-31 [1] CRAN (R 4.1.3)
  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
  speedyseq            * 0.5.3.9018 2021-08-11 [1] Github (mikemc/speedyseq@ceb941f)
  SQUAREM                2021.1     2021-01-13 [1] CRAN (R 4.0.2)

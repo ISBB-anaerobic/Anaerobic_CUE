@@ -15,3 +15,5 @@ DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.align.zip
 DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.mldist
 run_knitr.sh
 DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.model.gz
+05_Diff_abund_files
+NTI.RData

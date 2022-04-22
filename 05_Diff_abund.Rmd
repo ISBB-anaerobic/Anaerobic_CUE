@@ -834,7 +834,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
   summary(DESeq_res_SIP_byTime_LFC_l[[i]])
 }
 
-# Store labelled OTUs and save them to a file
+# Store labelled ASVs and save them to a file
 # DESeq_res_SIP_byTime_l %>% 
 #   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
 #   map(., ~as.data.frame(.x)) %>% 
@@ -844,15 +844,24 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 #   write_csv(., file = "DESeq2_byTime_a-0.05.txt") ->
 #   DESeq_res_SIP_byTime_df
 
+# Store labelled ASVs and save them to a file
 DESeq_res_SIP_byTime_LFC_shrink_l %>% 
   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
   map(., ~as.data.frame(.x)) %>% 
   map(., ~rownames_to_column(.x, "ASV")) %>% 
   bind_rows(., .id = "Comparison") %>% 
   arrange(Comparison, desc(baseMean)) %>% 
-  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") %T>% 
-  write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt") ->
+  separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") ->
   DESeq_res_SIP_byTime_LFC_sig_df
+
+# grab the taxonomy of the ASVs
+prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, Ps_obj_SIP) %>% 
+  tax_table() %>% 
+  as("data.frame") %>% 
+  rownames_to_column("ASV") %>% 
+  merge(., DESeq_res_SIP_byTime_LFC_sig_df, by = "ASV") %>%  # watch out: this merge recycles values!
+  arrange(Site, Oxygen, Hours, baseMean) %>% 
+  write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt")
 ```
 
 #### Inspect results
