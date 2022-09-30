@@ -16,6 +16,8 @@ Roey Angel
     -   [Plot labelled ASVs](#plot-labelled-asvs)
         -   [Plot phylogenetic trees with
             heatmaps](#plot-phylogenetic-trees-with-heatmaps)
+        -   [How abundant were the labelled
+            ASVs?](#how-abundant-were-the-labelled-asvs)
         -   [Calculate NTI](#calculate-nti)
 -   [References](#references)
 
@@ -25,9 +27,9 @@ Here we attempt to detect ASVs that were labelled with <sup>13</sup>C in
 our soil incubations using differential abundance modelling. Using
 DESeq2 ([Love, Huber and Anders 2014](#ref-love_moderated_2014)) we
 compare the relative abundance of each ASV in the fractions where
-<sup>13</sup>C-labelled RNA is expected to be found (&gt;1.795 g
+<sup>13</sup>C-labelled RNA is expected to be found (\>1.795 g
 ml<sup>-1</sup>; AKA ‘heavy’ fractions) to the fractions where
-unlabelled RNA is expected to be found (&lt;1.795 g ml<sup>-1</sup>; AKA
+unlabelled RNA is expected to be found (\<1.795 g ml<sup>-1</sup>; AKA
 ‘light’ fractions). The method has been previously described in Angel et
 al., ([2018](#ref-angel_application_2018)).
 
@@ -152,34 +154,237 @@ we might not see it here (but we will, hopefully, see it using DESeq2
 modelling).
 
 ``` r
-(mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
   permutations = 999
 ))
 ```
 
-    ## 
-    ## Call:
-    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP),      "data.frame"), permutations = 999) 
-    ## 
-    ## Permutation: free
-    ## Number of permutations: 999
-    ## 
-    ## Terms added sequentially (first to last)
-    ## 
-    ##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-    ## Site                1    27.443 27.4431  480.48 0.53921  0.001 ***
-    ## Oxygen              1     5.290  5.2896   92.61 0.10393  0.001 ***
-    ## Hours               1     0.160  0.1596    2.80 0.00314  0.054 .  
-    ## Lib.size            1     0.078  0.0777    1.36 0.00153  0.244    
-    ## Site:Oxygen         1     0.540  0.5404    9.46 0.01062  0.001 ***
-    ## Site:Hours          1     0.419  0.4191    7.34 0.00823  0.003 ** 
-    ## Oxygen:Hours        1     0.119  0.1185    2.08 0.00233  0.116    
-    ## Site:Oxygen:Hours   1     0.226  0.2259    3.96 0.00444  0.021 *  
-    ## Residuals         291    16.621  0.0571         0.32657           
-    ## Total             299    50.895                 1.00000           
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Df
+</th>
+<th style="text-align:right;">
+SumOfSqs
+</th>
+<th style="text-align:right;">
+R2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+Pr(\>F)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Site
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+27.4431088
+</td>
+<td style="text-align:right;">
+0.5392110
+</td>
+<td style="text-align:right;">
+480.477524
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5.2895923
+</td>
+<td style="text-align:right;">
+0.1039316
+</td>
+<td style="text-align:right;">
+92.610872
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1596437
+</td>
+<td style="text-align:right;">
+0.0031367
+</td>
+<td style="text-align:right;">
+2.795063
+</td>
+<td style="text-align:right;">
+0.054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lib.size
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0777490
+</td>
+<td style="text-align:right;">
+0.0015276
+</td>
+<td style="text-align:right;">
+1.361239
+</td>
+<td style="text-align:right;">
+0.244
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.5404132
+</td>
+<td style="text-align:right;">
+0.0106182
+</td>
+<td style="text-align:right;">
+9.461624
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.4190994
+</td>
+<td style="text-align:right;">
+0.0082346
+</td>
+<td style="text-align:right;">
+7.337646
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1185437
+</td>
+<td style="text-align:right;">
+0.0023292
+</td>
+<td style="text-align:right;">
+2.075479
+</td>
+<td style="text-align:right;">
+0.116
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.2259389
+</td>
+<td style="text-align:right;">
+0.0044393
+</td>
+<td style="text-align:right;">
+3.955768
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Residual
+</td>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:right;">
+16.6208496
+</td>
+<td style="text-align:right;">
+0.3265718
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:right;">
+299
+</td>
+<td style="text-align:right;">
+50.8949386
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
 
 ``` r
 plot_lib_dist(Ps_obj_SIP)
@@ -231,6 +436,18 @@ Ps_obj_SIP %>%
 
     ## Also defined by 'tidytree'
 
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
 ``` r
 plot_lib_dist(Ps_obj_SIP_scaled)
 ```
@@ -240,71 +457,610 @@ plot_lib_dist(Ps_obj_SIP_scaled)
 ![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-2.png)<!-- -->
 
 ``` r
-(mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
 
-    ## 
-    ## Call:
-    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours + Lib.size, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
-    ## 
-    ## Permutation: free
-    ## Number of permutations: 999
-    ## 
-    ## Terms added sequentially (first to last)
-    ## 
-    ##                    Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-    ## Site                1    27.658 27.6580  482.57 0.53919  0.001 ***
-    ## Oxygen              1     5.381  5.3811   93.89 0.10490  0.001 ***
-    ## Hours               1     0.161  0.1611    2.81 0.00314  0.054 .  
-    ## Lib.size            1     0.069  0.0691    1.21 0.00135  0.304    
-    ## Site:Oxygen         1     0.582  0.5817   10.15 0.01134  0.001 ***
-    ## Site:Hours          1     0.426  0.4265    7.44 0.00831  0.001 ***
-    ## Oxygen:Hours        1     0.112  0.1115    1.95 0.00217  0.139    
-    ## Site:Oxygen:Hours   1     0.228  0.2279    3.98 0.00444  0.021 *  
-    ## Residuals         291    16.678  0.0573         0.32514           
-    ## Total             299    51.295                 1.00000           
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Df
+</th>
+<th style="text-align:right;">
+SumOfSqs
+</th>
+<th style="text-align:right;">
+R2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+Pr(\>F)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Site
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+27.6580326
+</td>
+<td style="text-align:right;">
+0.5391944
+</td>
+<td style="text-align:right;">
+482.574243
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5.3811011
+</td>
+<td style="text-align:right;">
+0.1049048
+</td>
+<td style="text-align:right;">
+93.888847
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1610764
+</td>
+<td style="text-align:right;">
+0.0031402
+</td>
+<td style="text-align:right;">
+2.810443
+</td>
+<td style="text-align:right;">
+0.054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lib.size
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0690842
+</td>
+<td style="text-align:right;">
+0.0013468
+</td>
+<td style="text-align:right;">
+1.205374
+</td>
+<td style="text-align:right;">
+0.304
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.5817234
+</td>
+<td style="text-align:right;">
+0.0113407
+</td>
+<td style="text-align:right;">
+10.149844
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.4264653
+</td>
+<td style="text-align:right;">
+0.0083140
+</td>
+<td style="text-align:right;">
+7.440919
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1115178
+</td>
+<td style="text-align:right;">
+0.0021740
+</td>
+<td style="text-align:right;">
+1.945750
+</td>
+<td style="text-align:right;">
+0.139
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.2278696
+</td>
+<td style="text-align:right;">
+0.0044423
+</td>
+<td style="text-align:right;">
+3.975843
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Residual
+</td>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:right;">
+16.6782367
+</td>
+<td style="text-align:right;">
+0.3251428
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:right;">
+299
+</td>
+<td style="text-align:right;">
+51.2951071
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
 
 ``` r
-(mod3 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
 
-    ## 
-    ## Call:
-    ## adonis(formula = vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~      Site * Oxygen * Hours * Density.zone, data = as(sample_data(Ps_obj_SIP_scaled),      "data.frame"), permutations = 999) 
-    ## 
-    ## Permutation: free
-    ## Number of permutations: 999
-    ## 
-    ## Terms added sequentially (first to last)
-    ## 
-    ##                                 Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-    ## Site                             1    27.658 27.6580  710.39 0.53919  0.001 ***
-    ## Oxygen                           1     5.381  5.3811  138.21 0.10490  0.001 ***
-    ## Hours                            1     0.161  0.1611    4.14 0.00314  0.026 *  
-    ## Density.zone                     2     2.417  1.2086   31.04 0.04712  0.001 ***
-    ## Site:Oxygen                      1     0.526  0.5265   13.52 0.01026  0.001 ***
-    ## Site:Hours                       1     0.407  0.4072   10.46 0.00794  0.001 ***
-    ## Oxygen:Hours                     1     0.088  0.0885    2.27 0.00172  0.105    
-    ## Site:Density.zone                1     0.175  0.1749    4.49 0.00341  0.010 ** 
-    ## Oxygen:Density.zone              1     2.770  2.7697   71.14 0.05400  0.001 ***
-    ## Hours:Density.zone               1     0.030  0.0296    0.76 0.00058  0.493    
-    ## Site:Oxygen:Hours                1     0.143  0.1426    3.66 0.00278  0.027 *  
-    ## Site:Oxygen:Density.zone         1     0.068  0.0682    1.75 0.00133  0.185    
-    ## Site:Hours:Density.zone          1     0.107  0.1072    2.75 0.00209  0.057 .  
-    ## Oxygen:Hours:Density.zone        1     0.260  0.2601    6.68 0.00507  0.002 ** 
-    ## Site:Oxygen:Hours:Density.zone   1     0.085  0.0850    2.18 0.00166  0.134    
-    ## Residuals                      283    11.018  0.0389         0.21480           
-    ## Total                          299    51.295                 1.00000           
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Df
+</th>
+<th style="text-align:right;">
+SumOfSqs
+</th>
+<th style="text-align:right;">
+R2
+</th>
+<th style="text-align:right;">
+F
+</th>
+<th style="text-align:right;">
+Pr(\>F)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Site
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+27.6580326
+</td>
+<td style="text-align:right;">
+0.5391944
+</td>
+<td style="text-align:right;">
+710.3918641
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5.3811011
+</td>
+<td style="text-align:right;">
+0.1049048
+</td>
+<td style="text-align:right;">
+138.2126674
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1610764
+</td>
+<td style="text-align:right;">
+0.0031402
+</td>
+<td style="text-align:right;">
+4.1372204
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Density.zone
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2.4171422
+</td>
+<td style="text-align:right;">
+0.0471223
+</td>
+<td style="text-align:right;">
+31.0419431
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.5264587
+</td>
+<td style="text-align:right;">
+0.0102633
+</td>
+<td style="text-align:right;">
+13.5220022
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.4072149
+</td>
+<td style="text-align:right;">
+0.0079387
+</td>
+<td style="text-align:right;">
+10.4592446
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0884712
+</td>
+<td style="text-align:right;">
+0.0017247
+</td>
+<td style="text-align:right;">
+2.2723677
+</td>
+<td style="text-align:right;">
+0.105
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1749105
+</td>
+<td style="text-align:right;">
+0.0034099
+</td>
+<td style="text-align:right;">
+4.4925470
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2.7697312
+</td>
+<td style="text-align:right;">
+0.0539960
+</td>
+<td style="text-align:right;">
+71.1400749
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Hours:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0296273
+</td>
+<td style="text-align:right;">
+0.0005776
+</td>
+<td style="text-align:right;">
+0.7609713
+</td>
+<td style="text-align:right;">
+0.493
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen:Hours
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1426365
+</td>
+<td style="text-align:right;">
+0.0027807
+</td>
+<td style="text-align:right;">
+3.6635948
+</td>
+<td style="text-align:right;">
+0.027
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0681521
+</td>
+<td style="text-align:right;">
+0.0013286
+</td>
+<td style="text-align:right;">
+1.7504743
+</td>
+<td style="text-align:right;">
+0.185
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Hours:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.1071922
+</td>
+<td style="text-align:right;">
+0.0020897
+</td>
+<td style="text-align:right;">
+2.7532144
+</td>
+<td style="text-align:right;">
+0.057
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oxygen:Hours:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.2601483
+</td>
+<td style="text-align:right;">
+0.0050716
+</td>
+<td style="text-align:right;">
+6.6818640
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Site:Oxygen:Hours:Density.zone
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0.0850351
+</td>
+<td style="text-align:right;">
+0.0016578
+</td>
+<td style="text-align:right;">
+2.1841127
+</td>
+<td style="text-align:right;">
+0.134
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Residual
+</td>
+<td style="text-align:right;">
+283
+</td>
+<td style="text-align:right;">
+11.0181769
+</td>
+<td style="text-align:right;">
+0.2147998
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:right;">
+299
+</td>
+<td style="text-align:right;">
+51.2951071
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
 
 ``` r
 Site_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Site"))
@@ -475,9 +1231,9 @@ knitr::include_graphics(paste0(fig.path, "Oridnation", ".png"))
 ### Differential abundance models
 
 Now run the differential abundance models using DESeq2. We then filter
-the resutls to include only ASVs with Log\_2\_ fold change
-&gt;`LFC_thresh` and significant at P&lt;`alpha_thresh`. Lastly, we run
-‘LFC-shrinking’ based on Stephens ([2016](#ref-stephens_fdr_2016)).
+the resutls to include only ASVs with Log_2\_ fold change \>`LFC_thresh`
+and significant at P\<`alpha_thresh`. Lastly, we run ‘LFC-shrinking’
+based on Stephens ([2016](#ref-stephens_fdr_2016)).
 
 ``` r
 # generate a deseq object
@@ -858,7 +1614,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [2] see 'independentFiltering' argument of ?results
 
 ``` r
-# Store labelled OTUs and save them to a file
+# Store labelled ASVs and save them to a file
 # DESeq_res_SIP_byTime_l %>% 
 #   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
 #   map(., ~as.data.frame(.x)) %>% 
@@ -868,6 +1624,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 #   write_csv(., file = "DESeq2_byTime_a-0.05.txt") ->
 #   DESeq_res_SIP_byTime_df
 
+# Store labelled ASVs and save them to a file
 DESeq_res_SIP_byTime_LFC_shrink_l %>% 
   map(., ~subset(.x, padj < alpha_thresh & log2FoldChange > LFC_thresh)) %>% 
   map(., ~as.data.frame(.x)) %>% 
@@ -877,6 +1634,7 @@ DESeq_res_SIP_byTime_LFC_shrink_l %>%
   separate(., "Comparison" ,c("Site","Hours", "Oxygen", "Label"), sep = " & ") ->
   DESeq_res_SIP_byTime_LFC_sig_df
 
+# grab the taxonomy of the ASVs
 prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, Ps_obj_SIP) %>% 
   tax_table() %>% 
   as("data.frame") %>% 
@@ -3930,6 +4688,396 @@ save_figure(paste0(fig.path, "all_trees"),
             dpi = 900)
 ```
 
+#### How abundant were the labelled ASVs?
+
+``` r
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Oxic")$ASV, .) %>% 
+  subset_samples(Site == "Certovo" & Oxygen == "Oxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Cert_Ox
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+``` r
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Anoxic")$ASV, .) %>% 
+  subset_samples(Site == "Certovo" & Oxygen == "Anoxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Cert_Anox
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+``` r
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Oxic")$ASV, .) %>% 
+  subset_samples(Site == "Plesne" & Oxygen == "Oxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Ples_Ox
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+``` r
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Anoxic")$ASV, .) %>% 
+  subset_samples(Site == "Plesne" & Oxygen == "Anoxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Ples_Anox
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+``` r
+  bind_rows(Cert_Ox, Cert_Anox, Ples_Ox, Ples_Anox) %>% 
+  kable(., digits = c(3)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F)
+```
+
+<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Site
+</th>
+<th style="text-align:left;">
+Oxygen
+</th>
+<th style="text-align:right;">
+Total
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:right;">
+0.282
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:right;">
+0.036
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:right;">
+0.059
+</td>
+</tr>
+</tbody>
+</table>
+
+``` r
+# Labelled ASVs in all samples
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, .) %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) %>%   
+  kable(., digits = c(3)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F)
+```
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
+
+    ## Also defined by 'tidytree'
+
+<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Site
+</th>
+<th style="text-align:left;">
+Oxygen
+</th>
+<th style="text-align:right;">
+Total
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:right;">
+0.212
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:right;">
+0.329
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:right;">
+0.246
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:right;">
+0.374
+</td>
+</tr>
+</tbody>
+</table>
+
 #### Calculate NTI
 
 ``` r
@@ -4094,7 +5242,7 @@ sessioninfo::session_info() %>%
 ``` r
 ─ Session info ───────────────────────────────────────────────────────────────
  setting  value
- version  R version 4.1.3 (2022-03-10)
+ version  R version 4.2.1 (2022-06-23)
  os       Ubuntu 18.04.6 LTS
  system   x86_64, linux-gnu
  ui       X11
@@ -4102,16 +5250,16 @@ sessioninfo::session_info() %>%
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Prague
- date     2022-04-22
- pandoc   2.11.4 @ /usr/lib/rstudio-server/bin/pandoc/ (via rmarkdown)
+ date     2022-09-30
+ pandoc   2.17.1.1 @ /usr/lib/rstudio-server/bin/quarto/bin/ (via rmarkdown)
 
 ─ Packages ───────────────────────────────────────────────────────────────────
  package              * version    date (UTC) lib source
- ade4                   1.7-18     2021-09-16 [1] CRAN (R 4.1.1)
+ ade4                   1.7-19     2022-04-19 [1] CRAN (R 4.1.3)
  annotate               1.72.0     2021-10-26 [1] Bioconductor
  AnnotationDbi          1.56.2     2021-11-09 [1] Bioconductor
  ape                  * 5.6-2      2022-03-02 [1] CRAN (R 4.1.2)
- aplot                  0.1.3      2022-04-01 [1] CRAN (R 4.1.3)
+ aplot                  0.1.7      2022-09-06 [1] CRAN (R 4.2.1)
  ashr                   2.2-54     2022-02-22 [1] CRAN (R 4.1.2)
  assertthat             0.2.1      2019-03-21 [1] CRAN (R 4.0.2)
  backports              1.4.1      2021-12-13 [1] CRAN (R 4.1.2)
@@ -4123,60 +5271,64 @@ sessioninfo::session_info() %>%
  bit                    4.0.4      2020-08-04 [1] CRAN (R 4.0.2)
  bit64                  4.0.5      2020-08-30 [1] CRAN (R 4.0.2)
  bitops                 1.0-7      2021-04-24 [1] CRAN (R 4.0.3)
- blob                   1.2.2      2021-07-23 [1] CRAN (R 4.1.0)
- broom                  0.7.12     2022-01-28 [1] CRAN (R 4.1.2)
+ blob                   1.2.3      2022-04-10 [1] CRAN (R 4.1.3)
+ broom                  1.0.1      2022-08-29 [1] CRAN (R 4.2.0)
  cachem                 1.0.6      2021-08-19 [1] CRAN (R 4.1.1)
  cellranger             1.1.0      2016-07-27 [1] CRAN (R 4.0.2)
- cli                    3.2.0      2022-02-14 [1] CRAN (R 4.1.2)
+ cli                    3.4.0      2022-09-08 [1] CRAN (R 4.2.1)
  clipr                  0.8.0      2022-02-22 [1] CRAN (R 4.1.2)
- cluster                2.1.3      2022-03-28 [1] CRAN (R 4.1.2)
+ cluster                2.1.4      2022-08-22 [1] CRAN (R 4.2.0)
  codetools              0.2-18     2020-11-04 [1] CRAN (R 4.0.2)
  colorspace             2.0-3      2022-02-21 [1] CRAN (R 4.1.2)
  crayon                 1.5.1      2022-03-26 [1] CRAN (R 4.1.2)
  data.table             1.14.2     2021-09-27 [1] CRAN (R 4.1.1)
- DBI                    1.1.2      2021-12-20 [1] CRAN (R 4.1.2)
- dbplyr                 2.1.1      2021-04-06 [1] CRAN (R 4.0.3)
+ DBI                    1.1.3      2022-06-18 [1] CRAN (R 4.2.0)
+ dbplyr                 2.2.1      2022-06-27 [1] CRAN (R 4.2.0)
  DelayedArray           0.20.0     2021-10-26 [1] Bioconductor
- desc                   1.4.1      2022-03-06 [1] CRAN (R 4.1.2)
+ desc                   1.4.2      2022-09-08 [1] CRAN (R 4.2.1)
  DESeq2               * 1.34.0     2021-10-26 [1] Bioconductor
  details                0.3.0      2022-03-27 [1] CRAN (R 4.1.3)
  digest                 0.6.29     2021-12-01 [1] CRAN (R 4.1.2)
- dplyr                * 1.0.8      2022-02-08 [1] CRAN (R 4.1.2)
+ dplyr                * 1.0.10     2022-09-01 [1] CRAN (R 4.2.0)
  ellipsis               0.3.2      2021-04-29 [1] CRAN (R 4.0.3)
- evaluate               0.15       2022-02-18 [1] CRAN (R 4.1.2)
- extrafont            * 0.17       2014-12-08 [1] CRAN (R 4.1.0)
+ evaluate               0.16       2022-08-09 [1] CRAN (R 4.2.0)
+ extrafont            * 0.18       2022-04-12 [1] CRAN (R 4.1.3)
  extrafontdb            1.0        2012-06-11 [1] CRAN (R 4.0.2)
  fansi                  1.0.3      2022-03-24 [1] CRAN (R 4.1.2)
+ farver                 2.1.1      2022-07-06 [1] CRAN (R 4.2.0)
  fastmap                1.1.0      2021-01-25 [1] CRAN (R 4.0.3)
- forcats              * 0.5.1      2021-01-27 [1] CRAN (R 4.0.3)
+ forcats              * 0.5.2      2022-08-19 [1] CRAN (R 4.2.0)
  foreach                1.5.2      2022-02-02 [1] CRAN (R 4.1.2)
  fs                     1.5.2      2021-12-08 [1] CRAN (R 4.1.2)
+ gargle                 1.2.1      2022-09-08 [1] CRAN (R 4.2.1)
  genefilter             1.76.0     2021-10-26 [1] Bioconductor
  geneplotter            1.72.0     2021-10-26 [1] Bioconductor
- generics               0.1.2      2022-01-31 [1] CRAN (R 4.1.2)
+ generics               0.1.3      2022-07-05 [1] CRAN (R 4.2.0)
  GenomeInfoDb         * 1.30.1     2022-01-30 [1] Bioconductor
  GenomeInfoDbData       1.2.7      2022-01-10 [1] Bioconductor
  GenomicRanges        * 1.46.1     2021-11-18 [1] Bioconductor
- ggfun                  0.0.6      2022-04-01 [1] CRAN (R 4.1.2)
- ggplot2              * 3.3.5      2021-06-25 [1] CRAN (R 4.1.0)
+ ggfun                  0.0.7      2022-08-31 [1] CRAN (R 4.2.0)
+ ggplot2              * 3.3.6      2022-05-03 [1] CRAN (R 4.1.3)
  ggplotify              0.1.0      2021-09-02 [1] CRAN (R 4.1.1)
  ggpomological        * 0.1.2      2020-08-13 [1] Github (gadenbuie/ggpomological@69f3815)
  ggrepel              * 0.9.1      2021-01-15 [1] CRAN (R 4.0.3)
  ggsci                * 2.9        2018-05-14 [1] CRAN (R 4.0.2)
- ggtext               * 0.1.1      2020-12-17 [1] CRAN (R 4.0.2)
+ ggtext               * 0.1.2      2022-09-16 [1] CRAN (R 4.2.1)
  ggtree               * 3.2.1      2021-11-16 [1] Bioconductor
  glue                 * 1.6.2      2022-02-24 [1] CRAN (R 4.1.2)
+ googledrive            2.0.0      2021-07-08 [1] CRAN (R 4.1.0)
+ googlesheets4          1.0.1      2022-08-13 [1] CRAN (R 4.2.0)
  gridExtra              2.3        2017-09-09 [1] CRAN (R 4.0.2)
  gridGraphics           0.5-1      2020-12-13 [1] CRAN (R 4.0.2)
- gridtext               0.1.4      2020-12-10 [1] CRAN (R 4.0.2)
- gtable                 0.3.0      2019-03-25 [1] CRAN (R 4.0.2)
- haven                  2.4.3      2021-08-04 [1] CRAN (R 4.1.0)
+ gridtext               0.1.5      2022-09-16 [1] CRAN (R 4.2.1)
+ gtable                 0.3.1      2022-09-01 [1] CRAN (R 4.2.0)
+ haven                  2.5.1      2022-08-22 [1] CRAN (R 4.2.0)
  highr                  0.9        2021-04-16 [1] CRAN (R 4.0.3)
- hms                    1.1.1      2021-09-26 [1] CRAN (R 4.1.1)
- htmltools              0.5.2      2021-08-25 [1] CRAN (R 4.1.1)
+ hms                    1.1.2      2022-08-19 [1] CRAN (R 4.2.0)
+ htmltools              0.5.3      2022-07-18 [1] CRAN (R 4.2.0)
  HTSSIP               * 1.4.1      2021-01-15 [1] Github (buckleylab/HTSSIP@29ec56b)
- httr                   1.4.2      2020-07-20 [1] CRAN (R 4.0.2)
- igraph                 1.3.0      2022-04-01 [1] CRAN (R 4.1.3)
+ httr                   1.4.4      2022-08-17 [1] CRAN (R 4.2.0)
+ igraph                 1.3.5      2022-09-22 [1] CRAN (R 4.2.1)
  invgamma               1.1        2017-05-07 [1] CRAN (R 4.0.2)
  IRanges              * 2.28.0     2021-10-26 [1] Bioconductor
  irlba                  2.3.5      2021-12-06 [1] CRAN (R 4.1.2)
@@ -4184,88 +5336,89 @@ sessioninfo::session_info() %>%
  jsonlite               1.8.0      2022-02-22 [1] CRAN (R 4.1.2)
  kableExtra           * 1.3.4      2021-02-20 [1] CRAN (R 4.0.3)
  KEGGREST               1.34.0     2021-10-26 [1] Bioconductor
- knitr                  1.38       2022-03-25 [1] CRAN (R 4.1.2)
+ knitr                  1.40       2022-08-24 [1] CRAN (R 4.2.0)
+ labeling               0.4.2      2020-10-20 [1] CRAN (R 4.0.2)
  lattice              * 0.20-45    2021-09-22 [1] CRAN (R 4.1.1)
  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 4.0.2)
- lifecycle              1.0.1      2021-09-24 [1] CRAN (R 4.1.1)
- locfit                 1.5-9.5    2022-03-03 [1] CRAN (R 4.1.2)
+ lifecycle              1.0.2      2022-09-09 [1] CRAN (R 4.2.1)
+ locfit                 1.5-9.6    2022-07-11 [1] CRAN (R 4.2.0)
  lubridate              1.8.0      2021-10-07 [1] CRAN (R 4.1.1)
  magrittr             * 2.0.3      2022-03-30 [1] CRAN (R 4.1.3)
- MASS                   7.3-56     2022-03-23 [1] CRAN (R 4.1.2)
- Matrix                 1.4-1      2022-03-23 [1] CRAN (R 4.1.3)
+ MASS                   7.3-58.1   2022-08-03 [1] CRAN (R 4.2.0)
+ Matrix                 1.5-1      2022-09-13 [1] CRAN (R 4.2.1)
  MatrixGenerics       * 1.6.0      2021-10-26 [1] Bioconductor
- matrixStats          * 0.61.0     2021-09-17 [1] CRAN (R 4.1.1)
+ matrixStats          * 0.62.0     2022-04-19 [1] CRAN (R 4.1.3)
  memoise                2.0.1      2021-11-26 [1] CRAN (R 4.1.2)
  mgcv                   1.8-40     2022-03-29 [1] CRAN (R 4.1.3)
  mixsqp                 0.3-43     2020-05-14 [1] CRAN (R 4.0.2)
- modelr                 0.1.8      2020-05-19 [1] CRAN (R 4.0.2)
+ modelr                 0.1.9      2022-08-19 [1] CRAN (R 4.2.0)
  multtest               2.50.0     2021-10-26 [1] Bioconductor
  munsell                0.5.0      2018-06-12 [1] CRAN (R 4.0.2)
- nlme                 * 3.1-157    2022-03-25 [1] CRAN (R 4.1.3)
- patchwork            * 1.1.1      2020-12-17 [1] CRAN (R 4.0.2)
+ nlme                 * 3.1-159    2022-08-09 [1] CRAN (R 4.2.0)
+ patchwork            * 1.1.2      2022-08-19 [1] CRAN (R 4.2.0)
  permute              * 0.9-7      2022-01-27 [1] CRAN (R 4.1.2)
  phyloseq             * 1.38.0     2021-10-26 [1] Bioconductor
  picante              * 1.8.2      2020-06-10 [1] CRAN (R 4.0.2)
- pillar                 1.7.0      2022-02-01 [1] CRAN (R 4.1.2)
+ pillar                 1.8.1      2022-08-19 [1] CRAN (R 4.2.0)
  pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.0.2)
  plyr                   1.8.7      2022-03-24 [1] CRAN (R 4.1.3)
  png                    0.1-7      2013-12-03 [1] CRAN (R 4.0.2)
  purrr                * 0.3.4      2020-04-17 [1] CRAN (R 4.0.2)
  R6                     2.5.1      2021-08-19 [1] CRAN (R 4.1.1)
- ragg                 * 1.2.2      2022-02-21 [1] CRAN (R 4.1.2)
+ ragg                 * 1.2.2      2022-02-21 [1] CRAN (R 4.2.0)
  RColorBrewer         * 1.1-3      2022-04-03 [1] CRAN (R 4.1.3)
- Rcpp                   1.0.8.3    2022-03-17 [1] CRAN (R 4.1.2)
- RCurl                  1.98-1.6   2022-02-08 [1] CRAN (R 4.1.2)
+ Rcpp                   1.0.9      2022-07-08 [1] CRAN (R 4.2.0)
+ RCurl                  1.98-1.8   2022-07-30 [1] CRAN (R 4.2.0)
  readr                * 2.1.2      2022-01-30 [1] CRAN (R 4.1.2)
- readxl                 1.4.0      2022-03-28 [1] CRAN (R 4.1.3)
- reprex                 2.0.1      2021-08-05 [1] CRAN (R 4.1.0)
+ readxl                 1.4.1      2022-08-17 [1] CRAN (R 4.2.0)
+ reprex                 2.0.2      2022-08-17 [1] CRAN (R 4.2.0)
  reshape2               1.4.4      2020-04-09 [1] CRAN (R 4.0.2)
  rhdf5                  2.38.0     2021-10-26 [1] Bioconductor
  rhdf5filters           1.6.0      2021-10-26 [1] Bioconductor
  Rhdf5lib               1.16.0     2021-10-26 [1] Bioconductor
- rlang                  1.0.2      2022-03-04 [1] CRAN (R 4.1.2)
- rmarkdown              2.13       2022-03-10 [1] CRAN (R 4.1.2)
+ rlang                  1.0.5      2022-08-31 [1] CRAN (R 4.2.0)
+ rmarkdown              2.16       2022-08-24 [1] CRAN (R 4.2.0)
  rprojroot              2.0.3      2022-04-02 [1] CRAN (R 4.1.3)
- RSQLite                2.2.12     2022-04-02 [1] CRAN (R 4.1.3)
- rstudioapi             0.13       2020-11-12 [1] CRAN (R 4.0.2)
+ RSQLite                2.2.17     2022-09-10 [1] CRAN (R 4.2.1)
+ rstudioapi             0.14       2022-08-22 [1] CRAN (R 4.2.0)
  Rttf2pt1               1.3.10     2022-02-07 [1] CRAN (R 4.1.2)
- rvest                  1.0.2      2021-10-16 [1] CRAN (R 4.1.1)
+ rvest                  1.0.3      2022-08-19 [1] CRAN (R 4.2.0)
  S4Vectors            * 0.32.3     2021-11-21 [1] Bioconductor
- scales               * 1.1.1      2020-05-11 [1] CRAN (R 4.0.2)
+ scales               * 1.2.1      2022-08-20 [1] CRAN (R 4.2.0)
  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
  speedyseq            * 0.5.3.9018 2021-08-11 [1] Github (mikemc/speedyseq@ceb941f)
  SQUAREM                2021.1     2021-01-13 [1] CRAN (R 4.0.2)
- stringi                1.7.6      2021-11-29 [1] CRAN (R 4.1.2)
- stringr              * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)
+ stringi                1.7.8      2022-07-11 [1] CRAN (R 4.2.0)
+ stringr              * 1.4.1      2022-08-20 [1] CRAN (R 4.2.0)
  SummarizedExperiment * 1.24.0     2021-10-26 [1] Bioconductor
- survival               3.3-1      2022-03-03 [1] CRAN (R 4.1.2)
- svglite              * 2.1.0      2022-02-03 [1] CRAN (R 4.1.2)
+ survival               3.4-0      2022-08-09 [1] CRAN (R 4.2.0)
+ svglite              * 2.1.0      2022-02-03 [1] CRAN (R 4.2.0)
  systemfonts            1.0.4      2022-02-11 [1] CRAN (R 4.1.2)
  textshaping            0.3.6      2021-10-13 [1] CRAN (R 4.1.1)
- tibble               * 3.1.6      2021-11-07 [1] CRAN (R 4.1.2)
- tidyr                * 1.2.0      2022-02-01 [1] CRAN (R 4.1.2)
+ tibble               * 3.1.8      2022-07-22 [1] CRAN (R 4.2.0)
+ tidyr                * 1.2.1      2022-09-08 [1] CRAN (R 4.2.1)
  tidyselect             1.1.2      2022-02-21 [1] CRAN (R 4.1.2)
- tidytree               0.3.9      2022-03-04 [1] CRAN (R 4.1.2)
- tidyverse            * 1.3.1      2021-04-15 [1] CRAN (R 4.0.3)
+ tidytree               0.4.0      2022-08-13 [1] CRAN (R 4.2.0)
+ tidyverse            * 1.3.2      2022-07-18 [1] CRAN (R 4.2.0)
  treeio                 1.18.1     2021-11-14 [1] Bioconductor
  truncnorm              1.0-8      2018-02-27 [1] CRAN (R 4.0.2)
  tzdb                   0.3.0      2022-03-28 [1] CRAN (R 4.1.3)
  utf8                   1.2.2      2021-07-24 [1] CRAN (R 4.1.0)
- vctrs                  0.4.0      2022-03-30 [1] CRAN (R 4.1.3)
- vegan                * 2.5-7      2020-11-28 [1] CRAN (R 4.0.3)
+ vctrs                  0.4.1      2022-04-13 [1] CRAN (R 4.1.3)
+ vegan                * 2.6-2      2022-04-17 [1] CRAN (R 4.1.3)
  viridis              * 0.6.2      2021-10-13 [1] CRAN (R 4.1.1)
- viridisLite          * 0.4.0      2021-04-13 [1] CRAN (R 4.0.3)
+ viridisLite          * 0.4.1      2022-08-22 [1] CRAN (R 4.2.0)
  visdat               * 0.6.0.9000 2022-02-18 [1] Github (ropensci/visdat@daa162f)
  vroom                  1.5.7      2021-11-30 [1] CRAN (R 4.1.2)
- webshot                0.5.2      2019-11-22 [1] CRAN (R 4.0.2)
+ webshot                0.5.3      2022-04-14 [1] CRAN (R 4.1.3)
  withr                  2.5.0      2022-03-03 [1] CRAN (R 4.1.2)
- xfun                   0.30       2022-03-02 [1] CRAN (R 4.1.2)
- XML                    3.99-0.9   2022-02-24 [1] CRAN (R 4.1.2)
+ xfun                   0.33       2022-09-12 [1] CRAN (R 4.2.1)
+ XML                    3.99-0.10  2022-06-09 [1] CRAN (R 4.2.0)
  xml2                   1.3.3      2021-11-30 [1] CRAN (R 4.1.2)
  xtable                 1.8-4      2019-04-21 [1] CRAN (R 4.0.2)
  XVector              * 0.34.0     2021-10-26 [1] Bioconductor
  yaml                   2.3.5      2022-02-21 [1] CRAN (R 4.1.2)
- yulab.utils            0.0.4      2021-10-09 [1] CRAN (R 4.1.1)
+ yulab.utils            0.0.5      2022-06-30 [1] CRAN (R 4.2.0)
  zlibbioc               1.40.0     2021-10-26 [1] Bioconductor
 
  [1] /home/angel/R/library
@@ -4286,31 +5439,37 @@ sessioninfo::session_info() %>%
 
 <div id="ref-angel_application_2018" class="csl-entry">
 
-Angel R, Panhölzl C, Gabriel R *et al.* Application of stable-isotope
-labelling techniques for the detection of active diazotrophs. *Environ
+Angel R, Panhölzl C, Gabriel R *et al.* [Application of stable-isotope
+labelling techniques for the detection of active
+diazotrophs](https://doi.org/10.1111/1462-2920.13954). *Environ
 Microbiol* 2018;**20**:44–61.
 
 </div>
 
 <div id="ref-love_moderated_2014" class="csl-entry">
 
-Love MI, Huber W, Anders S. Moderated estimation of fold change and
-dispersion for RNA-seq data with DESeq2. *Genome Biol* 2014;**15**:550.
+Love MI, Huber W, Anders S. [Moderated estimation of fold change and
+dispersion for RNA-seq data with
+DESeq2](https://doi.org/10.1186/s13059-014-0550-8). *Genome Biol*
+2014;**15**:550.
 
 </div>
 
 <div id="ref-stephens_fdr_2016" class="csl-entry">
 
-Stephens M. <span class="nocase">False discovery rates: a new
-deal</span>. *Biostatistics* 2016;**18**:275–94.
+Stephens M. [<span class="nocase">False discovery rates: a new
+deal</span>](https://doi.org/10.1093/biostatistics/kxw041).
+*Biostatistics* 2016;**18**:275–94.
 
 </div>
 
 <div id="ref-youngblut_htssip_2018" class="csl-entry">
 
-Youngblut ND, Barnett SE, Buckley DH. HTSSIP: An R package for analysis
+Youngblut ND, Barnett SE, Buckley DH. [HTSSIP: An R package for analysis
 of high throughput sequencing data from nucleic acid stable isotope
-probing (SIP) experiments. *PLOS ONE* 2018;**13**:e0189616.
+probing (SIP)
+experiments](https://doi.org/10.1371/journal.pone.0189616). *PLOS ONE*
+2018;**13**:e0189616.
 
 </div>
 

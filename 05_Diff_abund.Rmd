@@ -691,7 +691,7 @@ names(Ps_obj_SIP_byTime_l) %<>%
 Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling).
 
 ```{r beta div joint, cache=T}
-(mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
   permutations = 999
 ))
@@ -704,13 +704,13 @@ Ps_obj_SIP %>%
   
 plot_lib_dist(Ps_obj_SIP_scaled)
 
-(mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 
 
-(mod3 <- adonis(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
@@ -1087,6 +1087,102 @@ save_figure(paste0(fig.path, "all_trees"),
             pheight = 18,
             dpi = 900)
 ```
+
+#### How abundant were the labelled ASVs?
+```{r labelled ASV abundance, cache=T}
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Oxic")$ASV, .) %>% 
+  subset_samples(Site == "Certovo" & Oxygen == "Oxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Cert_Ox
+  
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Anoxic")$ASV, .) %>% 
+  subset_samples(Site == "Certovo" & Oxygen == "Anoxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Cert_Anox
+
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Oxic")$ASV, .) %>% 
+  subset_samples(Site == "Plesne" & Oxygen == "Oxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Ples_Ox
+
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Anoxic")$ASV, .) %>% 
+  subset_samples(Site == "Plesne" & Oxygen == "Anoxic") %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) ->
+  Ples_Anox
+  
+  bind_rows(Cert_Ox, Cert_Anox, Ples_Ox, Ples_Anox) %>% 
+  kable(., digits = c(3)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F)
+
+# Labelled ASVs in all samples
+Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, .) %>% 
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen) %>% 
+  summarise_if(is.numeric, mean) %>%   
+  kable(., digits = c(3)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F)
+```
+
 
 #### Calculate NTI
 ```{r MNTD, cache=T}
