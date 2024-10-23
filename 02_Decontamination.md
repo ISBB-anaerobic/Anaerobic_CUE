@@ -1,7 +1,30 @@
 Anaerobic CUE
 ================
 Roey Angel
-2021-02-20
+2024-06-27
+
+- <a href="#identify-and-remove-contaminant-asvs"
+  id="toc-identify-and-remove-contaminant-asvs">Identify and remove
+  contaminant ASVs</a>
+  - <a href="#setting-general-parameters"
+    id="toc-setting-general-parameters">Setting general parameters:</a>
+  - <a href="#reading-in-raw-data-and-generate-phyloseq-object"
+    id="toc-reading-in-raw-data-and-generate-phyloseq-object">Reading in raw
+    data and generate phyloseq object</a>
+  - <a href="#inspect-data-structure"
+    id="toc-inspect-data-structure">Inspect data structure</a>
+  - <a href="#inspect-library-sizes" id="toc-inspect-library-sizes">Inspect
+    Library sizes</a>
+  - <a href="#identify-contaminants---frequency"
+    id="toc-identify-contaminants---frequency">Identify contaminants -
+    Frequency</a>
+  - <a href="#identify-contaminants---prevalence"
+    id="toc-identify-contaminants---prevalence">Identify contaminants -
+    Prevalence</a>
+  - <a href="#save-contaminant-sequence-names-and-decontaminated-data"
+    id="toc-save-contaminant-sequence-names-and-decontaminated-data">Save
+    contaminant sequence names and decontaminated data</a>
+- <a href="#references" id="toc-references">References</a>
 
 ## Identify and remove contaminant ASVs
 
@@ -34,17 +57,7 @@ read_tsv(paste0(data_path, Seq_table),
   t() %>% 
   as.data.frame() -> # not tibble because we need row names
   abundance_mat # convert to abundance matrix
-```
 
-    ## 
-    ## ── Column specification ────────────────────────────────────────────────────────
-    ## cols(
-    ##   .default = col_double(),
-    ##   ASV = col_character()
-    ## )
-    ## ℹ Use `spec()` for the full column specifications.
-
-``` r
 # get short names of samples
 # abundance_mat %>% 
 #   rownames() %>% 
@@ -69,26 +82,7 @@ read_csv(paste0(samples_prep_path, Metadata_table),
   mutate(`Density zone` = factor(ifelse(`Density (g ml-1)` > 1.795, "Heavy", "Light"), levels = c("Light", "Heavy"))) %>% # critical for DESeq2 that the reference is the first level
   column_to_rownames("to_names") ->
   Metadata
-```
 
-    ## 
-    ## ── Column specification ────────────────────────────────────────────────────────
-    ## cols(
-    ##   .default = col_double(),
-    ##   merged_sample_name = col_character(),
-    ##   Read1_file = col_character(),
-    ##   Sample = col_character(),
-    ##   Site = col_character(),
-    ##   Oxygen = col_character(),
-    ##   Glucose = col_character(),
-    ##   `Label (13C)` = col_character(),
-    ##   `TNA ext. Date` = col_character(),
-    ##   `PCR date` = col_character(),
-    ##   Control = col_logical()
-    ## )
-    ## ℹ Use `spec()` for the full column specifications.
-
-``` r
 # Order abundance_mat samples according to the metadata
 sample_order <- match(str_remove(rownames(abundance_mat), "_L001"), rownames(Metadata))
 abundance_mat %<>% arrange(sample_order)
@@ -97,29 +91,6 @@ rownames(abundance_mat) <- rownames(Metadata) # needed for pyhloseq
 # read taxonomy from data file
 Raw_tax_data <- read_tsv(paste0(data_path, Tax_table), 
                         trim_ws = TRUE, col_names = TRUE)
-```
-
-    ## 
-    ## ── Column specification ────────────────────────────────────────────────────────
-    ## cols(
-    ##   ASV = col_character(),
-    ##   Kingdom = col_character(),
-    ##   Phylum = col_character(),
-    ##   Class = col_character(),
-    ##   Order = col_character(),
-    ##   Family = col_character(),
-    ##   Genus = col_character(),
-    ##   Species = col_character(),
-    ##   `Kingdom (BS)` = col_double(),
-    ##   `Phylum (BS)` = col_double(),
-    ##   `Class (BS)` = col_double(),
-    ##   `Order (BS)` = col_double(),
-    ##   `Family (BS)` = col_double(),
-    ##   `Genus (BS)` = col_double(),
-    ##   `Species (BS)` = col_double()
-    ## )
-
-``` r
 Raw_tax_data %<>%
   mutate_all(~(replace(., is.na(.), "Unclassified"))) # I think mutaute_all is unnecessary here because replace(., is.na(.), "Unclassified") alone should work
 
@@ -174,10 +145,7 @@ Ps_obj %>%
   vis_dat()
 ```
 
-    ## Warning: attributes are not identical across measure variables;
-    ## they will be dropped
-
-![](02_Decontamination_files/figure-gfm/data-1.png)<!-- -->
+![](02_Decontamination_figures/data-1.png)<!-- -->
 
 ``` r
 Ps_obj %>% 
@@ -186,7 +154,7 @@ Ps_obj %>%
   vis_cor()
 ```
 
-![](02_Decontamination_files/figure-gfm/data-2.png)<!-- -->
+![](02_Decontamination_figures/data-2.png)<!-- -->
 
 ### Inspect Library sizes
 
@@ -210,9 +178,7 @@ ggplot(data = Ps_obj_df,
   scale_color_brewer(type = 'qual', palette = 'Set1', direction = -1)
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous y-axis
-
-![](02_Decontamination_files/figure-gfm/Library%20Sizes-1.png)<!-- -->
+![](02_Decontamination_figures/Library%20Sizes-1.png)<!-- -->
 
 ``` r
 summary(sample_sums(Ps_obj))
@@ -258,22 +224,17 @@ table(contamdf.freq$contaminant)
 which(contamdf.freq$contaminant)
 ```
 
-    ##  [1]  2752  3799  4049  4326  5490  5951  6616  6965  7201  7972  8601 10101
-    ## [13] 10188 10500 11115 11252 11352 12399 12419 12517
+    ##  [1]  2752  3799  4049  4326  5490  5951  6616  6965  7201  7972  8601 10101 10188 10500
+    ## [15] 11115 11252 11352 12399 12419 12517
 
 Plot the frequency of sequnce 1 and 3 (non-contaminants) against the DNA
-concentration, as an
-example.
+concentration, as an example.
 
 ``` r
 plot_frequency(Ps_obj, taxa_names(Ps_obj)[c(1, 3)], conc = "X16S.copies")
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous y-axis
-
-    ## Warning: Removed 1 row(s) containing missing values (geom_path).
-
-![](02_Decontamination_files/figure-gfm/plot%20frequency%201-1.png)<!-- -->
+![](02_Decontamination_figures/plot%20frequency%201-1.png)<!-- -->
 
 Plot the frequency of the contaminant sequences against the DNA
 concentration.
@@ -282,19 +243,14 @@ concentration.
 plot_frequency(Ps_obj, taxa_names(Ps_obj)[which(contamdf.freq$contaminant)[1:20]], conc = "X16S.copies")
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous y-axis
+![](02_Decontamination_figures/plot%20frequency%202-1.png)<!-- -->
 
-    ## Warning: Removed 1 row(s) containing missing values (geom_path).
-
-![](02_Decontamination_files/figure-gfm/plot%20frequency%202-1.png)<!-- -->
-
-The frequency analysis detected \(20\) sequences as contaminants.
+The frequency analysis detected $20$ sequences as contaminants.
 
 ### Identify contaminants - Prevalence
 
 Use the prevalence of sequences found in the control samples
-(no-template controls) to identify
-contaminants.
+(no-template controls) to identify contaminants.
 
 ``` r
 contamdf.prev <- isContaminant(Ps_obj, method = "prevalence", neg = "Control")
@@ -311,10 +267,9 @@ table(contamdf.prev$contaminant)
 which(contamdf.prev$contaminant)
 ```
 
-    ##  [1]    35  2427  2983  3367  3783  4294  4469  5105  6815  6881  6903  7226
-    ## [13]  7354  7385  7705  7728  7986  8444  8460  8508  8810  8831  8835  8869
-    ## [25]  9031  9078  9151  9183  9240  9603  9881 10033 10089 10100 10522 10653
-    ## [37] 11275 11291 11972 12261
+    ##  [1]    35  2427  2983  3367  3783  4294  4469  5105  6815  6881  6903  7226  7354  7385
+    ## [15]  7705  7728  7986  8444  8460  8508  8810  8831  8835  8869  9031  9078  9151  9183
+    ## [29]  9240  9603  9881 10033 10089 10100 10522 10653 11275 11291 11972 12261
 
 ``` r
 # And using a more aggressive threshold
@@ -346,10 +301,10 @@ ggplot(data = df.pa, aes(x = pa.neg, y = pa.pos, color = contaminant)) + geom_po
   xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
 ```
 
-![](02_Decontamination_files/figure-gfm/prevalence-1.png)<!-- -->
+![](02_Decontamination_figures/prevalence-1.png)<!-- -->
 
-The frequency analysis detected \(40\) sequences as contaminants. In
-total \(60\) were detected as contaminants and will be removed.
+The frequency analysis detected $40$ sequences as contaminants. In total
+$60$ were detected as contaminants and will be removed.
 
 ### Save contaminant sequence names and decontaminated data
 
@@ -411,134 +366,134 @@ sessioninfo::session_info() %>%
 ```
 
 <details open>
-
-<summary> <span title="Click to Expand"> Current session info </span>
+<summary>
+<span title="Click to Expand"> Current session info </span>
 </summary>
 
 ``` r
 
-─ Session info ───────────────────────────────────────────────────────────────
- setting  value                       
- version  R version 4.0.3 (2020-10-10)
- os       Ubuntu 18.04.5 LTS          
- system   x86_64, linux-gnu           
- ui       X11                         
- language (EN)                        
- collate  en_US.UTF-8                 
- ctype    en_US.UTF-8                 
- tz       Europe/Prague               
- date     2021-02-20                  
+─ Session info ─────────────────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.0 (2024-04-24)
+ os       Ubuntu 22.04.4 LTS
+ system   x86_64, linux-gnu
+ ui       X11
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       Europe/Prague
+ date     2024-06-27
+ pandoc   2.19.2 @ /usr/lib/rstudio-server/bin/quarto/bin/tools/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────
- package      * version    date       lib source                          
- ade4           1.7-16     2020-10-28 [1] CRAN (R 4.0.2)                  
- ape            5.4-1      2020-08-13 [1] CRAN (R 4.0.2)                  
- assertthat     0.2.1      2019-03-21 [1] CRAN (R 4.0.2)                  
- backports      1.2.1      2020-12-09 [1] CRAN (R 4.0.2)                  
- Biobase        2.48.0     2020-04-27 [1] Bioconductor                    
- BiocGenerics * 0.34.0     2020-04-27 [1] Bioconductor                    
- biomformat     1.16.0     2020-04-27 [1] Bioconductor                    
- Biostrings   * 2.56.0     2020-04-27 [1] Bioconductor                    
- broom          0.7.5      2021-02-19 [1] CRAN (R 4.0.3)                  
- cellranger     1.1.0      2016-07-27 [1] CRAN (R 4.0.2)                  
- cli            2.3.0      2021-01-31 [1] CRAN (R 4.0.3)                  
- clipr          0.7.1      2020-10-08 [1] CRAN (R 4.0.2)                  
- cluster        2.1.1      2021-02-14 [1] CRAN (R 4.0.3)                  
- codetools      0.2-18     2020-11-04 [1] CRAN (R 4.0.2)                  
- colorspace     2.0-0      2020-11-11 [1] CRAN (R 4.0.2)                  
- crayon         1.4.1      2021-02-08 [1] CRAN (R 4.0.3)                  
- data.table     1.13.6     2020-12-30 [1] CRAN (R 4.0.2)                  
- DBI            1.1.1      2021-01-15 [1] CRAN (R 4.0.3)                  
- dbplyr         2.1.0      2021-02-03 [1] CRAN (R 4.0.3)                  
- decontam     * 1.8.0      2020-04-27 [1] Bioconductor                    
- desc           1.2.0      2018-05-01 [1] CRAN (R 4.0.2)                  
- details        0.2.1      2020-01-12 [1] CRAN (R 4.0.2)                  
- digest         0.6.27     2020-10-24 [1] CRAN (R 4.0.2)                  
- dplyr        * 1.0.4      2021-02-02 [1] CRAN (R 4.0.3)                  
- ellipsis       0.3.1      2020-05-15 [1] CRAN (R 4.0.2)                  
- evaluate       0.14       2019-05-28 [1] CRAN (R 4.0.2)                  
- extrafont    * 0.17       2014-12-08 [1] CRAN (R 4.0.2)                  
- extrafontdb    1.0        2012-06-11 [1] CRAN (R 4.0.2)                  
- farver         2.0.3      2020-01-16 [1] CRAN (R 4.0.2)                  
- forcats      * 0.5.1      2021-01-27 [1] CRAN (R 4.0.3)                  
- foreach        1.5.1      2020-10-15 [1] CRAN (R 4.0.2)                  
- fs             1.5.0      2020-07-31 [1] CRAN (R 4.0.2)                  
- generics       0.1.0      2020-10-31 [1] CRAN (R 4.0.2)                  
- ggplot2      * 3.3.3      2020-12-30 [1] CRAN (R 4.0.2)                  
- glue           1.4.2      2020-08-27 [1] CRAN (R 4.0.2)                  
- gtable         0.3.0      2019-03-25 [1] CRAN (R 4.0.2)                  
- haven          2.3.1      2020-06-01 [1] CRAN (R 4.0.2)                  
- highr          0.8        2019-03-20 [1] CRAN (R 4.0.2)                  
- hms            1.0.0      2021-01-13 [1] CRAN (R 4.0.3)                  
- htmltools      0.5.1.1    2021-01-22 [1] CRAN (R 4.0.3)                  
- httr           1.4.2      2020-07-20 [1] CRAN (R 4.0.2)                  
- igraph         1.2.6      2020-10-06 [1] CRAN (R 4.0.2)                  
- IRanges      * 2.22.2     2020-05-21 [1] Bioconductor                    
- iterators      1.0.13     2020-10-15 [1] CRAN (R 4.0.2)                  
- jsonlite       1.7.2      2020-12-09 [1] CRAN (R 4.0.2)                  
- knitr          1.31       2021-01-27 [1] CRAN (R 4.0.3)                  
- labeling       0.4.2      2020-10-20 [1] CRAN (R 4.0.2)                  
- lattice        0.20-41    2020-04-02 [1] CRAN (R 4.0.2)                  
- lifecycle      1.0.0      2021-02-15 [1] CRAN (R 4.0.3)                  
- lubridate      1.7.9.2    2020-11-13 [1] CRAN (R 4.0.2)                  
- magrittr     * 2.0.1      2020-11-17 [1] CRAN (R 4.0.2)                  
- MASS           7.3-53.1   2021-02-12 [1] CRAN (R 4.0.3)                  
- Matrix         1.3-2      2021-01-06 [1] CRAN (R 4.0.2)                  
- mgcv           1.8-34     2021-02-16 [1] CRAN (R 4.0.3)                  
- modelr         0.1.8      2020-05-19 [1] CRAN (R 4.0.2)                  
- multtest       2.44.0     2020-04-27 [1] Bioconductor                    
- munsell        0.5.0      2018-06-12 [1] CRAN (R 4.0.2)                  
- nlme           3.1-152    2021-02-04 [1] CRAN (R 4.0.3)                  
- permute        0.9-5      2019-03-12 [1] CRAN (R 4.0.2)                  
- phyloseq     * 1.32.0     2020-04-27 [1] Bioconductor                    
- pillar         1.4.7      2020-11-20 [1] CRAN (R 4.0.2)                  
- pkgconfig      2.0.3      2019-09-22 [1] CRAN (R 4.0.2)                  
- plyr           1.8.6      2020-03-03 [1] CRAN (R 4.0.2)                  
- png            0.1-7      2013-12-03 [1] CRAN (R 4.0.2)                  
- prettyunits    1.1.1      2020-01-24 [1] CRAN (R 4.0.2)                  
- progress       1.2.2      2019-05-16 [1] CRAN (R 4.0.2)                  
- purrr        * 0.3.4      2020-04-17 [1] CRAN (R 4.0.2)                  
- R6             2.5.0      2020-10-28 [1] CRAN (R 4.0.2)                  
- RColorBrewer   1.1-2      2014-12-07 [1] CRAN (R 4.0.2)                  
- Rcpp           1.0.6      2021-01-15 [1] CRAN (R 4.0.3)                  
- readr        * 1.4.0      2020-10-05 [1] CRAN (R 4.0.2)                  
- readxl         1.3.1      2019-03-13 [1] CRAN (R 4.0.2)                  
- reprex         1.0.0      2021-01-27 [1] CRAN (R 4.0.3)                  
- reshape2       1.4.4      2020-04-09 [1] CRAN (R 4.0.2)                  
- rhdf5          2.32.4     2020-10-05 [1] Bioconductor                    
- Rhdf5lib       1.10.1     2020-07-09 [1] Bioconductor                    
- rlang          0.4.10     2020-12-30 [1] CRAN (R 4.0.2)                  
- rmarkdown      2.7        2021-02-19 [1] CRAN (R 4.0.3)                  
- rprojroot      2.0.2      2020-11-15 [1] CRAN (R 4.0.2)                  
- rstudioapi     0.13       2020-11-12 [1] CRAN (R 4.0.2)                  
- Rttf2pt1       1.3.8      2020-01-10 [1] CRAN (R 4.0.2)                  
- rvest          0.3.6      2020-07-25 [1] CRAN (R 4.0.2)                  
- S4Vectors    * 0.26.1     2020-05-16 [1] Bioconductor                    
- scales         1.1.1      2020-05-11 [1] CRAN (R 4.0.2)                  
- sessioninfo    1.1.1      2018-11-05 [1] CRAN (R 4.0.2)                  
- stringi        1.5.3      2020-09-09 [1] CRAN (R 4.0.2)                  
- stringr      * 1.4.0      2019-02-10 [1] CRAN (R 4.0.2)                  
- survival       3.2-7      2020-09-28 [1] CRAN (R 4.0.2)                  
- svglite      * 2.0.0      2021-02-20 [1] CRAN (R 4.0.3)                  
- systemfonts    1.0.1      2021-02-09 [1] CRAN (R 4.0.3)                  
- tibble       * 3.0.6      2021-01-29 [1] CRAN (R 4.0.3)                  
- tidyr        * 1.1.2      2020-08-27 [1] CRAN (R 4.0.2)                  
- tidyselect     1.1.0      2020-05-11 [1] CRAN (R 4.0.2)                  
- tidyverse    * 1.3.0      2019-11-21 [1] CRAN (R 4.0.2)                  
- vctrs          0.3.6      2020-12-17 [1] CRAN (R 4.0.2)                  
- vegan          2.5-7      2020-11-28 [1] CRAN (R 4.0.2)                  
- visdat       * 0.6.0.9000 2021-02-01 [1] Github (ropensci/visdat@8121dfe)
- withr          2.4.1      2021-01-26 [1] CRAN (R 4.0.3)                  
- xfun           0.21       2021-02-10 [1] CRAN (R 4.0.3)                  
- xml2           1.3.2      2020-04-23 [1] CRAN (R 4.0.2)                  
- XVector      * 0.28.0     2020-04-27 [1] Bioconductor                    
- yaml           2.2.1      2020-02-01 [1] CRAN (R 4.0.2)                  
- zlibbioc       1.34.0     2020-04-27 [1] Bioconductor                    
+─ Packages ─────────────────────────────────────────────────────────────────────────────
+ package          * version    date (UTC) lib source
+ ade4               1.7-22     2023-02-06 [1] CRAN (R 4.2.2)
+ ape                5.8        2024-04-11 [1] CRAN (R 4.4.0)
+ Biobase            2.60.0     2023-04-25 [1] Bioconductor
+ BiocGenerics     * 0.46.0     2023-04-25 [1] Bioconductor
+ biomformat         1.28.0     2023-04-25 [1] Bioconductor
+ Biostrings       * 2.68.1     2023-05-16 [1] Bioconductor
+ bit                4.0.5      2022-11-15 [1] CRAN (R 4.2.2)
+ bit64              4.0.5      2020-08-30 [1] CRAN (R 4.0.2)
+ bitops             1.0-7      2021-04-24 [1] CRAN (R 4.0.3)
+ cli                3.6.2      2023-12-11 [1] CRAN (R 4.3.2)
+ clipr              0.8.0      2022-02-22 [1] CRAN (R 4.1.2)
+ cluster            2.1.6      2023-12-01 [1] CRAN (R 4.3.2)
+ codetools          0.2-20     2024-03-31 [1] CRAN (R 4.3.3)
+ colorspace         2.1-0      2023-01-23 [1] CRAN (R 4.2.2)
+ crayon             1.5.2      2022-09-29 [1] CRAN (R 4.2.1)
+ data.table         1.15.4     2024-03-30 [1] CRAN (R 4.3.3)
+ decontam         * 1.20.0     2023-04-25 [1] Bioconductor
+ desc               1.4.3      2023-12-10 [1] CRAN (R 4.3.2)
+ details            0.3.0      2022-03-27 [1] CRAN (R 4.1.3)
+ digest             0.6.35     2024-03-11 [1] CRAN (R 4.3.3)
+ dplyr            * 1.1.4      2023-11-17 [1] CRAN (R 4.3.2)
+ evaluate           0.24.0     2024-06-10 [1] CRAN (R 4.4.0)
+ extrafont        * 0.19       2023-01-18 [1] CRAN (R 4.2.2)
+ extrafontdb        1.0        2012-06-11 [1] CRAN (R 4.0.2)
+ fansi              1.0.6      2023-12-08 [1] CRAN (R 4.3.2)
+ farver             2.1.2      2024-05-13 [1] CRAN (R 4.4.0)
+ fastmap            1.2.0      2024-05-15 [1] CRAN (R 4.4.0)
+ forcats          * 1.0.0      2023-01-29 [1] CRAN (R 4.2.2)
+ foreach            1.5.2      2022-02-02 [1] CRAN (R 4.1.2)
+ generics           0.1.3      2022-07-05 [1] CRAN (R 4.2.0)
+ GenomeInfoDb     * 1.36.2     2023-08-25 [1] Bioconductor
+ GenomeInfoDbData   1.2.10     2023-05-31 [1] Bioconductor
+ ggplot2          * 3.5.1      2024-04-23 [1] CRAN (R 4.4.0)
+ glue               1.7.0      2024-01-09 [1] CRAN (R 4.3.2)
+ gtable             0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
+ highr              0.11       2024-05-26 [1] CRAN (R 4.4.0)
+ hms                1.1.3      2023-03-21 [1] CRAN (R 4.2.3)
+ htmltools          0.5.8.1    2024-04-04 [1] CRAN (R 4.4.0)
+ httr               1.4.7      2023-08-15 [1] CRAN (R 4.3.1)
+ igraph             2.0.3      2024-03-13 [1] CRAN (R 4.3.3)
+ IRanges          * 2.34.1     2023-06-22 [1] Bioconductor
+ iterators          1.0.14     2022-02-05 [1] CRAN (R 4.1.2)
+ jsonlite           1.8.8      2023-12-04 [1] CRAN (R 4.3.2)
+ knitr              1.47       2024-05-29 [1] CRAN (R 4.4.0)
+ labeling           0.4.3      2023-08-29 [1] CRAN (R 4.3.1)
+ lattice            0.22-6     2024-03-20 [1] CRAN (R 4.3.3)
+ lifecycle          1.0.4      2023-11-07 [1] CRAN (R 4.3.1)
+ lubridate        * 1.9.3      2023-09-27 [1] CRAN (R 4.3.1)
+ magrittr         * 2.0.3      2022-03-30 [1] CRAN (R 4.1.3)
+ MASS               7.3-61     2024-06-13 [1] CRAN (R 4.4.0)
+ Matrix             1.7-0      2024-04-26 [1] CRAN (R 4.4.0)
+ mgcv               1.9-1      2023-12-21 [1] CRAN (R 4.3.2)
+ multtest           2.56.0     2023-04-25 [1] Bioconductor
+ munsell            0.5.1      2024-04-01 [1] CRAN (R 4.4.0)
+ nlme               3.1-165    2024-06-06 [1] CRAN (R 4.4.0)
+ permute            0.9-7      2022-01-27 [1] CRAN (R 4.1.2)
+ phyloseq         * 1.44.0     2023-04-25 [1] Bioconductor
+ pillar             1.9.0      2023-03-22 [1] CRAN (R 4.2.3)
+ pkgconfig          2.0.3      2019-09-22 [1] CRAN (R 4.0.2)
+ plyr               1.8.9      2023-10-02 [1] CRAN (R 4.3.1)
+ png                0.1-8      2022-11-29 [1] CRAN (R 4.2.2)
+ purrr            * 1.0.2      2023-08-10 [1] CRAN (R 4.3.1)
+ R6                 2.5.1      2021-08-19 [1] CRAN (R 4.1.1)
+ RColorBrewer       1.1-3      2022-04-03 [1] CRAN (R 4.1.3)
+ Rcpp               1.0.12     2024-01-09 [1] CRAN (R 4.3.2)
+ RCurl              1.98-1.14  2024-01-09 [1] CRAN (R 4.3.2)
+ readr            * 2.1.5      2024-01-10 [1] CRAN (R 4.3.2)
+ reshape2           1.4.4      2020-04-09 [1] CRAN (R 4.0.2)
+ rhdf5              2.44.0     2023-04-25 [1] Bioconductor
+ rhdf5filters       1.12.1     2023-04-30 [1] Bioconductor
+ Rhdf5lib           1.22.0     2023-04-25 [1] Bioconductor
+ rlang              1.1.4      2024-06-04 [1] CRAN (R 4.4.0)
+ rmarkdown          2.27       2024-05-17 [1] CRAN (R 4.4.0)
+ rstudioapi         0.16.0     2024-03-24 [1] CRAN (R 4.3.3)
+ Rttf2pt1           1.3.12     2023-01-22 [1] CRAN (R 4.2.2)
+ S4Vectors        * 0.38.1     2023-05-02 [1] Bioconductor
+ scales             1.3.0      2023-11-28 [1] CRAN (R 4.3.2)
+ sessioninfo        1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
+ stringi            1.8.4      2024-05-06 [1] CRAN (R 4.4.0)
+ stringr          * 1.5.1      2023-11-14 [1] CRAN (R 4.3.2)
+ survival           3.7-0      2024-06-05 [1] CRAN (R 4.4.0)
+ svglite          * 2.1.3      2023-12-08 [1] CRAN (R 4.3.2)
+ systemfonts        1.1.0      2024-05-15 [1] CRAN (R 4.4.0)
+ tibble           * 3.2.1      2023-03-20 [1] CRAN (R 4.2.3)
+ tidyr            * 1.3.1      2024-01-24 [1] CRAN (R 4.3.2)
+ tidyselect         1.2.1      2024-03-11 [1] CRAN (R 4.3.3)
+ tidyverse        * 2.0.0      2023-02-22 [1] CRAN (R 4.2.3)
+ timechange         0.3.0      2024-01-18 [1] CRAN (R 4.3.2)
+ tzdb               0.4.0      2023-05-12 [1] CRAN (R 4.2.3)
+ utf8               1.2.4      2023-10-22 [1] CRAN (R 4.3.1)
+ vctrs              0.6.5      2023-12-01 [1] CRAN (R 4.3.2)
+ vegan              2.6-6.1    2024-05-21 [1] CRAN (R 4.4.0)
+ visdat           * 0.6.0.9000 2023-05-31 [1] Github (ropensci/visdat@9199906)
+ vroom              1.6.5      2023-12-05 [1] CRAN (R 4.3.2)
+ withr              3.0.0      2024-01-16 [1] CRAN (R 4.3.2)
+ xfun               0.45       2024-06-16 [1] CRAN (R 4.4.0)
+ xml2               1.3.6      2023-12-04 [1] CRAN (R 4.3.2)
+ XVector          * 0.40.0     2023-04-25 [1] Bioconductor
+ yaml               2.3.8      2023-12-11 [1] CRAN (R 4.3.2)
+ zlibbioc           1.46.0     2023-04-25 [1] Bioconductor
 
-[1] /home/angel/R/library
-[2] /usr/local/lib/R/site-library
-[3] /usr/lib/R/site-library
-[4] /usr/lib/R/library
+ [1] /home/angel/R/library
+ [2] /usr/local/lib/R/site-library
+ [3] /usr/lib/R/site-library
+ [4] /usr/lib/R/library
+
+────────────────────────────────────────────────────────────────────────────────────────
 ```
 
 </details>
@@ -547,13 +502,13 @@ sessioninfo::session_info() %>%
 
 ## References
 
-<div id="refs" class="references">
+<div id="refs" class="references csl-bib-body hanging-indent">
 
-<div id="ref-davis_simple_2018">
+<div id="ref-davis_simple_2018" class="csl-entry">
 
-Davis NM, Proctor DM, Holmes SP *et al.* Simple statistical
+Davis NM, Proctor DM, Holmes SP *et al.* [Simple statistical
 identification and removal of contaminant sequences in marker-gene and
-metagenomics data. *Microbiome* 2018;**6**:226.
+metagenomics data](https://doi.org/gfxzx5). *Microbiome* 2018;**6**:226.
 
 </div>
 

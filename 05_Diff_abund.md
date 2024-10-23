@@ -3,23 +3,36 @@ Anaerobic CUE
 Roey Angel
 `2021-02-20`
 
--   [Differential abundance modelling of SIP
-    gradients](#differential-abundance-modelling-of-sip-gradients)
-    -   [Setting general parameters:](#setting-general-parameters)
-    -   [Read phyloseq object](#read-phyloseq-object)
-    -   [Subset the dataset](#subset-the-dataset)
-    -   [Beta diversity analysis](#beta-diversity-analysis)
-    -   [Differential abundance models](#differential-abundance-models)
-        -   [Inspect results](#inspect-results)
-        -   [Plot differential abundance
-            models](#plot-differential-abundance-models)
-    -   [Plot labelled ASVs](#plot-labelled-asvs)
-        -   [Plot phylogenetic trees with
-            heatmaps](#plot-phylogenetic-trees-with-heatmaps)
-        -   [How abundant were the labelled
-            ASVs?](#how-abundant-were-the-labelled-asvs)
-        -   [Calculate NTI](#calculate-nti)
--   [References](#references)
+- <a href="#differential-abundance-modelling-of-sip-gradients"
+  id="toc-differential-abundance-modelling-of-sip-gradients">Differential
+  abundance modelling of SIP gradients</a>
+  - <a href="#setting-general-parameters"
+    id="toc-setting-general-parameters">Setting general parameters:</a>
+  - <a href="#read-phyloseq-object" id="toc-read-phyloseq-object">Read
+    phyloseq object</a>
+  - <a href="#subset-the-dataset" id="toc-subset-the-dataset">Subset the
+    dataset</a>
+  - <a href="#beta-diversity-analysis" id="toc-beta-diversity-analysis">Beta
+    diversity analysis</a>
+  - <a href="#differential-abundance-models"
+    id="toc-differential-abundance-models">Differential abundance models</a>
+    - <a href="#inspect-results" id="toc-inspect-results">Inspect results</a>
+    - <a href="#plot-differential-abundance-models"
+      id="toc-plot-differential-abundance-models">Plot differential abundance
+      models</a>
+  - <a href="#plot-labelled-asvs" id="toc-plot-labelled-asvs">Plot labelled
+    ASVs</a>
+    - <a href="#plot-phylogenetic-trees-with-heatmaps"
+      id="toc-plot-phylogenetic-trees-with-heatmaps">Plot phylogenetic trees
+      with heatmaps</a>
+    - <a href="#how-abundant-were-the-labelled-asvs"
+      id="toc-how-abundant-were-the-labelled-asvs">How abundant were the
+      labelled ASVs?</a>
+    - <a href="#which-labelled-asvs-are-shared"
+      id="toc-which-labelled-asvs-are-shared">Which labelled ASVs are
+      shared?</a>
+    - <a href="#calculate-nti" id="toc-calculate-nti">Calculate NTI</a>
+- <a href="#references" id="toc-references">References</a>
 
 ## Differential abundance modelling of SIP gradients
 
@@ -59,35 +72,11 @@ readRDS(paste0(data_path, Ps_file)) %>%
   merge_phyloseq(.,
                  phy_tree(Tree)
   ) -> Ps_obj_SIP
+
+sample_data(Ps_obj_SIP)$Site %<>% recode_factor(Plesne  = "Plešné",
+                                               Certovo = "Čertovo",
+                                               .ordered = TRUE)
 ```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
 
 ### Subset the dataset
 
@@ -103,25 +92,7 @@ params_1 <- get_treatment_params(Ps_obj_SIP, c("Site",
                                    "Glucose",
                                    "Label..13C."),
                      "Label..13C. != 'Unlabelled'")
-```
-
-    ## Warning: `filter_()` was deprecated in dplyr 0.7.0.
-    ## Please use `filter()` instead.
-    ## See vignette('programming') for more help
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
-
-``` r
 Ps_obj_SIP_noTime_l <- phyloseq_subset(Ps_obj_SIP, params_1, test_expr_1) 
-```
-
-    ## Warning: `mutate_()` was deprecated in dplyr 0.7.0.
-    ## Please use `mutate()` instead.
-    ## See vignette('programming') for more help
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
-
-``` r
 # names(Ps_obj_SIP_noTime_l) %<>% 
 #   map(., ~str_remove_all(.x, "\\s\\|\\s.*")) %>% 
 #   map(., ~str_remove_all(.x, "\\(|\\)|Site == |Hours == |Oxygen == |Label..13C. == |'")) %>% 
@@ -154,11 +125,13 @@ we might not see it here (but we will, hopefully, see it using DESeq2
 modelling).
 
 ``` r
-(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Lib.size + Site * Oxygen * Hours ,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
   permutations = 999
 ))
 ```
+
+<div class="kable-table">
 
 <table>
 <thead>
@@ -185,162 +158,22 @@ Pr(\>F)
 <tbody>
 <tr>
 <td style="text-align:left;">
-Site
+Model
 </td>
 <td style="text-align:right;">
-1
+8
 </td>
 <td style="text-align:right;">
-27.4431088
+34.27409
 </td>
 <td style="text-align:right;">
-0.5392110
+0.6734282
 </td>
 <td style="text-align:right;">
-480.477524
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-5.2895923
-</td>
-<td style="text-align:right;">
-0.1039316
-</td>
-<td style="text-align:right;">
-92.610872
+75.0094
 </td>
 <td style="text-align:right;">
 0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1596437
-</td>
-<td style="text-align:right;">
-0.0031367
-</td>
-<td style="text-align:right;">
-2.795063
-</td>
-<td style="text-align:right;">
-0.054
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Lib.size
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0777490
-</td>
-<td style="text-align:right;">
-0.0015276
-</td>
-<td style="text-align:right;">
-1.361239
-</td>
-<td style="text-align:right;">
-0.244
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.5404132
-</td>
-<td style="text-align:right;">
-0.0106182
-</td>
-<td style="text-align:right;">
-9.461624
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.4190994
-</td>
-<td style="text-align:right;">
-0.0082346
-</td>
-<td style="text-align:right;">
-7.337646
-</td>
-<td style="text-align:right;">
-0.003
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1185437
-</td>
-<td style="text-align:right;">
-0.0023292
-</td>
-<td style="text-align:right;">
-2.075479
-</td>
-<td style="text-align:right;">
-0.116
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.2259389
-</td>
-<td style="text-align:right;">
-0.0044393
-</td>
-<td style="text-align:right;">
-3.955768
-</td>
-<td style="text-align:right;">
-0.021
 </td>
 </tr>
 <tr>
@@ -351,7 +184,7 @@ Residual
 291
 </td>
 <td style="text-align:right;">
-16.6208496
+16.62085
 </td>
 <td style="text-align:right;">
 0.3265718
@@ -371,7 +204,7 @@ Total
 299
 </td>
 <td style="text-align:right;">
-50.8949386
+50.89494
 </td>
 <td style="text-align:right;">
 1.0000000
@@ -386,82 +219,32 @@ NA
 </tbody>
 </table>
 
+</div>
+
 ``` r
 plot_lib_dist(Ps_obj_SIP)
 ```
 
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-1.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-1.png)<!-- -->
 
 ``` r
 Ps_obj_SIP %>%
   scale_libraries(round = "round") ->
   Ps_obj_SIP_scaled
-```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
+  
 plot_lib_dist(Ps_obj_SIP_scaled)
 ```
 
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-2.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-2.png)<!-- -->
 
 ``` r
-(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Lib.size + Site * Oxygen * Hours,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
+
+<div class="kable-table">
 
 <table>
 <thead>
@@ -488,162 +271,22 @@ Pr(\>F)
 <tbody>
 <tr>
 <td style="text-align:left;">
-Site
+Model
 </td>
 <td style="text-align:right;">
-1
+8
 </td>
 <td style="text-align:right;">
-27.6580326
+34.61687
 </td>
 <td style="text-align:right;">
-0.5391944
+0.6748572
 </td>
 <td style="text-align:right;">
-482.574243
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-5.3811011
-</td>
-<td style="text-align:right;">
-0.1049048
-</td>
-<td style="text-align:right;">
-93.888847
+75.49891
 </td>
 <td style="text-align:right;">
 0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1610764
-</td>
-<td style="text-align:right;">
-0.0031402
-</td>
-<td style="text-align:right;">
-2.810443
-</td>
-<td style="text-align:right;">
-0.054
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Lib.size
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0690842
-</td>
-<td style="text-align:right;">
-0.0013468
-</td>
-<td style="text-align:right;">
-1.205374
-</td>
-<td style="text-align:right;">
-0.304
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.5817234
-</td>
-<td style="text-align:right;">
-0.0113407
-</td>
-<td style="text-align:right;">
-10.149844
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.4264653
-</td>
-<td style="text-align:right;">
-0.0083140
-</td>
-<td style="text-align:right;">
-7.440919
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1115178
-</td>
-<td style="text-align:right;">
-0.0021740
-</td>
-<td style="text-align:right;">
-1.945750
-</td>
-<td style="text-align:right;">
-0.139
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.2278696
-</td>
-<td style="text-align:right;">
-0.0044423
-</td>
-<td style="text-align:right;">
-3.975843
-</td>
-<td style="text-align:right;">
-0.021
 </td>
 </tr>
 <tr>
@@ -654,7 +297,7 @@ Residual
 291
 </td>
 <td style="text-align:right;">
-16.6782367
+16.67824
 </td>
 <td style="text-align:right;">
 0.3251428
@@ -674,7 +317,7 @@ Total
 299
 </td>
 <td style="text-align:right;">
-51.2951071
+51.29511
 </td>
 <td style="text-align:right;">
 1.0000000
@@ -689,12 +332,16 @@ NA
 </tbody>
 </table>
 
+</div>
+
 ``` r
-(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Lib.size + Site * Oxygen * Hours * Density.zone,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 ```
+
+<div class="kable-table">
 
 <table>
 <thead>
@@ -721,302 +368,22 @@ Pr(\>F)
 <tbody>
 <tr>
 <td style="text-align:left;">
-Site
+Model
 </td>
 <td style="text-align:right;">
-1
+16
 </td>
 <td style="text-align:right;">
-27.6580326
+40.35622
 </td>
 <td style="text-align:right;">
-0.5391944
+0.786746
 </td>
 <td style="text-align:right;">
-710.3918641
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-5.3811011
-</td>
-<td style="text-align:right;">
-0.1049048
-</td>
-<td style="text-align:right;">
-138.2126674
+65.2535
 </td>
 <td style="text-align:right;">
 0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1610764
-</td>
-<td style="text-align:right;">
-0.0031402
-</td>
-<td style="text-align:right;">
-4.1372204
-</td>
-<td style="text-align:right;">
-0.026
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Density.zone
-</td>
-<td style="text-align:right;">
-2
-</td>
-<td style="text-align:right;">
-2.4171422
-</td>
-<td style="text-align:right;">
-0.0471223
-</td>
-<td style="text-align:right;">
-31.0419431
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.5264587
-</td>
-<td style="text-align:right;">
-0.0102633
-</td>
-<td style="text-align:right;">
-13.5220022
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.4072149
-</td>
-<td style="text-align:right;">
-0.0079387
-</td>
-<td style="text-align:right;">
-10.4592446
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0884712
-</td>
-<td style="text-align:right;">
-0.0017247
-</td>
-<td style="text-align:right;">
-2.2723677
-</td>
-<td style="text-align:right;">
-0.105
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1749105
-</td>
-<td style="text-align:right;">
-0.0034099
-</td>
-<td style="text-align:right;">
-4.4925470
-</td>
-<td style="text-align:right;">
-0.010
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-2.7697312
-</td>
-<td style="text-align:right;">
-0.0539960
-</td>
-<td style="text-align:right;">
-71.1400749
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Hours:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0296273
-</td>
-<td style="text-align:right;">
-0.0005776
-</td>
-<td style="text-align:right;">
-0.7609713
-</td>
-<td style="text-align:right;">
-0.493
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen:Hours
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1426365
-</td>
-<td style="text-align:right;">
-0.0027807
-</td>
-<td style="text-align:right;">
-3.6635948
-</td>
-<td style="text-align:right;">
-0.027
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0681521
-</td>
-<td style="text-align:right;">
-0.0013286
-</td>
-<td style="text-align:right;">
-1.7504743
-</td>
-<td style="text-align:right;">
-0.185
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Hours:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.1071922
-</td>
-<td style="text-align:right;">
-0.0020897
-</td>
-<td style="text-align:right;">
-2.7532144
-</td>
-<td style="text-align:right;">
-0.057
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Oxygen:Hours:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.2601483
-</td>
-<td style="text-align:right;">
-0.0050716
-</td>
-<td style="text-align:right;">
-6.6818640
-</td>
-<td style="text-align:right;">
-0.002
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Site:Oxygen:Hours:Density.zone
-</td>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-0.0850351
-</td>
-<td style="text-align:right;">
-0.0016578
-</td>
-<td style="text-align:right;">
-2.1841127
-</td>
-<td style="text-align:right;">
-0.134
 </td>
 </tr>
 <tr>
@@ -1027,10 +394,10 @@ Residual
 283
 </td>
 <td style="text-align:right;">
-11.0181769
+10.93889
 </td>
 <td style="text-align:right;">
-0.2147998
+0.213254
 </td>
 <td style="text-align:right;">
 NA
@@ -1047,10 +414,10 @@ Total
 299
 </td>
 <td style="text-align:right;">
-51.2951071
+51.29511
 </td>
 <td style="text-align:right;">
-1.0000000
+1.000000
 </td>
 <td style="text-align:right;">
 NA
@@ -1062,14 +429,10 @@ NA
 </tbody>
 </table>
 
+</div>
+
 ``` r
 Site_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Site"))
-```
-
-    ## Warning in betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), :
-    ## some squared distances are negative and changed to zero
-
-``` r
 permutest(Site_disp)
 ```
 
@@ -1089,16 +452,10 @@ permutest(Site_disp)
 plot(Site_disp)
 ```
 
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-3.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-3.png)<!-- -->
 
 ``` r
 Oxygen_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Oxygen"))
-```
-
-    ## Warning in betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), :
-    ## some squared distances are negative and changed to zero
-
-``` r
 permutest(Oxygen_disp)
 ```
 
@@ -1118,16 +475,10 @@ permutest(Oxygen_disp)
 plot(Oxygen_disp)
 ```
 
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-4.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-4.png)<!-- -->
 
 ``` r
 Hours_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Hours"))
-```
-
-    ## Warning in betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), :
-    ## some squared distances are negative and changed to zero
-
-``` r
 permutest(Hours_disp)
 ```
 
@@ -1147,16 +498,10 @@ permutest(Hours_disp)
 plot(Hours_disp)
 ```
 
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-5.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-5.png)<!-- -->
 
 ``` r
 Density_disp <- betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), get_variable(Ps_obj_SIP_scaled, "Density.zone"))
-```
-
-    ## Warning in betadisper(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn"), :
-    ## some squared distances are negative and changed to zero
-
-``` r
 permutest(Density_disp)
 ```
 
@@ -1166,9 +511,9 @@ permutest(Density_disp)
     ## Number of permutations: 999
     ## 
     ## Response: Distances
-    ##            Df  Sum Sq  Mean Sq      F N.Perm Pr(>F)    
-    ## Groups      2 0.48515 0.242577 24.876    999  0.001 ***
-    ## Residuals 297 2.89621 0.009752                         
+    ##            Df  Sum Sq Mean Sq      F N.Perm Pr(>F)    
+    ## Groups      1 0.34276 0.34276 33.288    999  0.001 ***
+    ## Residuals 298 3.06845 0.01030                         
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -1176,7 +521,7 @@ permutest(Density_disp)
 plot(Density_disp)
 ```
 
-![](05_Diff_abund_files/figure-gfm/beta%20div%20joint-6.png)<!-- -->
+![](05_Diff_abund_figures/beta%20div%20joint-6.png)<!-- -->
 
 ``` r
 Ord <- ordinate(Ps_obj_SIP_scaled, "CAP", "horn", 
@@ -1218,15 +563,11 @@ save_figure(paste0(fig.path, "Oridnation"),
             pwidth = 10, 
             pheight = 8,
             dpi = 600)
-```
 
-    ## Loading required package: ragg
-
-``` r
 knitr::include_graphics(paste0(fig.path, "Oridnation", ".png"))
 ```
 
-<img src="05_Diff_abund_figures/Oridnation.png" width="6000" />
+<img src="05_Diff_abund_figures/Oridnation.png" width="1920" />
 
 ### Differential abundance models
 
@@ -1275,89 +616,25 @@ DESeq_res_SIP_byTime_LFC_shrink_l <- map(seq(length(DESeq_obj_SIP_byTime_l)),
                                                          res = DESeq_res_SIP_byTime_LFC_l[[.x]],
                                                          coef = "Density.zone_Heavy_vs_Light",
                                                          type = "ashr"))
-```
-
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-    ## using 'ashr' for LFC shrinkage. If used in published research, please cite:
-    ##     Stephens, M. (2016) False discovery rates: a new deal. Biostatistics, 18:2.
-    ##     https://doi.org/10.1093/biostatistics/kxw041
-
-``` r
 names(DESeq_res_SIP_byTime_LFC_shrink_l) <- names(DESeq_res_SIP_byTime_LFC_l)
 
 # Compare
 plotMA(DESeq_res_SIP_byTime_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_files/figure-gfm/DESeq2%20models%20by%20time-1.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-1.png)<!-- -->
 
 ``` r
 plotMA(DESeq_res_SIP_byTime_LFC_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_files/figure-gfm/DESeq2%20models%20by%20time-2.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-2.png)<!-- -->
 
 ``` r
 plotMA(DESeq_res_SIP_byTime_LFC_shrink_l[[2]], ylim = c(-2,2))
 ```
 
-![](05_Diff_abund_files/figure-gfm/DESeq2%20models%20by%20time-3.png)<!-- -->
+![](05_Diff_abund_figures/DESeq2%20models%20by%20time-3.png)<!-- -->
 
 ``` r
 # summarise results (lfcShrink doesn't change the values)
@@ -1373,7 +650,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
 }
 ```
 
-    ## [1] "Certovo & 12 h & Anoxic & Labelled"
+    ## [1] "Čertovo & 12 h & Anoxic & Labelled"
     ## 
     ## out of 3026 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1385,7 +662,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 216 h & Anoxic & Labelled"
+    ## [1] "Čertovo & 216 h & Anoxic & Labelled"
     ## 
     ## out of 2878 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1397,7 +674,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 24 h & Anoxic & Labelled"
+    ## [1] "Čertovo & 24 h & Anoxic & Labelled"
     ## 
     ## out of 2755 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1409,7 +686,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 48 h & Anoxic & Labelled"
+    ## [1] "Čertovo & 48 h & Anoxic & Labelled"
     ## 
     ## out of 2787 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1421,7 +698,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 216 h & Anoxic & Unlabelled"
+    ## [1] "Čertovo & 216 h & Anoxic & Unlabelled"
     ## 
     ## out of 2825 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1433,7 +710,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 12 h & Oxic & Labelled"
+    ## [1] "Čertovo & 12 h & Oxic & Labelled"
     ## 
     ## out of 3053 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1445,7 +722,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 24 h & Oxic & Labelled"
+    ## [1] "Čertovo & 24 h & Oxic & Labelled"
     ## 
     ## out of 2954 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1457,7 +734,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 48 h & Oxic & Labelled"
+    ## [1] "Čertovo & 48 h & Oxic & Labelled"
     ## 
     ## out of 2882 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1469,7 +746,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 72 h & Oxic & Labelled"
+    ## [1] "Čertovo & 72 h & Oxic & Labelled"
     ## 
     ## out of 2898 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1481,19 +758,19 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Certovo & 72 h & Oxic & Unlabelled"
+    ## [1] "Čertovo & 72 h & Oxic & Unlabelled"
     ## 
     ## out of 2979 with nonzero total read count
     ## adjusted p-value < 0.05
-    ## LFC > 0.26 (up)    : 33, 1.1%
+    ## LFC > 0.26 (up)    : 11, 0.37%
     ## LFC < -0.26 (down) : 0, 0%
-    ## outliers [1]       : 4, 0.13%
-    ## low counts [2]     : 1995, 67%
-    ## (mean count < 4)
+    ## outliers [1]       : 6, 0.2%
+    ## low counts [2]     : 0, 0%
+    ## (mean count < 0)
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 12 h & Anoxic & Labelled"
+    ## [1] "Plešné & 12 h & Anoxic & Labelled"
     ## 
     ## out of 3031 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1505,7 +782,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 216 h & Anoxic & Labelled"
+    ## [1] "Plešné & 216 h & Anoxic & Labelled"
     ## 
     ## out of 3210 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1517,7 +794,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 24 h & Anoxic & Labelled"
+    ## [1] "Plešné & 24 h & Anoxic & Labelled"
     ## 
     ## out of 2848 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1529,7 +806,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 48 h & Anoxic & Labelled"
+    ## [1] "Plešné & 48 h & Anoxic & Labelled"
     ## 
     ## out of 2758 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1541,7 +818,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 216 h & Anoxic & Unlabelled"
+    ## [1] "Plešné & 216 h & Anoxic & Unlabelled"
     ## 
     ## out of 2862 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1553,7 +830,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 12 h & Oxic & Labelled"
+    ## [1] "Plešné & 12 h & Oxic & Labelled"
     ## 
     ## out of 2923 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1565,7 +842,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 24 h & Oxic & Labelled"
+    ## [1] "Plešné & 24 h & Oxic & Labelled"
     ## 
     ## out of 2548 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1577,7 +854,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 48 h & Oxic & Labelled"
+    ## [1] "Plešné & 48 h & Oxic & Labelled"
     ## 
     ## out of 2531 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1589,7 +866,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 72 h & Oxic & Labelled"
+    ## [1] "Plešné & 72 h & Oxic & Labelled"
     ## 
     ## out of 2556 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1601,7 +878,7 @@ for (i in seq(1, length(DESeq_res_SIP_byTime_LFC_l))) { # didn't manage with map
     ## [1] see 'cooksCutoff' argument of ?results
     ## [2] see 'independentFiltering' argument of ?results
     ## 
-    ## [1] "Plesne & 72 h & Oxic & Unlabelled"
+    ## [1] "Plešné & 72 h & Oxic & Unlabelled"
     ## 
     ## out of 2798 with nonzero total read count
     ## adjusted p-value < 0.05
@@ -1644,10 +921,6 @@ prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, Ps_obj_SIP) %>%
   write_csv(., file = "DESeq2_byTime_a-0.05_LFC0-322.txt")
 ```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
 #### Inspect results
 
 ``` r
@@ -1657,12 +930,7 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
   vis_value()
 ```
 
-    ## Warning: `gather_()` was deprecated in tidyr 1.2.0.
-    ## Please use `gather()` instead.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was generated.
-
-![](05_Diff_abund_files/figure-gfm/vis%20DES%20res-1.png)<!-- -->
+![](05_Diff_abund_figures/vis%20DES%20res-1.png)<!-- -->
 
 ``` r
 DESeq_res_SIP_byTime_LFC_sig_df %>% 
@@ -1671,7 +939,7 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
   vis_cor()
 ```
 
-![](05_Diff_abund_files/figure-gfm/vis%20DES%20res-2.png)<!-- -->
+![](05_Diff_abund_figures/vis%20DES%20res-2.png)<!-- -->
 
 #### Plot differential abundance models
 
@@ -1682,2049 +950,7 @@ DESeq_res_SIP_byTime_LFC_sig_df %>%
 DESeq_plots <- map(seq(length(DESeq_res_SIP_byTime_LFC_shrink_l)), 
                         ~plot_DESeq(DESeq_res_SIP_byTime_LFC_shrink_l[.x],  
                                                 Ps_obj_SIP, plot_title = names(DESeq_res_SIP_byTime_LFC_shrink_l[.x])))
-```
 
-    ## Loading required package: ggrepel
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Note: Using an external vector in selections is ambiguous.
-    ## ℹ Use `all_of(rank)` instead of `rank` to silence this message.
-    ## ℹ See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
-    ## This message is displayed once per session.
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-    ## 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## 
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in speedyseq::psmelt(ps_obj_glom_rel): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-``` r
 Certovo_DESeq <- ((DESeq_plots[[6]] + 
                      theme(legend.position = "none") +
                      theme(axis.text.x = element_blank())) +
@@ -3770,61 +996,11 @@ save_figure(paste0(fig.path, "Certovo_DESeq2"),
             pwidth = 8, 
             pheight = 10,
             dpi = 600)
-```
 
-    ## Warning: Removed 3046 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3026 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2862 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2755 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2775 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 1 rows containing missing values (geom_point).
-
-    ## Warning: Removed 2774 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2785 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2856 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 5 rows containing missing values (geom_point).
-
-    ## Warning: Removed 2969 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2825 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3046 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3026 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2862 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2755 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2775 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 1 rows containing missing values (geom_point).
-
-    ## Warning: Removed 2774 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2785 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2856 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 5 rows containing missing values (geom_point).
-
-    ## Warning: Removed 2969 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2825 rows containing missing values (geom_segment).
-
-``` r
 knitr::include_graphics(paste0(fig.path, "Certovo_DESeq2", ".png"))
 ```
 
-<img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="4800" />
+<img src="05_Diff_abund_figures/Certovo_DESeq2.png" width="1536" />
 
 ``` r
 Plesne_DESeq <- ((DESeq_plots[[16]] + 
@@ -3871,251 +1047,24 @@ save_figure(paste0(fig.path, "Plesne_DESeq2"),
             pwidth = 8, 
             pheight = 10,
             dpi = 600)
-```
 
-    ## Warning: Removed 2867 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3012 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2463 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2841 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2518 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2746 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2460 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 11 rows containing missing values (geom_point).
-
-    ## Warning: Removed 3210 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2795 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2862 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2867 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 3012 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2463 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2841 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2518 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2746 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2460 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 11 rows containing missing values (geom_point).
-
-    ## Warning: Removed 3210 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2795 rows containing missing values (geom_segment).
-
-    ## Warning: Removed 2862 rows containing missing values (geom_segment).
-
-``` r
 knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
 ```
 
-<img src="05_Diff_abund_figures/Plesne_DESeq2.png" width="4800" />
+<img src="05_Diff_abund_figures/Plesne_DESeq2.png" width="1536" />
 
 ### Plot labelled ASVs
 
 ``` r
-plot_combintions <- crossing(Site = c("Certovo", "Plesne"), 
+plot_combintions <- crossing(Site = c("Čertovo", "Plešné"), 
          Oxygen = c("Oxic", "Anoxic"))
 
-Labelled_ASVs <- map(seq(length(Ps_obj_SIP_noTime_l)), ~plot_otus_by_density(Ps_obj_SIP_noTime_l[[.x]], 
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == plot_combintions$Site[.x], Oxygen == plot_combintions$Oxygen[.x])))
-```
+Labelled_ASVs <- map(seq(length(Ps_obj_SIP_noTime_l)), 
+                     ~plot_otus_by_density(Ps_obj_SIP_noTime_l[[.x]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, 
+                                       Site == plot_combintions$Site[.x], 
+                                       Oxygen == plot_combintions$Oxygen[.x])))
 
-    ## Loading required package: ggpomological
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(.): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
 map(seq(length(Ps_obj_SIP_noTime_l)), 
     ~save_figure(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_")), 
                  Labelled_ASVs[[.x]], 
@@ -4125,16 +1074,16 @@ map(seq(length(Ps_obj_SIP_noTime_l)),
 ```
 
     ## [[1]]
-    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Anoxic.svgz"
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Čertovo_Anoxic.svgz"
     ## 
     ## [[2]]
-    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Certovo_Oxic.svgz"
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Čertovo_Oxic.svgz"
     ## 
     ## [[3]]
-    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Anoxic.svgz"
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plešné_Anoxic.svgz"
     ## 
     ## [[4]]
-    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plesne_Oxic.svgz"
+    ## [1] "05_Diff_abund_figures/Labelled_ASVs_Plešné_Oxic.svgz"
 
 ``` r
 plots2display <- list.files(path = paste0(fig.path), 
@@ -4144,12 +1093,12 @@ plots2display <- list.files(path = paste0(fig.path),
 knitr::include_graphics(plots2display)
 ```
 
-<img src="05_Diff_abund_figures//Labelled_ASVs_Certovo_Anoxic.png" width="9600" /><img src="05_Diff_abund_figures//Labelled_ASVs_Certovo_Oxic.png" width="9600" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plesne_Anoxic.png" width="9600" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plesne_Oxic.png" width="9600" />
+<img src="05_Diff_abund_figures//Labelled_ASVs_Čertovo_Anoxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Čertovo_Oxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plešné_Anoxic.png" width="3072" /><img src="05_Diff_abund_figures//Labelled_ASVs_Plešné_Oxic.png" width="3072" />
 
 #### Plot phylogenetic trees with heatmaps
 
 ``` r
-c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" )  ->
+c("Čertovo Oxic 12 h", "Čertovo Oxic 24 h", "Čertovo Oxic 48 h", "Čertovo Oxic 72 h", "Čertovo Anoxic 12 h", "Čertovo Anoxic 24 h", "Čertovo Anoxic 48 h", "Čertovo Anoxic 216 h", "Plešné Oxic 12 h", "Plešné Oxic 24 h", "Plešné Oxic 48 h", "Plešné Oxic 72 h", "Plešné Anoxic 12 h",  "Plešné Anoxic 24 h",  "Plešné Anoxic 48 h",  "Plešné Anoxic 216 h" )  ->
   col_order
 
 DESeq_res_SIP_byTime_LFC_l %>% 
@@ -4163,7 +1112,7 @@ DESeq_res_SIP_byTime_LFC_l %>%
   mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) %>% 
   mutate(across(Site_Oxygen_Hours, ~factor(., levels = col_order))) %>% 
   mutate(Site_Oxygen = factor(paste0(Site, "-", Oxygen),
-                              levels = c("Plesne-Oxic", "Plesne-Anoxic", "Certovo-Oxic", "Certovo-Anoxic"),
+                              levels = c("Plešné-Oxic", "Plešné-Anoxic", "Čertovo-Oxic", "Čertovo-Anoxic"),
                               labels = c("Pl-Ox", "Pl-Anox", "Ct-Ox", "Ct-Anox"))) %>%
   mutate(across(c("Hours"), ~factor(., 
                                     levels = c("12 h", "24 h", "48 h", "72 h", "216 h"),
@@ -4232,37 +1181,12 @@ Ps_obj_SIP %>%
   prune_taxa(setdiff(taxa_names(Ps_obj_SIP), "Seq_2375"), .) %>% # outlier
   prune_taxa(DESeq_res_SIP_byTime_all_df$ASV, .) ->
   Ps_obj_SIP4tree_plot
-```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
 
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
 # Remove long name
 tax_table(Ps_obj_SIP4tree_plot)[, "Order"] %<>%  str_replace_all(., "Gammaproteobacteria Incertae Sedis", "Incertae Sedis")
-```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
 taxa2plot <- tibble(rank = c(rep("Class", 3), rep("Phylum", 4)), 
                     subrank = c(rep("Order", 3), rep("Class", 4)), 
                     Taxa2plot = c("Actinobacteria", 
@@ -4285,379 +1209,7 @@ tree_p_l <- map(seq(nrow(taxa2plot)),
                                      l_rows = 8,
                                      pwidth = 4,
                                      pheight = 10))
-```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Warning in psmelt(model): The sample variables: 
-    ## Sample
-    ##  have been renamed to: 
-    ## sample_Sample
-    ## to avoid conflicts with special phyloseq plot attribute names.
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
 trees2display <- list.files(path = paste0(fig.path), 
                     pattern = "^Tree_HM_(.*).png$",
                     full.names = TRUE)
@@ -4665,22 +1217,11 @@ trees2display <- list.files(path = paste0(fig.path),
 knitr::include_graphics(trees2display)
 ```
 
-<img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="2400" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="2400" />
+<img src="05_Diff_abund_figures//Tree_HM_Acidobacteriota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Actinobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Alphaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Bacteroidota.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Firmicutes.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Gammaproteobacteria.png" width="768" /><img src="05_Diff_abund_figures//Tree_HM_Verrucomicrobiota.png" width="768" />
 
 ``` r
 all_trees <- ((tree_p_l[[1]] | tree_p_l[[2]] + guides(fill = FALSE) | tree_p_l[[3]] + guides(fill = FALSE) | tree_p_l[[4]] + guides(fill = FALSE)) / (tree_p_l[[5]] + guides(fill = FALSE) | tree_p_l[[6]] + guides(fill = FALSE) | tree_p_l[[7]] + guides(fill = FALSE) | plot_spacer())) + plot_layout(heights = c(2, 1))
-```
 
-    ## Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> =
-    ## "none")` instead.
-
-    ## Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
-    ## `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
-    ## `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
-    ## `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
-    ## `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> = "none")` instead.
-
-``` r
 save_figure(paste0(fig.path, "all_trees"), 
             all_trees, 
             pwidth = 16, 
@@ -4691,230 +1232,27 @@ save_figure(paste0(fig.path, "all_trees"),
 #### How abundant were the labelled ASVs?
 
 ``` r
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Oxic")$ASV, .) %>% 
-  subset_samples(Site == "Certovo" & Oxygen == "Oxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Cert_Ox
-```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Anoxic")$ASV, .) %>% 
-  subset_samples(Site == "Certovo" & Oxygen == "Anoxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Cert_Anox
-```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Oxic")$ASV, .) %>% 
-  subset_samples(Site == "Plesne" & Oxygen == "Oxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Ples_Ox
-```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Anoxic")$ASV, .) %>% 
-  subset_samples(Site == "Plesne" & Oxygen == "Anoxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Ples_Anox
-```
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
-  bind_rows(Cert_Ox, Cert_Anox, Ples_Ox, Ples_Anox) %>% 
+# Average relative abundance by time point of all labelled ASVs
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  get_variable(.,c("Site", "Oxygen", "Hours")) %>% 
+  distinct %>% 
+  arrange(Site, Oxygen, Hours) %>% 
+  remove_rownames() -> 
+  variables_table 
+
+results_table <- tibble(variables_table[1,], Total = 0)
+for(i in seq(nrow(variables_table))) {
+  results_table[i, ] <- sum_labelled_ASVs(Ps_obj_SIP, DESeq_res_SIP_byTime_LFC_sig_df, site = variables_table$Site[i], oxygen = variables_table$Oxygen[i], Time = variables_table$Hours[i])[1, ]
+}
+results_table %>%
+  mutate_at(., "Total", ~ . * 100) %>%  
+  rename(., Total = "Total (%)") %>% 
   kable(., digits = c(3)) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
                 full_width = F)
 ```
 
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<table class="table table-striped table-hover table-condensed table-responsive" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
@@ -4923,43 +1261,27 @@ Site
 <th style="text-align:left;">
 Oxygen
 </th>
+<th style="text-align:left;">
+Hours
+</th>
 <th style="text-align:right;">
-Total
+Total (%)
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-Certovo
-</td>
-<td style="text-align:left;">
-Oxic
-</td>
-<td style="text-align:right;">
-0.282
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Certovo
+Plesne
 </td>
 <td style="text-align:left;">
 Anoxic
 </td>
-<td style="text-align:right;">
-0.036
-</td>
-</tr>
-<tr>
 <td style="text-align:left;">
-Plesne
-</td>
-<td style="text-align:left;">
-Oxic
+12
 </td>
 <td style="text-align:right;">
-0.317
+4.041
 </td>
 </tr>
 <tr>
@@ -4969,114 +1291,239 @@ Plesne
 <td style="text-align:left;">
 Anoxic
 </td>
+<td style="text-align:left;">
+24
+</td>
 <td style="text-align:right;">
-0.059
+4.958
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:left;">
+48
+</td>
+<td style="text-align:right;">
+3.427
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:right;">
+20.867
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+24
+</td>
+<td style="text-align:right;">
+26.763
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+48
+</td>
+<td style="text-align:right;">
+7.469
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Plesne
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+72
+</td>
+<td style="text-align:right;">
+31.964
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:left;">
+216
+</td>
+<td style="text-align:right;">
+2.173
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:left;">
+24
+</td>
+<td style="text-align:right;">
+0.127
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Anoxic
+</td>
+<td style="text-align:left;">
+48
+</td>
+<td style="text-align:right;">
+0.929
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:right;">
+4.167
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+24
+</td>
+<td style="text-align:right;">
+24.781
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+48
+</td>
+<td style="text-align:right;">
+28.204
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Certovo
+</td>
+<td style="text-align:left;">
+Oxic
+</td>
+<td style="text-align:left;">
+72
+</td>
+<td style="text-align:right;">
+24.938
 </td>
 </tr>
 </tbody>
 </table>
+
+#### Which labelled ASVs are shared?
 
 ``` r
-# Labelled ASVs in all samples
 Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, .) %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) %>%   
-  kable(., digits = c(3)) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
-                full_width = F)
+  subset_samples(Site == "Plešné" & Oxygen == "Oxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Plešné", Oxygen = "Oxic") -> PO
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Plešné" & Oxygen == "Anoxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Plešné", Oxygen = "Anoxic") -> PA
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Čertovo" & Oxygen == "Oxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Čertovo", Oxygen = "Oxic") -> CO
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Čertovo" & Oxygen == "Anoxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Čertovo", Oxygen = "Anoxic") -> CA
+
+rel_abunds <- rbind(PO, PA, CO, CA)
+
+DESeq_res_SIP_byTime_LFC_sig_df <- left_join(DESeq_res_SIP_byTime_LFC_sig_df, rel_abunds, by = c("Oxygen", "Site", "ASV")) 
+
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  mutate(ASV = str_remove(ASV, "Seq_")) %>%
+  mutate(site_condition = factor(paste0(Site, " ", Oxygen))) %>% 
+  mutate(site_condition = fct_relevel(site_condition, c("Čertovo Anoxic", "Plešné Anoxic", "Čertovo Oxic", "Plešné Oxic"))) %>% 
+  group_by(site_condition, Oxygen, Site, ASV) %>% 
+  summarise(Abundance = mean(`Mean abundance (%)`), LFC = mean(log2FoldChange)) %>% 
+  group_by(Oxygen, ASV) %>% mutate(Sn = n()) %>% # shared between sites
+  group_by(Site, ASV) %>% mutate(Oxn = n()) %>% # shared between oxygen
+  group_by(ASV) %>% mutate(Bn = n()) %>% 
+  mutate(Shared = as.factor(case_when(Bn >= 3 ~ "Both sites and conditions",
+                            Oxn == 1 & Sn == 1 ~ "Unique",
+                            Oxn == 1 & Sn == 2 ~ "Both sites",
+                            Oxn == 2 & Sn == 1 ~ "Both conditions"))) %>% 
+  mutate(Shared = fct_relevel(Shared, c("Unique", "Both sites", "Both conditions", "Both sites and conditions"))) %>% 
+  ungroup() %>% 
+  arrange(desc(Abundance)) %>% 
+  arrange(match(ASV, unique(ASV))) %>% 
+  mutate(group = rep(seq(1:5), length.out = length(Abundance), each = ceiling((length(Abundance))/5))) %>% 
+  ggplot(.) + 
+    geom_point(aes(x = reorder(ASV, Abundance, decreasing = TRUE), y = site_condition, size = Abundance, colour = Shared)) +
+  facet_wrap(~ group, nrow = 5, scales = "free_x") + theme(
+  strip.background = element_blank(),
+  strip.text.x = element_blank(),
+  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+)
 ```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-<thead>
-<tr>
-<th style="text-align:left;">
-Site
-</th>
-<th style="text-align:left;">
-Oxygen
-</th>
-<th style="text-align:right;">
-Total
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-Certovo
-</td>
-<td style="text-align:left;">
-Anoxic
-</td>
-<td style="text-align:right;">
-0.212
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Certovo
-</td>
-<td style="text-align:left;">
-Oxic
-</td>
-<td style="text-align:right;">
-0.329
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Plesne
-</td>
-<td style="text-align:left;">
-Anoxic
-</td>
-<td style="text-align:right;">
-0.246
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Plesne
-</td>
-<td style="text-align:left;">
-Oxic
-</td>
-<td style="text-align:right;">
-0.374
-</td>
-</tr>
-</tbody>
-</table>
+![](05_Diff_abund_figures/shared%20labelled%20ASV-1.png)<!-- -->
 
 #### Calculate NTI
 
@@ -5097,45 +1544,7 @@ Ps_obj_SIP4tree_plot %>%
   subset_samples(Density.zone == "Heavy") %>% 
   prune_taxa(Labelled_ASVs_char, .) ->
   Ps_obj_SIP4tree_plot_labelled 
-```
 
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-    ## Found more than one class "phylo" in cache; using the first, from namespace 'phyloseq'
-
-    ## Also defined by 'tidytree'
-
-``` r
 Ps_obj_SIP4tree_plot_labelled %>% 
   otu_table() %>% 
   as(., "matrix") %>% 
@@ -5216,6 +1625,7 @@ NTI_fig <- ggplot(data = MNTD_DF,
   scale_colour_viridis_c(name = "Density g ml^-1") +
   labs(x = "Incubation time (h)", 
        y = "NTI") +
+  theme_bw(base_size = f_size, base_family = f_name) +
   theme(legend.title = element_markdown(), 
         text = element_text(size = f_size + 2))
 
@@ -5240,193 +1650,182 @@ sessioninfo::session_info() %>%
 </summary>
 
 ``` r
-─ Session info ───────────────────────────────────────────────────────────────
+
+─ Session info ─────────────────────────────────────────────────────────────────────────
  setting  value
- version  R version 4.2.1 (2022-06-23)
- os       Ubuntu 18.04.6 LTS
+ version  R version 4.4.1 (2024-06-14)
+ os       Ubuntu 22.04.5 LTS
  system   x86_64, linux-gnu
  ui       X11
  language (EN)
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       Europe/Prague
- date     2022-09-30
- pandoc   2.17.1.1 @ /usr/lib/rstudio-server/bin/quarto/bin/ (via rmarkdown)
+ date     2024-10-22
+ pandoc   2.19.2 @ /usr/lib/rstudio-server/bin/quarto/bin/tools/ (via rmarkdown)
 
-─ Packages ───────────────────────────────────────────────────────────────────
+─ Packages ─────────────────────────────────────────────────────────────────────────────
  package              * version    date (UTC) lib source
- ade4                   1.7-19     2022-04-19 [1] CRAN (R 4.1.3)
- annotate               1.72.0     2021-10-26 [1] Bioconductor
- AnnotationDbi          1.56.2     2021-11-09 [1] Bioconductor
- ape                  * 5.6-2      2022-03-02 [1] CRAN (R 4.1.2)
- aplot                  0.1.7      2022-09-06 [1] CRAN (R 4.2.1)
- ashr                   2.2-54     2022-02-22 [1] CRAN (R 4.1.2)
- assertthat             0.2.1      2019-03-21 [1] CRAN (R 4.0.2)
- backports              1.4.1      2021-12-13 [1] CRAN (R 4.1.2)
- Biobase              * 2.54.0     2021-10-26 [1] Bioconductor
- BiocGenerics         * 0.40.0     2021-10-26 [1] Bioconductor
- BiocParallel           1.28.3     2021-12-09 [1] Bioconductor
- biomformat             1.22.0     2021-10-26 [1] Bioconductor
- Biostrings           * 2.62.0     2021-10-26 [1] Bioconductor
- bit                    4.0.4      2020-08-04 [1] CRAN (R 4.0.2)
- bit64                  4.0.5      2020-08-30 [1] CRAN (R 4.0.2)
- bitops                 1.0-7      2021-04-24 [1] CRAN (R 4.0.3)
- blob                   1.2.3      2022-04-10 [1] CRAN (R 4.1.3)
- broom                  1.0.1      2022-08-29 [1] CRAN (R 4.2.0)
- cachem                 1.0.6      2021-08-19 [1] CRAN (R 4.1.1)
- cellranger             1.1.0      2016-07-27 [1] CRAN (R 4.0.2)
- cli                    3.4.0      2022-09-08 [1] CRAN (R 4.2.1)
+ abind                  1.4-8      2024-09-12 [1] CRAN (R 4.4.1)
+ ade4                   1.7-22     2023-02-06 [1] CRAN (R 4.2.2)
+ ape                  * 5.8        2024-04-11 [1] CRAN (R 4.4.0)
+ aplot                  0.2.3      2024-06-17 [1] CRAN (R 4.4.0)
+ ashr                   2.2-63     2023-08-21 [1] CRAN (R 4.3.1)
+ backports              1.5.0      2024-05-23 [1] CRAN (R 4.4.0)
+ base64enc              0.1-3      2015-07-28 [1] CRAN (R 4.0.2)
+ Biobase              * 2.60.0     2023-04-25 [1] Bioconductor
+ BiocGenerics         * 0.46.0     2023-04-25 [1] Bioconductor
+ BiocParallel           1.34.2     2023-05-22 [1] Bioconductor
+ biomformat             1.28.0     2023-04-25 [1] Bioconductor
+ Biostrings           * 2.68.1     2023-05-16 [1] Bioconductor
+ bit                    4.5.0      2024-09-20 [1] CRAN (R 4.4.1)
+ bit64                  4.5.2      2024-09-22 [1] CRAN (R 4.4.1)
+ bitops                 1.0-8      2024-07-29 [1] CRAN (R 4.4.1)
+ checkmate              2.3.2      2024-07-29 [1] CRAN (R 4.4.1)
+ cli                    3.6.3      2024-06-21 [1] CRAN (R 4.4.1)
  clipr                  0.8.0      2022-02-22 [1] CRAN (R 4.1.2)
- cluster                2.1.4      2022-08-22 [1] CRAN (R 4.2.0)
- codetools              0.2-18     2020-11-04 [1] CRAN (R 4.0.2)
- colorspace             2.0-3      2022-02-21 [1] CRAN (R 4.1.2)
- crayon                 1.5.1      2022-03-26 [1] CRAN (R 4.1.2)
- data.table             1.14.2     2021-09-27 [1] CRAN (R 4.1.1)
- DBI                    1.1.3      2022-06-18 [1] CRAN (R 4.2.0)
- dbplyr                 2.2.1      2022-06-27 [1] CRAN (R 4.2.0)
- DelayedArray           0.20.0     2021-10-26 [1] Bioconductor
- desc                   1.4.2      2022-09-08 [1] CRAN (R 4.2.1)
- DESeq2               * 1.34.0     2021-10-26 [1] Bioconductor
+ cluster                2.1.6      2023-12-01 [1] CRAN (R 4.3.2)
+ codetools              0.2-20     2024-03-31 [1] CRAN (R 4.3.3)
+ colorspace             2.1-1      2024-07-26 [1] CRAN (R 4.4.1)
+ commonmark             1.9.1      2024-01-30 [1] CRAN (R 4.3.2)
+ crayon                 1.5.3      2024-06-20 [1] CRAN (R 4.4.1)
+ data.table             1.16.0     2024-08-27 [1] CRAN (R 4.4.1)
+ DelayedArray           0.26.7     2023-07-28 [1] Bioconductor
+ desc                   1.4.3      2023-12-10 [1] CRAN (R 4.3.2)
+ DESeq2               * 1.40.2     2023-06-23 [1] Bioconductor
  details                0.3.0      2022-03-27 [1] CRAN (R 4.1.3)
- digest                 0.6.29     2021-12-01 [1] CRAN (R 4.1.2)
- dplyr                * 1.0.10     2022-09-01 [1] CRAN (R 4.2.0)
- ellipsis               0.3.2      2021-04-29 [1] CRAN (R 4.0.3)
- evaluate               0.16       2022-08-09 [1] CRAN (R 4.2.0)
- extrafont            * 0.18       2022-04-12 [1] CRAN (R 4.1.3)
+ digest                 0.6.37     2024-08-19 [1] CRAN (R 4.4.1)
+ dplyr                * 1.1.4      2023-11-17 [1] CRAN (R 4.3.2)
+ evaluate               1.0.0      2024-09-17 [1] CRAN (R 4.4.1)
+ extrafont            * 0.19       2023-01-18 [1] CRAN (R 4.2.2)
  extrafontdb            1.0        2012-06-11 [1] CRAN (R 4.0.2)
- fansi                  1.0.3      2022-03-24 [1] CRAN (R 4.1.2)
- farver                 2.1.1      2022-07-06 [1] CRAN (R 4.2.0)
- fastmap                1.1.0      2021-01-25 [1] CRAN (R 4.0.3)
- forcats              * 0.5.2      2022-08-19 [1] CRAN (R 4.2.0)
+ fansi                  1.0.6      2023-12-08 [1] CRAN (R 4.3.2)
+ farver                 2.1.2      2024-05-13 [1] CRAN (R 4.4.0)
+ fastmap                1.2.0      2024-05-15 [1] CRAN (R 4.4.0)
+ forcats              * 1.0.0      2023-01-29 [1] CRAN (R 4.2.2)
  foreach                1.5.2      2022-02-02 [1] CRAN (R 4.1.2)
- fs                     1.5.2      2021-12-08 [1] CRAN (R 4.1.2)
- gargle                 1.2.1      2022-09-08 [1] CRAN (R 4.2.1)
- genefilter             1.76.0     2021-10-26 [1] Bioconductor
- geneplotter            1.72.0     2021-10-26 [1] Bioconductor
+ foreign                0.8-87     2024-06-26 [1] CRAN (R 4.4.1)
+ Formula                1.2-5      2023-02-24 [1] CRAN (R 4.2.3)
+ fs                     1.6.4      2024-04-25 [1] CRAN (R 4.4.0)
  generics               0.1.3      2022-07-05 [1] CRAN (R 4.2.0)
- GenomeInfoDb         * 1.30.1     2022-01-30 [1] Bioconductor
- GenomeInfoDbData       1.2.7      2022-01-10 [1] Bioconductor
- GenomicRanges        * 1.46.1     2021-11-18 [1] Bioconductor
- ggfun                  0.0.7      2022-08-31 [1] CRAN (R 4.2.0)
- ggplot2              * 3.3.6      2022-05-03 [1] CRAN (R 4.1.3)
- ggplotify              0.1.0      2021-09-02 [1] CRAN (R 4.1.1)
+ GenomeInfoDb         * 1.36.2     2023-08-25 [1] Bioconductor
+ GenomeInfoDbData       1.2.10     2023-05-31 [1] Bioconductor
+ GenomicRanges        * 1.52.0     2023-04-25 [1] Bioconductor
+ ggfun                  0.1.6      2024-08-28 [1] CRAN (R 4.4.1)
+ ggplot2              * 3.5.1      2024-04-23 [1] CRAN (R 4.4.0)
+ ggplotify              0.1.2      2023-08-09 [1] CRAN (R 4.3.1)
  ggpomological        * 0.1.2      2020-08-13 [1] Github (gadenbuie/ggpomological@69f3815)
- ggrepel              * 0.9.1      2021-01-15 [1] CRAN (R 4.0.3)
- ggsci                * 2.9        2018-05-14 [1] CRAN (R 4.0.2)
+ ggrepel              * 0.9.6      2024-09-07 [1] CRAN (R 4.4.1)
+ ggsci                * 3.2.0      2024-06-18 [1] CRAN (R 4.4.1)
  ggtext               * 0.1.2      2022-09-16 [1] CRAN (R 4.2.1)
- ggtree               * 3.2.1      2021-11-16 [1] Bioconductor
- glue                 * 1.6.2      2022-02-24 [1] CRAN (R 4.1.2)
- googledrive            2.0.0      2021-07-08 [1] CRAN (R 4.1.0)
- googlesheets4          1.0.1      2022-08-13 [1] CRAN (R 4.2.0)
+ ggtree               * 3.8.2      2023-07-24 [1] Bioconductor
+ glue                 * 1.7.0      2024-01-09 [1] CRAN (R 4.3.2)
  gridExtra              2.3        2017-09-09 [1] CRAN (R 4.0.2)
  gridGraphics           0.5-1      2020-12-13 [1] CRAN (R 4.0.2)
  gridtext               0.1.5      2022-09-16 [1] CRAN (R 4.2.1)
- gtable                 0.3.1      2022-09-01 [1] CRAN (R 4.2.0)
- haven                  2.5.1      2022-08-22 [1] CRAN (R 4.2.0)
- highr                  0.9        2021-04-16 [1] CRAN (R 4.0.3)
- hms                    1.1.2      2022-08-19 [1] CRAN (R 4.2.0)
- htmltools              0.5.3      2022-07-18 [1] CRAN (R 4.2.0)
+ gtable                 0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
+ highr                  0.11       2024-05-26 [1] CRAN (R 4.4.0)
+ Hmisc                  5.1-3      2024-05-28 [1] CRAN (R 4.4.0)
+ hms                    1.1.3      2023-03-21 [1] CRAN (R 4.2.3)
+ htmlTable              2.4.3      2024-07-21 [1] CRAN (R 4.4.1)
+ htmltools              0.5.8.1    2024-04-04 [1] CRAN (R 4.4.0)
+ htmlwidgets            1.6.4      2023-12-06 [1] CRAN (R 4.3.2)
  HTSSIP               * 1.4.1      2021-01-15 [1] Github (buckleylab/HTSSIP@29ec56b)
- httr                   1.4.4      2022-08-17 [1] CRAN (R 4.2.0)
- igraph                 1.3.5      2022-09-22 [1] CRAN (R 4.2.1)
+ httr                   1.4.7      2023-08-15 [1] CRAN (R 4.3.1)
+ igraph                 2.0.3      2024-03-13 [1] CRAN (R 4.3.3)
  invgamma               1.1        2017-05-07 [1] CRAN (R 4.0.2)
- IRanges              * 2.28.0     2021-10-26 [1] Bioconductor
- irlba                  2.3.5      2021-12-06 [1] CRAN (R 4.1.2)
+ IRanges              * 2.34.1     2023-06-22 [1] Bioconductor
+ irlba                  2.3.5.1    2022-10-03 [1] CRAN (R 4.2.1)
  iterators              1.0.14     2022-02-05 [1] CRAN (R 4.1.2)
- jsonlite               1.8.0      2022-02-22 [1] CRAN (R 4.1.2)
- kableExtra           * 1.3.4      2021-02-20 [1] CRAN (R 4.0.3)
- KEGGREST               1.34.0     2021-10-26 [1] Bioconductor
- knitr                  1.40       2022-08-24 [1] CRAN (R 4.2.0)
- labeling               0.4.2      2020-10-20 [1] CRAN (R 4.0.2)
- lattice              * 0.20-45    2021-09-22 [1] CRAN (R 4.1.1)
+ jsonlite               1.8.9      2024-09-20 [1] CRAN (R 4.4.1)
+ kableExtra           * 1.4.0      2024-01-24 [1] CRAN (R 4.3.2)
+ knitr                  1.48       2024-07-07 [1] CRAN (R 4.4.1)
+ labeling               0.4.3      2023-08-29 [1] CRAN (R 4.3.1)
+ lattice              * 0.22-6     2024-03-20 [1] CRAN (R 4.3.3)
  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 4.0.2)
- lifecycle              1.0.2      2022-09-09 [1] CRAN (R 4.2.1)
- locfit                 1.5-9.6    2022-07-11 [1] CRAN (R 4.2.0)
- lubridate              1.8.0      2021-10-07 [1] CRAN (R 4.1.1)
+ lifecycle              1.0.4      2023-11-07 [1] CRAN (R 4.3.1)
+ locfit                 1.5-9.10   2024-06-24 [1] CRAN (R 4.4.1)
+ lubridate            * 1.9.3      2023-09-27 [1] CRAN (R 4.3.1)
  magrittr             * 2.0.3      2022-03-30 [1] CRAN (R 4.1.3)
- MASS                   7.3-58.1   2022-08-03 [1] CRAN (R 4.2.0)
- Matrix                 1.5-1      2022-09-13 [1] CRAN (R 4.2.1)
- MatrixGenerics       * 1.6.0      2021-10-26 [1] Bioconductor
- matrixStats          * 0.62.0     2022-04-19 [1] CRAN (R 4.1.3)
- memoise                2.0.1      2021-11-26 [1] CRAN (R 4.1.2)
- mgcv                   1.8-40     2022-03-29 [1] CRAN (R 4.1.3)
- mixsqp                 0.3-43     2020-05-14 [1] CRAN (R 4.0.2)
- modelr                 0.1.9      2022-08-19 [1] CRAN (R 4.2.0)
- multtest               2.50.0     2021-10-26 [1] Bioconductor
- munsell                0.5.0      2018-06-12 [1] CRAN (R 4.0.2)
- nlme                 * 3.1-159    2022-08-09 [1] CRAN (R 4.2.0)
- patchwork            * 1.1.2      2022-08-19 [1] CRAN (R 4.2.0)
+ markdown               1.13       2024-06-04 [1] CRAN (R 4.4.0)
+ MASS                   7.3-61     2024-06-13 [1] CRAN (R 4.4.0)
+ Matrix                 1.7-0      2024-04-26 [1] CRAN (R 4.4.0)
+ MatrixGenerics       * 1.12.3     2023-07-30 [1] Bioconductor
+ matrixStats          * 1.4.1      2024-09-08 [1] CRAN (R 4.4.1)
+ mgcv                   1.9-1      2023-12-21 [1] CRAN (R 4.3.2)
+ mixsqp                 0.3-54     2023-12-20 [1] CRAN (R 4.3.2)
+ multtest               2.56.0     2023-04-25 [1] Bioconductor
+ munsell                0.5.1      2024-04-01 [1] CRAN (R 4.4.0)
+ nlme                 * 3.1-166    2024-08-14 [1] CRAN (R 4.4.1)
+ nnet                   7.3-19     2023-05-03 [1] CRAN (R 4.2.3)
+ patchwork            * 1.3.0      2024-09-16 [1] CRAN (R 4.4.1)
  permute              * 0.9-7      2022-01-27 [1] CRAN (R 4.1.2)
- phyloseq             * 1.38.0     2021-10-26 [1] Bioconductor
+ phyloseq             * 1.44.0     2023-04-25 [1] Bioconductor
  picante              * 1.8.2      2020-06-10 [1] CRAN (R 4.0.2)
- pillar                 1.8.1      2022-08-19 [1] CRAN (R 4.2.0)
+ pillar                 1.9.0      2023-03-22 [1] CRAN (R 4.2.3)
  pkgconfig              2.0.3      2019-09-22 [1] CRAN (R 4.0.2)
- plyr                   1.8.7      2022-03-24 [1] CRAN (R 4.1.3)
- png                    0.1-7      2013-12-03 [1] CRAN (R 4.0.2)
- purrr                * 0.3.4      2020-04-17 [1] CRAN (R 4.0.2)
+ plyr                   1.8.9      2023-10-02 [1] CRAN (R 4.3.1)
+ png                    0.1-8      2022-11-29 [1] CRAN (R 4.2.2)
+ purrr                * 1.0.2      2023-08-10 [1] CRAN (R 4.3.1)
  R6                     2.5.1      2021-08-19 [1] CRAN (R 4.1.1)
- ragg                 * 1.2.2      2022-02-21 [1] CRAN (R 4.2.0)
+ ragg                 * 1.3.3      2024-09-11 [1] CRAN (R 4.4.1)
  RColorBrewer         * 1.1-3      2022-04-03 [1] CRAN (R 4.1.3)
- Rcpp                   1.0.9      2022-07-08 [1] CRAN (R 4.2.0)
- RCurl                  1.98-1.8   2022-07-30 [1] CRAN (R 4.2.0)
- readr                * 2.1.2      2022-01-30 [1] CRAN (R 4.1.2)
- readxl                 1.4.1      2022-08-17 [1] CRAN (R 4.2.0)
- reprex                 2.0.2      2022-08-17 [1] CRAN (R 4.2.0)
+ Rcpp                   1.0.13     2024-07-17 [1] CRAN (R 4.4.1)
+ RCurl                  1.98-1.16  2024-07-11 [1] CRAN (R 4.4.1)
+ readr                * 2.1.5      2024-01-10 [1] CRAN (R 4.3.2)
  reshape2               1.4.4      2020-04-09 [1] CRAN (R 4.0.2)
- rhdf5                  2.38.0     2021-10-26 [1] Bioconductor
- rhdf5filters           1.6.0      2021-10-26 [1] Bioconductor
- Rhdf5lib               1.16.0     2021-10-26 [1] Bioconductor
- rlang                  1.0.5      2022-08-31 [1] CRAN (R 4.2.0)
- rmarkdown              2.16       2022-08-24 [1] CRAN (R 4.2.0)
- rprojroot              2.0.3      2022-04-02 [1] CRAN (R 4.1.3)
- RSQLite                2.2.17     2022-09-10 [1] CRAN (R 4.2.1)
- rstudioapi             0.14       2022-08-22 [1] CRAN (R 4.2.0)
- Rttf2pt1               1.3.10     2022-02-07 [1] CRAN (R 4.1.2)
- rvest                  1.0.3      2022-08-19 [1] CRAN (R 4.2.0)
- S4Vectors            * 0.32.3     2021-11-21 [1] Bioconductor
- scales               * 1.2.1      2022-08-20 [1] CRAN (R 4.2.0)
+ rhdf5                  2.44.0     2023-04-25 [1] Bioconductor
+ rhdf5filters           1.12.1     2023-04-30 [1] Bioconductor
+ Rhdf5lib               1.22.0     2023-04-25 [1] Bioconductor
+ rlang                  1.1.4      2024-06-04 [1] CRAN (R 4.4.0)
+ rmarkdown              2.28       2024-08-17 [1] CRAN (R 4.4.1)
+ rpart                  4.1.23     2023-12-05 [1] CRAN (R 4.3.2)
+ rstudioapi             0.16.0     2024-03-24 [1] CRAN (R 4.3.3)
+ Rttf2pt1               1.3.12     2023-01-22 [1] CRAN (R 4.2.2)
+ S4Arrays               1.0.6      2023-08-30 [1] Bioconductor
+ S4Vectors            * 0.38.1     2023-05-02 [1] Bioconductor
+ scales               * 1.3.0      2023-11-28 [1] CRAN (R 4.3.2)
+ see                    0.9.0      2024-09-06 [1] CRAN (R 4.4.1)
  sessioninfo            1.2.2      2021-12-06 [1] CRAN (R 4.1.2)
- speedyseq            * 0.5.3.9018 2021-08-11 [1] Github (mikemc/speedyseq@ceb941f)
+ speedyseq            * 0.5.3.9021 2024-06-17 [1] Github (mikemc/speedyseq@0057652)
  SQUAREM                2021.1     2021-01-13 [1] CRAN (R 4.0.2)
- stringi                1.7.8      2022-07-11 [1] CRAN (R 4.2.0)
- stringr              * 1.4.1      2022-08-20 [1] CRAN (R 4.2.0)
- SummarizedExperiment * 1.24.0     2021-10-26 [1] Bioconductor
- survival               3.4-0      2022-08-09 [1] CRAN (R 4.2.0)
- svglite              * 2.1.0      2022-02-03 [1] CRAN (R 4.2.0)
- systemfonts            1.0.4      2022-02-11 [1] CRAN (R 4.1.2)
- textshaping            0.3.6      2021-10-13 [1] CRAN (R 4.1.1)
- tibble               * 3.1.8      2022-07-22 [1] CRAN (R 4.2.0)
- tidyr                * 1.2.1      2022-09-08 [1] CRAN (R 4.2.1)
- tidyselect             1.1.2      2022-02-21 [1] CRAN (R 4.1.2)
- tidytree               0.4.0      2022-08-13 [1] CRAN (R 4.2.0)
- tidyverse            * 1.3.2      2022-07-18 [1] CRAN (R 4.2.0)
- treeio                 1.18.1     2021-11-14 [1] Bioconductor
- truncnorm              1.0-8      2018-02-27 [1] CRAN (R 4.0.2)
- tzdb                   0.3.0      2022-03-28 [1] CRAN (R 4.1.3)
- utf8                   1.2.2      2021-07-24 [1] CRAN (R 4.1.0)
- vctrs                  0.4.1      2022-04-13 [1] CRAN (R 4.1.3)
- vegan                * 2.6-2      2022-04-17 [1] CRAN (R 4.1.3)
- viridis              * 0.6.2      2021-10-13 [1] CRAN (R 4.1.1)
- viridisLite          * 0.4.1      2022-08-22 [1] CRAN (R 4.2.0)
- visdat               * 0.6.0.9000 2022-02-18 [1] Github (ropensci/visdat@daa162f)
- vroom                  1.5.7      2021-11-30 [1] CRAN (R 4.1.2)
- webshot                0.5.3      2022-04-14 [1] CRAN (R 4.1.3)
- withr                  2.5.0      2022-03-03 [1] CRAN (R 4.1.2)
- xfun                   0.33       2022-09-12 [1] CRAN (R 4.2.1)
- XML                    3.99-0.10  2022-06-09 [1] CRAN (R 4.2.0)
- xml2                   1.3.3      2021-11-30 [1] CRAN (R 4.1.2)
- xtable                 1.8-4      2019-04-21 [1] CRAN (R 4.0.2)
- XVector              * 0.34.0     2021-10-26 [1] Bioconductor
- yaml                   2.3.5      2022-02-21 [1] CRAN (R 4.1.2)
- yulab.utils            0.0.5      2022-06-30 [1] CRAN (R 4.2.0)
- zlibbioc               1.40.0     2021-10-26 [1] Bioconductor
+ stringi                1.8.4      2024-05-06 [1] CRAN (R 4.4.0)
+ stringr              * 1.5.1      2023-11-14 [1] CRAN (R 4.3.2)
+ SummarizedExperiment * 1.30.2     2023-06-06 [1] Bioconductor
+ survival               3.7-0      2024-06-05 [1] CRAN (R 4.4.0)
+ svglite              * 2.1.3      2023-12-08 [1] CRAN (R 4.3.2)
+ systemfonts            1.1.0      2024-05-15 [1] CRAN (R 4.4.0)
+ textshaping            0.4.0      2024-05-24 [1] CRAN (R 4.4.0)
+ tibble               * 3.2.1      2023-03-20 [1] CRAN (R 4.2.3)
+ tidyr                * 1.3.1      2024-01-24 [1] CRAN (R 4.3.2)
+ tidyselect             1.2.1      2024-03-11 [1] CRAN (R 4.3.3)
+ tidytree               0.4.6      2023-12-12 [1] CRAN (R 4.3.2)
+ tidyverse            * 2.0.0      2023-02-22 [1] CRAN (R 4.2.3)
+ timechange             0.3.0      2024-01-18 [1] CRAN (R 4.3.2)
+ treeio                 1.24.3     2023-07-24 [1] Bioconductor
+ truncnorm              1.0-9      2023-03-20 [1] CRAN (R 4.2.3)
+ tzdb                   0.4.0      2023-05-12 [1] CRAN (R 4.2.3)
+ utf8                   1.2.4      2023-10-22 [1] CRAN (R 4.3.1)
+ vctrs                  0.6.5      2023-12-01 [1] CRAN (R 4.3.2)
+ vegan                * 2.6-8      2024-08-28 [1] CRAN (R 4.4.1)
+ viridis              * 0.6.5      2024-01-29 [1] CRAN (R 4.3.2)
+ viridisLite          * 0.4.2      2023-05-02 [1] CRAN (R 4.2.3)
+ visdat               * 0.6.0.9000 2023-05-31 [1] Github (ropensci/visdat@9199906)
+ vroom                  1.6.5      2023-12-05 [1] CRAN (R 4.3.2)
+ withr                  3.0.1      2024-07-31 [1] CRAN (R 4.4.1)
+ xfun                   0.47       2024-08-17 [1] CRAN (R 4.4.1)
+ xml2                   1.3.6      2023-12-04 [1] CRAN (R 4.3.2)
+ XVector              * 0.40.0     2023-04-25 [1] Bioconductor
+ yaml                   2.3.10     2024-07-26 [1] CRAN (R 4.4.1)
+ yulab.utils            0.1.7      2024-08-26 [1] CRAN (R 4.4.1)
+ zlibbioc               1.46.0     2023-04-25 [1] Bioconductor
 
  [1] /home/angel/R/library
  [2] /usr/local/lib/R/site-library
  [3] /usr/lib/R/site-library
  [4] /usr/lib/R/library
 
-──────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────
 ```
 
 </details>
