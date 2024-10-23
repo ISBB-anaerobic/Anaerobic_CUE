@@ -1,0 +1,827 @@
+---
+title: "Anaerobic CUE"
+subtitle: "Statistical analysis of C-partitioning trends and error propagation"
+description: "V2.0" 
+author: 
+  name: "Petr Čapek"
+  date: "`r Sys.Date()`"
+  affiliation: "University of South Bohemia"
+  email: "capekp00@prf.jcu.cz"
+bibliography: references.bib
+link-citations: yes
+csl: fems-microbiology-ecology.csl
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 5
+    keep_md: true
+    number_sections: false
+    highlight: "pygments"
+    theme: "flatly"
+    dev: "png"
+    df_print: "kable"
+    fig_caption: true
+    code_folding: "show"
+---
+
+```{r, libraries, include=F}
+#===========================Uploading libraries
+library(ggplot2)
+library(reshape)
+library(openxlsx)
+library(extrafont)
+library(kableExtra) # Construct Complex Table with 'kable' and Pipe Syntax, CRAN v1.3.1
+library(dplyr)
+library(emmeans)
+library(multcomp)
+library(lme4)
+library(ggpomological)
+library(arm)
+library(purrr)
+library(see)
+library(ggtext)
+library(forcats)
+library(tidyr)
+```
+
+```{r style settings, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+options(width = 90, knitr.table.format = "html") 
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  cache = TRUE,
+  #dev = "ragg_png",
+  #fig.ext = "png",
+  dev = c("svglite", "ragg_png"),
+  dev.args = list(svglite = list(bg = 'white', fix_text_size = FALSE), ragg_png = list(bg = 'white')),
+  dpi = 300,
+  cache.path = "06_C_part_stats_cache/",
+  fig.path = "06_C_part_stats_figures/"
+)
+f_name <- "DejaVu Sans" #sub("\\s//", "", f_name)
+f_size <- 14
+font_import(pattern = "DejaVuSans\\.", prompt = FALSE)
+loadfonts() # registers fonts
+theme_set(theme_bw(base_size = f_size, base_family = f_name)) 
+
+#===========================Defining ggplot theme
+theme_min<-theme(axis.text.x=element_text(vjust=0.2, size=18, colour="black"),
+                 axis.text.y=element_text(hjust=0.2, size=18, colour="black"),
+                 axis.title=element_text(size=18, colour="black"),
+                 axis.line=element_line(size=0.5, colour="black"),
+                 strip.text=element_text(size=18, face="bold"),
+                 axis.ticks=element_line(size=1, colour="black"),
+                 #axis.ticks.length=unit(-0.05, "cm"),
+                 panel.background=element_rect(colour="black", fill="white"),
+                 panel.grid=element_line(linetype=0),
+                 legend.text=element_text(size=14, colour="black"),
+                 legend.title=element_text(size=14, colour="black"),
+                 legend.position=c("right"),
+                 legend.key.size=unit(1, "cm"),
+                 strip.background=element_rect(fill="grey98", colour="black"),
+                 legend.key=element_rect(fill="white", size=1.2),
+                 legend.spacing=unit(0.5, "cm"),
+                 plot.title=element_text(size=18, face="bold", hjust=-0.05))
+```
+
+## Uploading data
+```{r load C_part_statistics.xlsx, cache=T}
+read.xlsx("./Chem_isotope_data/IncubationExperimetData_final.xlsx", 2) %>%
+  mutate(across(c("Aeration", 
+                  "Site"), ~factor(.))) %>% 
+  mutate(across(Site, ~fct_relevel(., "PL"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "A"))) ->
+  CUEdata
+#===========================
+```
+## Glucose concentration/consumption
+```{r glucose concentration, echo=FALSE, message=FALSE, warning=FALSE}
+facet_labs <- c(
+  `A` = "Oxic",
+  `N` = "Anoxic",
+  `CT` = "Četovo",
+  `PL` = "Plešné"
+)
+CUEdata %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(CH2O, na.rm = T), y.sd = sd(CH2O, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste("Glucose concentration (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+  
+```
+
+#### Statistics
+```{r}
+##Data transformation
+CUEdata$logG <- log(CUEdata$CH2O)
+```
+Glucose is consumed so its concentration decreases over time non-linearly. Linearity is achieved by natural log transformation of glucose concentration. Time is then the primary driver and the statistical test evaluates the effect of site and/or aeration on slope of decrease of glucose concentration over time. Intercept is constant because the glucose addition was the same.
+```{r glucose statistics}
+###Null model
+G0 <- lm(logG~Time, data = subset(CUEdata, !is.na(logG) & logG>0))
+summary(G0)
+###Effect of Site
+G1 <- update(G0, .~Time:Site)
+anova(G1) #not significant
+###Effect of aeration
+G2 <- update(G0, .~Time:Aeration)
+anova(G2) #significant
+summary(G2)
+###Combined effect of aeration and site
+G3 <- update(G0, .~Time:Aeration:Site)
+anova(G2, G3) #significant
+summary(G3)
+```
+##### Conclusion
+Glucose consumption is faster under aerobic conditions. Glucose consumption is faster in Certovo soil as compared to Plesne soil under anaerobic conditions.
+
+## Biomass from glucose
+
+```{r biomass glucose, echo=FALSE, message=FALSE, warning=FALSE}
+CUEdata %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(MBC_CH2O, na.rm = T), y.sd = sd(MBC_CH2O, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste("MBC from glucose (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+```
+
+
+#### Statistics
+Time zero has no meaning so the respective rows are deleted.
+
+
+```{r}
+CUEdataless <- subset(CUEdata, Time > 0)
+```
+
+It is expected that the biomass changes over time. I do not think this is something that requires statistical testing. I think it is more important to compare differences between factors across all times. The effect of time needs to be filtered out but accounted for at the same time. For that reason, I use generalized mixed-effect models. Time is treated as a random variable affecting the intercept of a linear relationship and aeration status and site are two factors with assumed additive effects. I assume gamma distribution with log link function.
+
+```{r mbcg statistics}
+###Null model
+MBC_CH2O0 <- glmer(MBC_CH2O~1|Time, data = CUEdataless, family = Gamma(link = "log"))
+summary(MBC_CH2O0)
+###Effect of Site
+MBC_CH2O1 <- update(MBC_CH2O0, .~.+Site)
+summary(MBC_CH2O1) #significant
+###Effect of aeration
+MBC_CH2O2 <- update(MBC_CH2O0, .~.+Aeration)
+summary(MBC_CH2O2) #significant
+###Combined effect of aeration and site
+MBC_CH2O3 <- update(MBC_CH2O1, .~.+Aeration)
+summary(MBC_CH2O3) #significant
+###And their interaction
+MBC_CH2O4 <- update(MBC_CH2O0, .~.+Site*Aeration)
+summary(MBC_CH2O4) #significant
+anova(MBC_CH2O4, MBC_CH2O4, test = "F")#Also significant
+```
+
+##### Conclusion
+PL has generally higher biomass compare to CT. There is less biomass in anaerobic treatments as compared to aerobic treatments. There is a greater difference between aerobic and anaerobic treatments at PL.
+
+#### Turnover rate
+
+The turnover rate is calculated as a slope of linear regression between time and natural logarithm of microbial biomass carbon. Standard deviation of the estimate is get by refitting procedure on 999 trials.
+
+```{r mbc turnover, echo=FALSE, message=FALSE}
+###Results are stored here
+MBCturnover <- data.frame(Site = rep(c("PL", "CT"), each = 2),
+                          Aeration = rep(c("A", "N"), Times = 2),
+                          Variable = rep("MBC", Times = 4),
+                          Turnover = numeric(length = 4),
+                          sd = numeric(length = 4))
+for(i in c("PL", "CT")){
+  for(n in c("A", "N")){
+    # if(i == "CT" & n == "N"){#because this cannot be fitted
+      MBCturnover[(MBCturnover$Site=="CT" & MBCturnover$Aeration=="N"), c("Turnover", "sd")] <- c(NA, NA)
+    # }else{
+      MBCturnover[(MBCturnover$Site==i & MBCturnover$Aeration==n), "Turnover"] <- 
+        -apply(coef(sim(lm(log(MBC)~Time, data = CUEdataless[(CUEdataless$Site==i & CUEdataless$Aeration==n),]), 999)), 2, mean)[2]*24
+      MBCturnover[(MBCturnover$Site==i & MBCturnover$Aeration==n), "sd"] <- 
+        apply(coef(sim(lm(log(MBC_CH2O)~Time, data = CUEdataless[(CUEdataless$Site==i & CUEdataless$Aeration==n),]), 999)), 2, sd)[2]*24
+    # }
+  }
+}
+
+MBCturnover %>% 
+  kable(., digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+
+
+ggplot(data = CUEdataless)+
+  geom_point(aes(x = Time, y = MBC_CH2O, colour = Site, shape = Aeration), size = 4, alpha = 1/2) +
+  facet_grid(Site ~ Aeration)
+```
+
+Unfortunately, turnover time cannot be calculated for Certovo soil incubated under anaerobic conditions.
+
+## Total biomass
+
+```{r biomass total, echo=FALSE, message=FALSE, warning=FALSE}
+CUEdata %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(MBC, na.rm = T), y.sd = sd(MBC, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste("MBC (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+```
+
+#### Statistics
+Statistical analysis of total biomass is identical to biomass from glucose (see above).
+
+```{r mbc stat}
+###Null model
+MBC0 <- glmer(MBC~1|Time, data = CUEdataless, family = Gamma(link = "log"))
+summary(MBC0)
+###Effect of Site
+MBC1 <- update(MBC0, .~.+Site)
+summary(MBC1) #significant
+###Effect of aeration
+MBC2 <- update(MBC0, .~.+Aeration)
+summary(MBC2) #significant
+###Combined effect of aeration and site
+MBC3 <- update(MBC2, .~.+Site)
+summary(MBC3) #significant
+###And their interaction
+MBC4 <- update(MBC0, .~.+Site*Aeration)
+summary(MBC4) #not significant
+```
+
+##### Conclusion
+
+There is more biomass under aerobic conditions as compared to anaerobic conditions. PL has more biomass than CT independently of aeration status.
+
+## $CO_{2}$ from glucose
+
+```{r co2 glucose, echo=FALSE, message=FALSE, warning=FALSE}
+CUEdata %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(CO2_CH2O, na.rm = T), y.sd = sd(CO2_CH2O, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste(CO[2], " from glucose (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+```
+
+Time zero has no meaning so the respective rows are deleted. To linearize the relationship between cumulative $CO_{2}$ production and time, both variables are inverted (i.e. Lineweaver Burk plot for hyperbolic functions).
+
+```{r}
+CUEdataless <- subset(CUEdata, Time > 0)
+CUEdataless$TimeInv <- 1/CUEdataless$Time
+CUEdataless$CO2_CH2OInv <- 1/CUEdataless$CO2_CH2O
+```
+
+$CO_{2}$ is continuously produced so it must increase over time. Null model is thus defined as:
+
+```{r}
+CO2_CH2O0 <- lm(CO2_CH2OInv~TimeInv, data = CUEdataless)
+summary(CO2_CH2O0)
+```
+
+Intercept of the linear relationship inform us about the maximum amount of $CO_{2}$ produced within the system. If it differs between sites and/or treatments, the additive effect of these variables must be significant.
+
+```{r co2 glucose test}
+CO2_CH2O1 <- update(CO2_CH2O0, .~.+Site)
+summary(CO2_CH2O1) #significant
+###Effect of aeration
+CO2_CH2O2 <- update(CO2_CH2O0, .~.+Aeration)
+summary(CO2_CH2O2) #significant
+###Combined effect of aeration and site
+CO2_CH2O3 <- update(CO2_CH2O2, .~.+Site)
+summary(CO2_CH2O3) #significant
+###And their interaction
+CO2_CH2O4 <- update(CO2_CH2O0, .~.+Site*Aeration)
+summary(CO2_CH2O4) #significant
+anova(CO2_CH2O4)#Also significant
+```
+
+##### Conclusion
+
+Under anaerobic conditions, less $CO_{2}$ is produced in general. There is no significant difference between CT and PL under aerobic conditions. Under anaerobic conditions, PL produce significantly less $CO_{2}$ than CT.
+
+~~~~~~~~~~~~~~~~~~~~~~~
+It can be further tested the effect of site and aeration on speed of $CO_{2}$ accumulation (although it is correlated to maximum amount of produced $CO_{2}$ to large extent). It is tested as a presence/absence of significant interaction of site/aeration with time.
+
+```{r}
+###Effect of site
+CO2_CH2O5 <- update(CO2_CH2O4, .~.-TimeInv + Site:TimeInv)
+summary(CO2_CH2O5) #significant
+###Effect of aeration
+CO2_CH2O6 <- update(CO2_CH2O4, .~.-TimeInv + Aeration:TimeInv)
+summary(CO2_CH2O6) #significant
+###Combined effect
+CO2_CH2O7 <- update(CO2_CH2O4, .~.-TimeInv + Aeration:Site:TimeInv)
+summary(CO2_CH2O7) #significant
+```
+
+##### Conclusion
+
+Speed of $CO_{2}$ accumulation is faster under aerobic conditions with no difference between PL and CT. Under anaerobic conditions, the speed is significantly higher in CT. 
+
+## Total $CO_{2}$
+
+```{r total co2, echo=FALSE, message=FALSE, warning=FALSE}
+CUEdata %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(CO2, na.rm = T), y.sd = sd(CO2, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste(CO[2], " (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+```
+
+#### Statistics
+
+Statistic is esentially the same as for $CO_{2}$ from glucose.
+
+```{r}
+
+CUEdataless <- subset(CUEdata, Time > 0)
+CUEdataless$TimeInv <- 1/CUEdataless$Time
+CUEdataless$CO2Inv <- 1/CUEdataless$CO2
+###Null model
+CO20 <- lm(CO2Inv~TimeInv, data = CUEdataless)
+summary(CO20)
+###Effect of site
+CO21 <- update(CO20, .~.+Site)
+summary(CO21) #not significant
+###Effect of aeration
+CO22 <- update(CO20, .~.+Aeration)
+summary(CO22) #significant
+###Combined effect of aeration and site
+CO23 <- update(CO22, .~.+Site)
+summary(CO23) #not significant
+###And their interaction
+CO24 <- update(CO20, .~.+Site*Aeration)
+summary(CO24) #significant
+```
+
+##### Conclusion
+
+Under anaerobic conditions, less $CO_{2}$ is produced in general. There is no significant difference between CT and PL under anaerobic conditions. Under aerobic conditions, PL produce significantly more $CO_{2}$ than CT.
+
+```{r}
+###Effect of site
+CO25 <- update(CO24, .~.-TimeInv + Site:TimeInv)
+summary(CO25) #not significant
+###Effect of aeration
+CO26 <- update(CO24, .~.-TimeInv + Aeration:TimeInv)
+summary(CO26) #significant
+###Combined effect
+CO27 <- update(CO24, .~.-TimeInv + Aeration:Site:TimeInv)
+summary(CO27) #not significant
+
+```
+
+##### Conclusion
+
+Speed of $CO_{2}$ accumulation is faster under aerobic conditions with no difference between PL and CT.
+
+## WEC from glucose
+
+Measured glucose concentration is subtracted from WEC first. More specifically, mean of glucose concentration is subtracted. In the statistical model, each observation is weighted by the inverse of root square of standard deviation ($SD_{Product}$) calculated as:
+
+$SD_{Product}=\sqrt[2]{SD^{2}_{WEC}+SD^{2}_{Glucose}}$
+
+```{r}
+CUEdataless$CH2OMean <- numeric(length = nrow(CUEdataless))
+CUEdataless$WECweights <- numeric(length = nrow(CUEdataless))
+for(i in unique(CUEdataless$Aeration)){
+  for(n in unique(CUEdataless$Site)){
+    for(k in unique(CUEdataless$Time)){
+      CUEdataless[(CUEdataless$Aeration==i & CUEdataless$Site==n & CUEdataless$Time==k), "CH2OMean"] <- 
+        as.numeric(mean(CUEdataless[(CUEdataless$Aeration==i & CUEdataless$Site==n & CUEdataless$Time==k), "CH2O"], na.rm = T))
+      CUEdataless[(CUEdataless$Aeration==i & CUEdataless$Site==n & CUEdataless$Time==k), "WECweights"] <- 
+        sqrt(as.numeric(sd(CUEdataless[(CUEdataless$Aeration==i & CUEdataless$Site==n & CUEdataless$Time==k), "CH2O"], na.rm = T))^2 + 
+        as.numeric(sd(CUEdataless[(CUEdataless$Aeration==i & CUEdataless$Site==n & CUEdataless$Time==k), "WEC_CH2O"], na.rm = T))^2)
+    }
+  }
+}
+
+CUEdataless$WECgTrue <- pmax(0, CUEdataless$WEC_CH2O - CUEdataless$CH2OMean)
+```
+
+
+```{r WEC glucose, echo=FALSE, message=FALSE, warning=FALSE}
+CUEdataless %>% group_by(Time, Aeration, Site) %>% summarise(y = mean(WECgTrue, na.rm = T), 
+                                                       y.sd = sd(WECgTrue, na.rm = T)) %>% 
+  ggplot(aes(Time, y)) + geom_point(pch = 21, cex = 6, aes(fill = Site)) + 
+  geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1) +
+  facet_grid(.~Aeration, labeller = as_labeller(facet_labs[1:2])) + theme_min + 
+  ylab(expression(paste("WEC from glucose (", mu, "mol (C)", g(DW)^{-1}, ")"))) +
+  xlab("Time (h)") + labs(fill = "Soil") + scale_fill_pomological(labels = c("Čertovo", "Plešné"))
+```
+
+#### Statistics
+
+The statistic is almost the same as for biomass from glucose. I have to use the gaussian distribution because a lot of zeros in WEC data.
+
+```{r}
+###Null model
+WECg0 <- lmer(WECgTrue~1|Time, data = CUEdataless, weights = WECweights)
+summary(WECg0)
+###Effect of Site
+WECg1 <- update(WECg0, .~.+Site)
+summary(WECg1) #significant
+anova(WECg0, WECg1, test = "F") #confirmed
+###Effect of aeration
+WECg2 <- update(WECg0, .~.+Aeration)
+summary(WECg2) #significant
+anova(WECg0, WECg2, test = "F") #confirmed
+###Combined effect of aeration and site
+WECg3 <- update(WECg1, .~.+Site:Aeration)
+summary(WECg3) #not significant
+anova(WECg1, WECg3, test = "F") #confirmed
+```
+
+##### Conclusion
+
+Under aerobic conditions, WEC from glucose is higher in PL soil as compared to CT soil. Under anaerobic conditions, it is vice versa.  
+
+##### Turnover time
+
+```{r, echo=F, message=FALSE}
+
+###Results are stored here
+WECturnover <- data.frame(Site = rep(c("PL", "CT"), each = 2),
+                          Aeration = rep(c("A", "N"), times = 2),
+                          Variable = rep("WEC", times = 4),
+                          Turnover = numeric(length = 4),
+                          sd = numeric(length = 4))
+for(i in c("PL", "CT")){
+  for(n in c("A", "N")){
+    # if(n == "A" & i == "CT"){#no turnover can be calculated
+      # WECturnover[(WECturnover$Site=="CT" & WECturnover$Aeration=="A"), c("Turnover", "sd")] <- c(NA, NA)
+    # }else{
+      WECturnover[(WECturnover$Site==i & WECturnover$Aeration==n), "Turnover"] <- 
+        -apply(coef(sim(lm(log(WEC_CH2O)~Time, data = CUEdataless[(CUEdataless$Site==i & CUEdataless$Aeration==n & CUEdataless$Time > 24),]), 999)), 2, mean)[2]*24
+      MBCturnover[(MBCturnover$Site==i & MBCturnover$Aeration==n), "sd"] <- 
+        apply(coef(sim(lm(log(WEC_CH2O)~Time, data = CUEdataless[(CUEdataless$Site==i & CUEdataless$Aeration==n & CUEdataless$Time > 24),]), 999)), 2, sd)[2]*24
+    # }
+  }
+}
+
+WECturnover %>% 
+  kable(., digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+```
+
+Unfortunately, turnover time cannot be calculated for CT under aerobic conditions. Moreover, standard deviation of the estimate cannot be calculated because the estimates are drawn from two last time points.
+
+## CUE_{A}, CUE, CSE, TCSE
+```{r yields, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.asp=.7}
+# propagate errors
+# \frac{\sigma CUE}{CUE} = \sqrt{(\frac{\sigma MB}{MB})^2 + (\frac{\sigma(MB+CO_2)}{(MB+CO_2)})^2}
+# where: \sigma(MB + CO_2) = \sqrt{(\sigma MB)^2 + (\sigma CO_2)^2}
+# 
+
+CUEdataless %>% 
+  dplyr::select(Site, Aeration, Time, MBC_CH2O, CO2_CH2O, WEC_CH2O, CUEa, CUE, CSE) %>% 
+  # pivot_longer(c(CUEa, CUE, CSE), 
+  #              names_to = "variable", 
+  #              values_to = "values") %>% 
+  group_by(Site, Aeration, Time) %>% 
+  summarise(mean_CUEa = mean(CUEa),
+            sigma_MB_CO2 = sqrt((sd(MBC_CH2O)/sqrt(4))^2 + (sd(CO2_CH2O)/sqrt(4))^2),
+            sigma_CUEa = mean_CUEa * (sqrt(((sd(MBC_CH2O)/sqrt(4))/mean(MBC_CH2O))^2 + 
+                                              (sigma_MB_CO2/(mean(MBC_CH2O) + mean(CO2_CH2O))^2))),
+            mean_CUE = mean(CUE),
+            sigma_MB_CO2_WEC = sqrt((sd(MBC_CH2O)/sqrt(4))^2 + (sd(CO2_CH2O)/sqrt(4))^2 + (sd(WEC_CH2O)/sqrt(4))^2),
+            sigma_CUE = mean_CUE * (sqrt(((sd(MBC_CH2O)/sqrt(4))/mean(MBC_CH2O))^2 + 
+                                            (sigma_MB_CO2_WEC/(mean(MBC_CH2O) + mean(CO2_CH2O) + mean(WEC_CH2O))^2))),
+            mean_CSE = mean(CSE),
+            sigma_MB_WEC = sqrt((sd(MBC_CH2O)/sqrt(4))^2 + (sd(WEC_CH2O)/sqrt(4))^2),
+            sigma_CSE = mean_CSE * (sqrt((sigma_MB_WEC/(mean(MBC_CH2O) + mean(WEC_CH2O)))^2 + 
+                                            (sigma_MB_CO2_WEC/(mean(MBC_CH2O) + mean(CO2_CH2O) + mean(WEC_CH2O))^2)))
+  ) %>% 
+  dplyr::select(-sigma_MB_CO2, -sigma_MB_CO2_WEC, -sigma_MB_WEC) ->
+  CUE_summary
+# 
+# 
+# CUEdatalessLong %>% 
+#   filter(Time == 24) %>% 
+#   group_by(Site, Aeration, variable) %>% 
+#   summarise(Mean = mean(value),
+#             # StD = sd(value), # calculates the standard deviation of each group
+#             # n = n(),  # calculates the sample size per group
+#             SEM = sd(value)/sqrt(n())) %>% 
+#   pivot_wider(names_from = c(variable), values_from = c(Mean, SEM), names_vary = "slowest") %>% 
+  CUE_summary %>% 
+  kable(., digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+
+CUE_summary %>% 
+  pivot_longer(cols = c(-"Site", -"Aeration", -"Time"), 
+               names_to = c(".value", "Metric"), 
+               values_to = c("Mean"), 
+               names_pattern = "(.*)_(.*)") %>% 
+  ggplot(aes(Time, mean)) + 
+  geom_point2(pch = 21, cex = 6, aes(colour = Metric), alpha = 2/3) + 
+  geom_errorbar(aes(ymin = mean - sigma, ymax  = mean + sigma), width = 0.1, alpha = 2/3) +
+  facet_grid(Site~Aeration, labeller = as_labeller(facet_labs)) + theme_min +
+  ylab("Yield") +
+  xlab("Time (h)") +
+  scale_colour_manual(name = "Type of yield",
+                      values = ggpomological:::pomological_palette[c(2, 3, 1)],
+                      labels = c("CUE<sub>A</sub>", "CUE", "CSE")) +
+  theme_bw(base_size = f_size, base_family = f_name) +
+  theme(legend.text = element_markdown())
+  
+  
+  
+CUEdatalessLong <- melt(CUEdataless[, c("Site", "Aeration", "Time", "CUEa", "CUE", "CSE")],
+                  id.vars = c("Site", "Aeration", "Time"))
+# ##Data are unitless
+# CUEdatalessLong %>% 
+#   group_by(Time, Aeration, Site, variable) %>% 
+#   summarise(y = mean(value, na.rm = T), y.sd = sd(value, na.rm = T)) %>% 
+#   ggplot(aes(Time, y)) + 
+#   geom_point2(pch = 21, cex = 6, aes(colour = variable), alpha = 2/3) + 
+#   geom_errorbar(aes(ymin = y - y.sd, ymax  = y + y.sd), width = 0.1, alpha = 2/3) +
+#   facet_grid(Site~Aeration, labeller = as_labeller(facet_labs)) + theme_min +
+#   ylab("Yield") + xlab("Time (h)") +
+#   scale_colour_manual(name = "Type of yield",
+#                       values = ggpomological:::pomological_palette[c(2, 3, 1)],
+#                       labels = c("CUE<sub>A</sub>", "CUE", "CSE")) +
+#   theme(legend.text = element_markdown())
+```
+
+##### Statistics
+
+I will first test if there is any difference between three different yields.
+
+```{r}
+###Null model
+Y0 <- glmer(value~1|Time, data = CUEdatalessLong, family = Gamma(link = "log"))
+summary(Y0)
+###Difference between yields
+Y1 <- update(Y0, .~.+variable)
+summary(Y1) #significant
+```
+
+It is not surprising that CUE_{A} is higher than CUE, but it is also higher than CSE. Next, I will test each yield separately.
+
+##### CUE_{A}
+
+The last time point is considered in all following tests.
+
+```{r}
+CUEdata_last <- subset(CUEdata, Time > 49)
+CUEa0 <- glm(CUEa ~ 1, family = Gamma(link = "log"), data = CUEdata_last)
+add1(CUEa0, .~.+Aeration+Site)
+CUEa1 <- update(CUEa0, .~.+Aeration)
+summary(CUEa1)
+anova(CUEa1, test = "Chisq")
+
+CUEa2 <- update(CUEa1, .~.+Site)
+summary(CUEa2)
+anova(CUEa2, test = "Chisq")
+
+CUEa3 <- update(CUEa1, .~.+Site:Aeration)
+summary(CUEa3)
+anova(CUEa3, test = "F")
+
+anova(CUEa2, CUEa3, test = "Chisq")
+
+CUEa4 <- update(CUEa0, .~.+Site:Aeration)
+summary(CUEa4)
+anova(CUEa4, test = "Chisq")
+
+exp(coef(CUEa3)[1] + coef(CUEa3)[3]) #PL-aerobic
+exp(coef(CUEa3)[1] + coef(CUEa3)[2] + coef(CUEa3)[4]) #PL-anaerobic
+exp(coef(CUEa3)[1]) #CT-aerobic
+exp(coef(CUEa3)[1] + coef(CUEa3)[2] ) #CT-anaerobic
+#=====CL
+exp(confint(CUEa3)[1] + confint(CUEa3)[3]) #PL-aerobic
+exp(confint(CUEa3)[1] + confint(CUEa3)[2] + confint(CUEa3)[4]) #PL-anaerobic
+exp(confint(CUEa3)[1]) #CT-aerobic
+exp(confint(CUEa3)[1] + confint(CUEa3)[2] ) #CT-anaerobic
+#=====CU
+exp(confint(CUEa3)[1+4] + confint(CUEa3)[3+4]) #PL-aerobic
+exp(confint(CUEa3)[1+4] + confint(CUEa3)[2+4] + confint(CUEa3)[4+4]) #PL-anaerobic
+exp(confint(CUEa3)[1+4]) #CT-aerobic
+exp(confint(CUEa3)[1+4] + confint(CUEa3)[2+4] ) #CT-anaerobic
+
+CUEdata_last %>% group_by(Site, Aeration) %>% summarise(mean(CUEa))
+contrast(emmeans(CUEa3, ~Aeration*Site), "pairwise", adjust = "Tukey")
+```
+
+
+##### CUE
+
+```{r}
+CUE0 <- glm(CUE ~ 1, family = Gamma(link = "log"), data = CUEdata_last)
+add1(CUE0, .~.+Aeration+Site)
+CUE1 <- update(CUE0, .~.+Aeration)
+summary(CUE1)
+anova(CUE1, test = "Chisq")
+
+CUE2 <- update(CUE1, .~.+Site)
+summary(CUE2)
+anova(CUE2, test = "Chisq")
+
+CUE3 <- update(CUE1, .~.+Site:Aeration)
+summary(CUE3)
+anova(CUE3, test = "F")
+
+anova(CUE2, CUE3, test = "Chisq")
+
+exp(coef(CUE3)[1] + coef(CUE3)[3]) #PL-aerobic
+exp(coef(CUE3)[1] + coef(CUE3)[2] + coef(CUE3)[4]) #PL-anaerobic
+exp(coef(CUE3)[1]) #CT-aerobic
+exp(coef(CUE3)[1] + coef(CUE3)[2] ) #CT-anaerobic
+#=====CL
+exp(confint(CUE3)[1] + confint(CUE3)[3]) #PL-aerobic
+exp(confint(CUE3)[1] + confint(CUE3)[2] + confint(CUE3)[4]) #PL-anaerobic
+exp(confint(CUE3)[1]) #CT-aerobic
+exp(confint(CUE3)[1] + confint(CUE3)[2] ) #CT-anaerobic
+#=====CU
+exp(confint(CUE3)[1+4] + confint(CUE3)[3+4]) #PL-aerobic
+exp(confint(CUE3)[1+4] + confint(CUE3)[2+4] + confint(CUE3)[4+4]) #PL-anaerobic
+exp(confint(CUE3)[1+4]) #CT-aerobic
+exp(confint(CUE3)[1+4] + confint(CUE3)[2+4] ) #CT-anaerobic
+
+CUEdata_last %>% group_by(Site, Aeration) %>% summarise(mean(CUE))
+contrast(emmeans(CUE3, ~Aeration*Site), "pairwise", adjust = "Tukey")
+```
+
+##### Carbon storage effeciency
+
+```{r}
+CSE0 <- glm(CSE ~ 1, family = Gamma(link = "log"), data = CUEdata_last)
+add1(CSE0, .~.+Aeration+Site)
+CSE1 <- update(CSE0, .~.+Aeration)
+summary(CSE1)
+anova(CSE1, test = "Chisq")
+
+CSE2 <- update(CSE1, .~.+Site)
+summary(CSE2)
+anova(CSE2, test = "Chisq")
+
+CSE3 <- update(CSE1, .~.+Site:Aeration)
+summary(CSE3)
+anova(CSE3, test = "F")
+
+anova(CSE2, CSE3, test = "Chisq")
+
+exp(coef(CSE3)[1] + coef(CSE3)[3]) #PL-aerobic
+exp(coef(CSE3)[1] + coef(CSE3)[2] + coef(CSE3)[4]) #PL-anaerobic
+exp(coef(CSE3)[1]) #CT-aerobic
+exp(coef(CSE3)[1] + coef(CSE3)[2] ) #CT-anaerobic
+#=====CL
+exp(confint(CSE3)[1] + confint(CSE3)[3]) #PL-aerobic
+exp(confint(CSE3)[1] + confint(CSE3)[2] + confint(CSE3)[4]) #PL-anaerobic
+exp(confint(CSE3)[1]) #CT-aerobic
+exp(confint(CSE3)[1] + confint(CSE3)[2] ) #CT-anaerobic
+#=====CU
+exp(confint(CSE3)[1+4] + confint(CSE3)[3+4]) #PL-aerobic
+exp(confint(CSE3)[1+4] + confint(CSE3)[2+4] + confint(CSE3)[4+4]) #PL-anaerobic
+exp(confint(CSE3)[1+4]) #CT-aerobic
+exp(confint(CSE3)[1+4] + confint(CSE3)[2+4] ) #CT-anaerobic
+
+CUEdata_last %>% group_by(Site, Aeration) %>% summarise(mean(CSE))
+contrast(emmeans(CSE3, ~Aeration*Site), "pairwise", adjust = "Tukey")
+```
+##### Carbon stabilization efficiency
+
+```{r}
+TCSE0 <- glm(TCSE ~ 1, family = Gamma(link = "log"), data = CUEdata_last)
+add1(TCSE0, .~.+Aeration+Site)
+TCSE1 <- update(TCSE0, .~.+Aeration)
+summary(TCSE1)
+anova(TCSE1, test = "Chisq")
+
+TCSE2 <- update(TCSE1, .~.+Site)
+summary(TCSE2)
+anova(TCSE2, test = "Chisq")
+
+TCSE3 <- update(TCSE1, .~.+Site:Aeration)
+summary(TCSE3)
+anova(TCSE3, test = "F")
+
+anova(TCSE2, TCSE3, test = "Chisq")
+
+exp(coef(TCSE3)[1] + coef(TCSE3)[3]) #PL-aerobic
+exp(coef(TCSE3)[1] + coef(TCSE3)[2] + coef(TCSE3)[4]) #PL-anaerobic
+exp(coef(TCSE3)[1]) #CT-aerobic
+exp(coef(TCSE3)[1] + coef(TCSE3)[2] ) #CT-anaerobic
+#=====CL
+exp(confint(TCSE3)[1] + confint(TCSE3)[3]) #PL-aerobic
+exp(confint(TCSE3)[1] + confint(TCSE3)[2] + confint(TCSE3)[4]) #PL-anaerobic
+exp(confint(TCSE3)[1]) #CT-aerobic
+exp(confint(TCSE3)[1] + confint(TCSE3)[2] ) #CT-anaerobic
+#=====CU
+exp(confint(TCSE3)[1+4] + confint(TCSE3)[3+4]) #PL-aerobic
+exp(confint(TCSE3)[1+4] + confint(TCSE3)[2+4] + confint(TCSE3)[4+4]) #PL-anaerobic
+exp(confint(TCSE3)[1+4]) #CT-aerobic
+exp(confint(TCSE3)[1+4] + confint(TCSE3)[2+4] ) #CT-anaerobic
+
+CUEdata_last %>% group_by(Site, Aeration) %>% summarise(mean(TCSE))
+contrast(emmeans(TCSE3, ~Aeration*Site), "pairwise", adjust = "Tukey")
+```
+
+
+## Most important figure 
+
+```{r, c_part}
+CUEdata$CH2OMean <- numeric(length = nrow(CUEdata))
+for(i in unique(CUEdata$Aeration)){
+  for(n in unique(CUEdata$Site)){
+    for(k in unique(CUEdata$Time)){
+      CUEdata[(CUEdata$Aeration==i & CUEdata$Site==n & CUEdata$Time==k), "CH2OMean"] <- 
+        as.numeric(mean(CUEdata[(CUEdata$Aeration==i & CUEdata$Site==n & CUEdata$Time==k), "CH2O"], na.rm = T))
+    }
+  }
+}
+
+CUEdata$WECgTrue <- pmax(0, CUEdata$WEC_CH2O - CUEdata$CH2OMean)
+
+CUEdatalong <- melt(CUEdata[, c("Site", "Aeration", "Time", "CH2O", "MBC_CH2O", "CO2_CH2O", "WECgTrue")],
+              id.vars = c("Site", "Aeration", "Time"))
+CUEdatalonglongT <- CUEdatalong %>% group_by(Site, Aeration, Time, variable) %>% summarise(Ytot = mean(value, na.rm = T),
+                                                                           Ytot.sd = sd(value, na.rm = T)) 
+#Glucose concentration at Time zero is set to 100 umols C/g dw with 0 standard deviation
+CUEdatalonglongT[(CUEdatalonglongT$variable=="CH2O" & CUEdatalonglongT$Time==0), "Ytot"] <- 100
+CUEdatalonglongT[(CUEdatalonglongT$variable=="CH2O" & CUEdatalonglongT$Time==0), "Ytot.sd"] <- NA
+
+#To draw error bars in bars on position "stack", offset must be defined
+CUEdatalonglongT$offset <- numeric(length = nrow(CUEdatalonglongT))
+for(i in unique(CUEdatalonglongT$Aeration)){
+  for(n in unique(CUEdatalonglongT$Site)){
+    for(k in unique(CUEdatalonglongT$Time)){
+      CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CH2O"), "offset"] <- 
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "MBC_CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CO2_CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "WECgTrue"), "Ytot"]
+      CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "MBC_CH2O"), "offset"] <- 
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "MBC_CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CO2_CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "WECgTrue"), "Ytot"]
+      CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CO2_CH2O"), "offset"] <- 
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "CO2_CH2O"), "Ytot"] +
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "WECgTrue"), "Ytot"]
+      CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "WECgTrue"), "offset"] <- 
+        CUEdatalonglongT[(CUEdatalonglongT$Aeration==i & CUEdatalonglongT$Site==n & CUEdatalonglongT$Time==k & CUEdatalonglongT$variable == "WECgTrue"), "Ytot"]
+    }
+  }
+}
+
+#Remove zero errorbars
+CUEdatalonglongT$Ytot.sd[CUEdatalonglongT$Ytot.sd ==0 ] <- NA
+CUEdatalonglongT$offset[CUEdatalonglongT$offset < 1 ] <- NA
+
+CUEdatalonglongT$Time <- as.factor(CUEdatalonglongT$Time)
+
+facet_labs <- c(
+  `A` = "Oxic",
+  `N` = "Anoxic",
+  `CT` = "Četovo",
+  `PL` = "Plešné"
+)
+
+C_part_e_bar <- ggplot(CUEdatalonglongT, aes(Time, Ytot)) + 
+  geom_bar(aes(fill = variable), position = "stack", stat = "identity") +
+  facet_grid(Site ~ Aeration, labeller = as_labeller(facet_labs)) +
+  geom_errorbar(aes(ymin = ifelse(offset - Ytot.sd < 0, 0, offset - Ytot.sd), ymax = offset + Ytot.sd), width = 0.4,
+                stat = "identity", alpha = 3/4) +
+  scale_fill_pomological(labels = c("Glucose", "MB from glucose", 
+                             expression(paste(CO[2]~from~glucose)), "WEC from glucose")) +
+  coord_cartesian(ylim = c(0, 102)) +
+  labs(fill = "C pool") +
+  # theme_min + 
+  ylab("Fraction (%)") + xlab("Time (h)") +
+  theme(legend.text.align = 0)
+print(C_part_e_bar)
+
+saveRDS(C_part_e_bar, file = "C_part_e_bar.Rds")
+
+CUEdatalonglongT %>% 
+  group_by(Site, Aeration, Time) %>% 
+  summarise(Ytot = sum(Ytot)) %>% 
+  mutate(variable = "Total") %>% 
+  arrange(Time, Site) ->
+  totals
+          
+          
+# just to show a summary table
+CUEdatalonglongT %>% 
+  dplyr::select(., -c(offset, Time, Ytot.sd)) %>%
+  bind_rows(., totals) %>% 
+  pivot_wider(names_from = c(Site, Aeration), values_from = c(Ytot)) %>% 
+  mutate(across(c("variable"), ~factor(.))) %>% 
+  mutate(across(variable, ~fct_relevel(., "Total", after = Inf))) %>% 
+  arrange(Time) %>% 
+  kable(., digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
+```
+
+```{r colophon, eval=T}
+sessioninfo::session_info() %>%
+  details::details(
+    summary = 'Current session info',
+    open    = TRUE
+  )
+```
+
+## References

@@ -45,7 +45,7 @@ library(picante) # Integrating Phylogenies and Ecology, CRAN v1.8.2
 ```
 
 ```{r style settings, echo=F, message=F, warning=F, results="asis", cache=T}
-options(width = 90, knitr.table.format = "html") 
+options(width = 90, knitr.table.format = "html", getClass.msg=FALSE) 
 cache.path <- "05_Diff_abund_cache/"
 fig.path <- "05_Diff_abund_figures/"
 knitr::opts_chunk$set(
@@ -418,7 +418,7 @@ plot_DESeq <- function(DESeq_results, ps_obj, sig_level = alpha_thresh, LFC = LF
 
 plot_otus_by_density <- function(ps_obj = Ps_obj_SIP_noTime_l[[1]], 
                                  ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, 
-                                                   Site == "Certovo", 
+                                                   Site == "Čertovo", 
                                                    Oxygen == "Anoxic"),
                                  ASV_colours = ggpomological:::pomological_palette[c(2, 4, 3, 1)],
                                  X_val = "Density..g.ml.1.", 
@@ -454,6 +454,7 @@ plot_otus_by_density <- function(ps_obj = Ps_obj_SIP_noTime_l[[1]],
     labs(x = "Density (g ml<sup>-1</sup>)",
          y = "Abundance (%)",
          title = paste(ASV2plot$Site[1], "&", ASV2plot$Oxygen[1])) +
+    theme_bw(base_size = f_size, base_family = f_name) +
     theme(legend.title = element_markdown(),
           axis.title.x = element_markdown(),
           plot.title = element_markdown())
@@ -552,9 +553,9 @@ labels <- setNames(glue("<i style='colors:{colors}'>{labels2draw}</i>"), labels2
   DESeq_res_df_sub %>% 
     # filter(Labelled == "Labelled") %>% 
     mutate(log2FoldChange = ifelse(Labelled == "Labelled", log2FoldChange, NA_integer_)) %>% # retain values for labelled ASVs only
-    select(ASV, !!sym(x), !!sym(facet_names), log2FoldChange) %>% 
-    mutate(across(ASV, ~factor(., levels = tip_order))) %>%
-    complete(., ASV) %>%
+    select(ASV, !!sym(x), !!sym(facet_names), log2FoldChange) %>% # keep only relevant columns
+    mutate(across(ASV, ~factor(., levels = tip_order))) %>% # sort ASV levels according to the tree tip
+    complete(ASV, !!sym(x), !!sym(facet_names)) %>% # make sure every ASV is represented in every category of x and facet_names
     ggplot(., aes(!!sym(x), ASV, fill = log2FoldChange)) + 
     geom_tile(colour = "white",
               size = 0.25) +
@@ -623,6 +624,42 @@ wrap_ggtree_heatmap <- function(ps_obj,
   
   return(p_t_hm)
 }
+
+sum_labelled_ASVs <- function(Ps_obj_SIP, DESeq_res_SIP_byTime_LFC_sig_df, site = "Čertovo", oxygen = "Oxic", Time = "24 h") {
+  site <<- site # this is needed because of the scoping issue of subset_samples()
+  oxygen <<- oxygen
+  nTime <<- as.numeric(str_remove(Time, " h"))
+  Ps_obj_SIP %>% 
+  transform_sample_counts(function(x) {x/sum(x)}) %>% 
+  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == site & Oxygen == oxygen & Hours == Time)$ASV, .) %>% 
+  subset_samples(Site == site & Oxygen == oxygen) %>%
+  subset_samples(Hours == nTime) %>%
+  otu_table() %>% 
+  as(., "matrix") %>% 
+  rowSums() %>% 
+  data.frame(Total = .) %>% 
+  rownames_to_column() %>% 
+  separate(col = rowname,
+           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
+           sep = "_") %>% 
+  filter(`Label..13C.` == "Labelled") %>% 
+  group_by(Site, Oxygen, Hours) %>% 
+  summarise_if(is.numeric, mean) ->
+  summed_ASVs
+  return(summed_ASVs)
+}
+
+sum_base_means <- function(ps_obj = Ps_obj_SIP, drop_nulls = TRUE){
+  ps_obj %>%
+    transform_sample_counts(., function(x) x / sum(x) * 100) %>% 
+    taxa_sums(.) %>%
+    {if(drop_nulls) .[.!=0] else .} %>% # remove 0 
+    map_dbl(~(.x / nsamples(Ps_obj_SIP))) %>% 
+    enframe(name = "ASV", value = "Mean abundance (%)") -> 
+    baseMean
+  return(baseMean)
+}
+
 ```
 
 ## Differential abundance modelling of SIP gradients
@@ -653,6 +690,11 @@ readRDS(paste0(data_path, Ps_file)) %>%
   merge_phyloseq(.,
                  phy_tree(Tree)
   ) -> Ps_obj_SIP
+
+sample_data(Ps_obj_SIP)$Site %<>% recode_factor(Plesne  = "Plešné",
+                                               Certovo = "Čertovo",
+                                               .ordered = TRUE)
+
 ```
 
 ### Subset the dataset
@@ -691,7 +733,7 @@ names(Ps_obj_SIP_byTime_l) %<>%
 Let us look first at the dissimilarity in community composition between the different fractions. If the labelling was strong enough we should see a deivation of (some of) the heavy fractions from the light ones. However, a lack of a significant deviation does not mean unsuccesful labelling because if only a small minority of the community was labelled we might not see it here (but we will, hopefully, see it using DESeq2 modelling).
 
 ```{r beta div joint, cache=T}
-(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP), method = "horn") ~ Lib.size + Site * Oxygen * Hours ,
   data = as(sample_data(Ps_obj_SIP), "data.frame"),
   permutations = 999
 ))
@@ -704,13 +746,13 @@ Ps_obj_SIP %>%
   
 plot_lib_dist(Ps_obj_SIP_scaled)
 
-(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours + Lib.size,
+(mod2 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Lib.size + Site * Oxygen * Hours,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
 
 
-(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Site * Oxygen * Hours * Density.zone,
+(mod3 <- adonis2(vegdist(otu_table(Ps_obj_SIP_scaled), method = "horn") ~ Lib.size + Site * Oxygen * Hours * Density.zone,
   data = as(sample_data(Ps_obj_SIP_scaled), "data.frame"),
   permutations = 999
 ))
@@ -984,11 +1026,14 @@ knitr::include_graphics(paste0(fig.path, "Plesne_DESeq2", ".png"))
 
 ### Plot labelled ASVs
 ```{r plot labelled ASVs, fig.height=12, fig.width=16, cache=T}
-plot_combintions <- crossing(Site = c("Certovo", "Plesne"), 
+plot_combintions <- crossing(Site = c("Čertovo", "Plešné"), 
          Oxygen = c("Oxic", "Anoxic"))
 
-Labelled_ASVs <- map(seq(length(Ps_obj_SIP_noTime_l)), ~plot_otus_by_density(Ps_obj_SIP_noTime_l[[.x]], 
-                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == plot_combintions$Site[.x], Oxygen == plot_combintions$Oxygen[.x])))
+Labelled_ASVs <- map(seq(length(Ps_obj_SIP_noTime_l)), 
+                     ~plot_otus_by_density(Ps_obj_SIP_noTime_l[[.x]], 
+                     ASV2plot = filter(DESeq_res_SIP_byTime_LFC_sig_df, 
+                                       Site == plot_combintions$Site[.x], 
+                                       Oxygen == plot_combintions$Oxygen[.x])))
 
 map(seq(length(Ps_obj_SIP_noTime_l)), 
     ~save_figure(paste0(fig.path, "Labelled_ASVs_", paste(plot_combintions[.x, ], collapse = "_")), 
@@ -1006,7 +1051,7 @@ knitr::include_graphics(plots2display)
 
 #### Plot phylogenetic trees with heatmaps
 ```{r Plot trees, fig.height=8, fig.width=10, cache=T}
-c("Certovo Oxic 12 h", "Certovo Oxic 24 h", "Certovo Oxic 48 h", "Certovo Oxic 72 h", "Certovo Anoxic 12 h", "Certovo Anoxic 24 h", "Certovo Anoxic 48 h", "Certovo Anoxic 216 h", "Plesne Oxic 12 h", "Plesne Oxic 24 h", "Plesne Oxic 48 h", "Plesne Oxic 72 h", "Plesne Anoxic 12 h",  "Plesne Anoxic 24 h",  "Plesne Anoxic 48 h",  "Plesne Anoxic 216 h" )  ->
+c("Čertovo Oxic 12 h", "Čertovo Oxic 24 h", "Čertovo Oxic 48 h", "Čertovo Oxic 72 h", "Čertovo Anoxic 12 h", "Čertovo Anoxic 24 h", "Čertovo Anoxic 48 h", "Čertovo Anoxic 216 h", "Plešné Oxic 12 h", "Plešné Oxic 24 h", "Plešné Oxic 48 h", "Plešné Oxic 72 h", "Plešné Anoxic 12 h",  "Plešné Anoxic 24 h",  "Plešné Anoxic 48 h",  "Plešné Anoxic 216 h" )  ->
   col_order
 
 DESeq_res_SIP_byTime_LFC_l %>% 
@@ -1020,7 +1065,7 @@ DESeq_res_SIP_byTime_LFC_l %>%
   mutate(Site_Oxygen_Hours = paste(Site, Oxygen, Hours)) %>% 
   mutate(across(Site_Oxygen_Hours, ~factor(., levels = col_order))) %>% 
   mutate(Site_Oxygen = factor(paste0(Site, "-", Oxygen),
-                              levels = c("Plesne-Oxic", "Plesne-Anoxic", "Certovo-Oxic", "Certovo-Anoxic"),
+                              levels = c("Plešné-Oxic", "Plešné-Anoxic", "Čertovo-Oxic", "Čertovo-Anoxic"),
                               labels = c("Pl-Ox", "Pl-Anox", "Ct-Ox", "Ct-Anox"))) %>%
   mutate(across(c("Hours"), ~factor(., 
                                     levels = c("12 h", "24 h", "48 h", "72 h", "216 h"),
@@ -1090,99 +1135,81 @@ save_figure(paste0(fig.path, "all_trees"),
 
 #### How abundant were the labelled ASVs?
 ```{r labelled ASV abundance, cache=T}
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Oxic")$ASV, .) %>% 
-  subset_samples(Site == "Certovo" & Oxygen == "Oxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Cert_Ox
-  
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Certovo" & Oxygen == "Anoxic")$ASV, .) %>% 
-  subset_samples(Site == "Certovo" & Oxygen == "Anoxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Cert_Anox
+# Average relative abundance by time point of all labelled ASVs
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  get_variable(.,c("Site", "Oxygen", "Hours")) %>% 
+  distinct %>% 
+  arrange(Site, Oxygen, Hours) %>% 
+  remove_rownames() -> 
+  variables_table 
 
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Oxic")$ASV, .) %>% 
-  subset_samples(Site == "Plesne" & Oxygen == "Oxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Ples_Ox
-
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(filter(DESeq_res_SIP_byTime_LFC_sig_df, Site == "Plesne" & Oxygen == "Anoxic")$ASV, .) %>% 
-  subset_samples(Site == "Plesne" & Oxygen == "Anoxic") %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) ->
-  Ples_Anox
-  
-  bind_rows(Cert_Ox, Cert_Anox, Ples_Ox, Ples_Anox) %>% 
+results_table <- tibble(variables_table[1,], Total = 0)
+for(i in seq(nrow(variables_table))) {
+  results_table[i, ] <- sum_labelled_ASVs(Ps_obj_SIP, DESeq_res_SIP_byTime_LFC_sig_df, site = variables_table$Site[i], oxygen = variables_table$Oxygen[i], Time = variables_table$Hours[i])[1, ]
+}
+results_table %>%
+  mutate_at(., "Total", ~ . * 100) %>%  
+  rename(., Total = "Total (%)") %>% 
   kable(., digits = c(3)) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
                 full_width = F)
 
-# Labelled ASVs in all samples
-Ps_obj_SIP %>% 
-  transform_sample_counts(function(x) {x/sum(x)}) %>% 
-  prune_taxa(DESeq_res_SIP_byTime_LFC_sig_df$ASV, .) %>% 
-  otu_table() %>% 
-  as(., "matrix") %>% 
-  rowSums() %>% 
-  data.frame(Total = .) %>% 
-  rownames_to_column() %>% 
-  separate(col = rowname,
-           into = c("Site", "Oxygen", "Glucose", "Label..13C.", "Hours", "Fraction.no."),
-           sep = "_") %>% 
-  filter(`Label..13C.` == "Labelled") %>% 
-  group_by(Site, Oxygen) %>% 
-  summarise_if(is.numeric, mean) %>%   
-  kable(., digits = c(3)) %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
-                full_width = F)
 ```
 
+#### Which labelled ASVs are shared?
+```{r shared labelled ASV, cache=T}
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Plešné" & Oxygen == "Oxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Plešné", Oxygen = "Oxic") -> PO
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Plešné" & Oxygen == "Anoxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Plešné", Oxygen = "Anoxic") -> PA
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Čertovo" & Oxygen == "Oxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Čertovo", Oxygen = "Oxic") -> CO
+
+Ps_obj_SIP %>% 
+  subset_samples(Site == "Čertovo" & Oxygen == "Anoxic") %>% 
+  sum_base_means() %>% 
+  mutate(Site = "Čertovo", Oxygen = "Anoxic") -> CA
+
+rel_abunds <- rbind(PO, PA, CO, CA)
+
+DESeq_res_SIP_byTime_LFC_sig_df <- left_join(DESeq_res_SIP_byTime_LFC_sig_df, rel_abunds, by = c("Oxygen", "Site", "ASV")) 
+
+DESeq_res_SIP_byTime_LFC_sig_df %>% 
+  mutate(ASV = str_remove(ASV, "Seq_")) %>%
+  mutate(site_condition = factor(paste0(Site, " ", Oxygen))) %>% 
+  mutate(site_condition = fct_relevel(site_condition, c("Čertovo Anoxic", "Plešné Anoxic", "Čertovo Oxic", "Plešné Oxic"))) %>% 
+  group_by(site_condition, Oxygen, Site, ASV) %>% 
+  summarise(Abundance = mean(`Mean abundance (%)`), LFC = mean(log2FoldChange)) %>% 
+  group_by(Oxygen, ASV) %>% mutate(Sn = n()) %>% # shared between sites
+  group_by(Site, ASV) %>% mutate(Oxn = n()) %>% # shared between oxygen
+  group_by(ASV) %>% mutate(Bn = n()) %>% 
+  mutate(Shared = as.factor(case_when(Bn >= 3 ~ "Both sites and conditions",
+                            Oxn == 1 & Sn == 1 ~ "Unique",
+                            Oxn == 1 & Sn == 2 ~ "Both sites",
+                            Oxn == 2 & Sn == 1 ~ "Both conditions"))) %>% 
+  mutate(Shared = fct_relevel(Shared, c("Unique", "Both sites", "Both conditions", "Both sites and conditions"))) %>% 
+  ungroup() %>% 
+  arrange(desc(Abundance)) %>% 
+  arrange(match(ASV, unique(ASV))) %>% 
+  mutate(group = rep(seq(1:5), length.out = length(Abundance), each = ceiling((length(Abundance))/5))) %>% 
+  ggplot(.) + 
+    geom_point(aes(x = reorder(ASV, Abundance, decreasing = TRUE), y = site_condition, size = Abundance, colour = Shared)) +
+  facet_wrap(~ group, nrow = 5, scales = "free_x") + theme(
+  strip.background = element_blank(),
+  strip.text.x = element_blank(),
+  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+)
+
+```
 
 #### Calculate NTI
 ```{r MNTD, cache=T}
@@ -1277,6 +1304,7 @@ NTI_fig <- ggplot(data = MNTD_DF,
   scale_colour_viridis_c(name = "Density g ml^-1") +
   labs(x = "Incubation time (h)", 
        y = "NTI") +
+  theme_bw(base_size = f_size, base_family = f_name) +
   theme(legend.title = element_markdown(), 
         text = element_text(size = f_size + 2))
 

@@ -1,0 +1,341 @@
+---
+title: "Anaerobic CUE"
+subtitle: "Plotting of C-partitioning trends and other chemical data"
+description: "V1.0"   
+author: 
+  name: "Roey Angel"
+  date: "`r Sys.Date()`"
+  affiliation: "Biology Centre CAS"
+  email: "roey.angel@bc.cas.cz"
+
+bibliography: references.bib
+link-citations: yes
+csl: fems-microbiology-ecology.csl
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 5
+    keep_md: true
+    number_sections: false
+    highlight: "pygments"
+    theme: "flatly"
+    df_print: "kable"
+    fig_caption: true
+    code_folding: "show"
+---
+
+```{r libraries, include=F}
+# .libPaths(c('~/R/library', .libPaths())) # Uncomment if you have no write access to R path
+library(tidyverse)
+library(scales)
+library(extrafont)
+library(see)
+library(ggsci)
+library(ggtext)
+library(patchwork)
+library(ggpomological)
+library(paletteer)
+```
+
+```{r style settings, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+options(width = 90, knitr.table.format = "html") 
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  cache = TRUE,
+  #dev = "ragg_png",
+  #fig.ext = "png",
+  dev = c("svglite", "ragg_png"),
+  dev.args = list(svglite = list(bg = 'white', fix_text_size = FALSE), ragg_png = list(bg = 'white')),
+  dpi = 300,
+  cache.path = "C_part_cache/",
+  fig.path = "C_part_figures/"
+)
+f_name <- "DejaVu Sans" #sub("\\s//", "", f_name)
+f_size <- 14
+font_import(pattern = "DejaVuSans\\.", prompt = FALSE)
+loadfonts() # registers fonts
+theme_set(theme_bw(base_size = f_size, base_family = f_name)) 
+pom5 <- ggpomological:::pomological_palette[c(2, 1, 3, 4, 5)]
+pom2 <- c(ggpomological:::pomological_base[[7]], ggpomological:::pomological_palette[[1]])
+```
+
+```{r functions, include=F}
+
+```
+
+## Respiration and biomass
+```{r load resp_biomass data, cache=T}
+read_delim("./Chem_isotope_data/Resp_BMC.csv", delim = ";" ) %>%
+  mutate(across(c("Aeration", 
+                  "Site"), ~factor(.))) %>% 
+  mutate(`Site:Aeration` = paste(Site, Aeration)) %>% 
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "Oxic"))) %>% 
+  identity() ->
+  Resp_MB
+```
+
+```{r plot fumigation, cache=T}
+tot_fumigation <- ggplot(data = Resp_MB, aes(x = `Time (h)`, y = `C-MB (µmol(12+13))`, colour = Site, shape = Aeration)) +
+  geom_point2(size = 4, alpha = 2/5) + 
+  stat_summary(fun = mean, 
+               geom = "point", 
+               size = 7, 
+               alpha = 3/4) +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar",
+               width = 4,
+               alpha = 3/4) +
+  stat_summary(fun = mean, geom = "line",alpha = 3/4) +
+  # geom_boxplot(aes(x = `Time (h)`, group = `Site:Aeration`), color = "gray60", outlier.alpha = 0) +
+  scale_colour_manual(values = pom5) +
+  # scale_color_uchicago() +
+  labs(y = "Microbial biomass (\u03bcmol <sup>12</sup>C + <sup>13</sup>C)") +
+  theme(
+    axis.title.y = element_markdown()
+  )
+```
+
+```{r plot respiration, cache=T}
+respiration <- ggplot(data = Resp_MB, aes(x = `Time (h)`, y = `Total resp (12C+13C umol/g)`, colour = Site, shape = Aeration)) +
+  geom_point2(size = 4, alpha = 2/5) + 
+  stat_summary(fun = mean, 
+               geom = "point", 
+               size = 7, 
+               alpha = 3/4) +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar",
+               width = 4,
+               alpha = 3/4) +
+  stat_summary(fun = mean, geom = "line",alpha = 3/4) +
+  # geom_boxplot(aes(x = `Time (h)`, group = `Site:Aeration`), colour = "gray60", outlier.alpha = 0) +
+  scale_colour_manual(values = pom5) +
+  # scale_color_uchicago() +
+  labs(y = "CO<sub>2</sub> (\u03bcmol [<sup>12</sup>C + <sup>13</sup>C] g<sup>-1</sup>)") +
+  theme(
+    axis.title.y = element_markdown()
+  )
+```
+
+```{r combine resp. and biomass, cache=F, fig.width=18, fig.asp=.42}
+respiration + 
+  theme(legend.position = "none") + 
+  tot_fumigation + theme(legend.position = c(0.9, 0.84)) +
+  plot_annotation(tag_levels = 'A')
+```
+
+## Glucose C partitioning
+```{r load C partitioning data, cache=T}
+read_delim("./Chem_isotope_data/C_part.csv", delim = ";" ) %>%
+  mutate(across(c("Aeration", 
+                  "Site",
+                  "Time (h)"), ~factor(.))) %>% 
+  dplyr::select(!starts_with("C from")) %>% 
+  dplyr::select(!`WEC from CH2O % + CHO`) %>% 
+  rename_with(~ gsub(" %", "", .x)) %>% 
+  rename_with(~ gsub("CH2O", "glucose", .x)) %>% 
+  rename(Glucose = glucose) %>% 
+  rename(`CO<sub>2</sub> from glucose` = `CO2 from glucose`) %>% 
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "Oxic"))) %>% 
+  pivot_longer(cols = c(-"Aeration", -"Site", -"Time (h)"), names_to = "C pool", values_to = "Fraction (%)") %>% 
+  mutate(across(`C pool`, ~fct_relevel(., "Glucose"))) %>%
+  identity() ->
+  C_part
+```
+
+```{r plot C_part, cache=T}
+C_part_bar <- ggplot(data = C_part, aes(x = `Time (h)`, y = `Fraction (%)`, fill = `C pool`)) +
+  geom_bar(position = "stack", stat = "identity") +
+  facet_grid(Site ~ Aeration, scales = "free_x") +
+  theme(legend.text = element_markdown()) +
+  scale_fill_manual(values = pom5)
+# scale_fill_pomological()
+C_part_bar
+```
+**Comments:**
+1. The original figure had a red line at about 110% and the caption said "Red line denotes amount of added C and the difference between columns and line show proportion of C lost into non extractable C pool" But why not at 100%?
+
+2. We might get criticised for not providing errors here, but because these are all derived values one would have to propagate errors here and that's time consuming
+
+## C pools total
+```{r load C bulk data, cache=T}
+read_delim("./Chem_isotope_data/C_total.csv", delim = ";" ) %>%
+  mutate(across(c("Aeration", 
+                  "Site",
+                  "Time (h)"), ~factor(.))) %>% 
+  rename_with(~gsub("CO2", "CO<sub>2</sub>", .x)) %>% 
+  rename_with(~gsub("K2SO4", "K<sub>2</sub>SO<sub>4</sub>", .x)) %>% 
+  rename_with(~gsub(" \\(µmol\\[12C\\+13C\\] g-1\\)", "", .x)) %>%
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "Oxic"))) %>% 
+  pivot_longer(cols = c(-"Aeration", -"Site", -"Time (h)"), names_to = "C pool", values_to = "C (µmol[12C+13C] g-1)") %>% 
+  mutate(across(`C pool`, ~fct_relevel(., "Glucose"))) %>%
+  replace(is.na(.), 0) %>% 
+  identity() ->
+  C_bulk
+```
+
+```{r plot C_bulk, cache=T}
+C_bulk %>% # the names of the new data frame and the data frame to be summarised
+  group_by(Site, Aeration,  `Time (h)`, `C pool`) %>%   # the grouping variable
+  summarise(`Mean C (µmol[12C+13C] g-1)` = mean(`C (µmol[12C+13C] g-1)`),
+            sd_C = sd(`C (µmol[12C+13C] g-1)`), # calculates the standard deviation of each group
+            n_C = n(),  # calculates the sample size per group
+            SE_C = sd(`C (µmol[12C+13C] g-1)`)/sqrt(n())) %>% 
+  arrange(desc(`C pool`)) %>% 
+  mutate(stackedY = cumsum(`Mean C (µmol[12C+13C] g-1)`)) -> 
+  C_bulk_means
+
+C_bulk_bar <- ggplot(data = C_bulk_means, aes(x = `Time (h)`,
+                                              y = `Mean C (µmol[12C+13C] g-1)`,
+                                              fill = `C pool`)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(inherit.aes = FALSE,
+                aes(x = `Time (h)`,
+                    ymin = stackedY - SE_C,
+                    ymax = stackedY + SE_C),
+                width = 0.2,
+                alpha = 3/4) +
+  facet_grid(Site ~ Aeration, scales = "free_x") +
+  labs(y = "CO<sub>2</sub> (\u03bcmol [<sup>12</sup>C + <sup>13</sup>C] g<sup>-1</sup>)") +
+  theme(legend.text = element_markdown(),
+        axis.title.y = element_markdown()) +
+  scale_fill_manual(values = pom5)
+C_bulk_bar
+```
+
+**Comments:**
+1. Why is this graph needed?
+2. Missing values but they appear in the original graph (means)
+
+## Organic acids
+```{r load org C, cache=T}
+read_delim("./Chem_isotope_data/OA.csv", delim = ";" ) %>%
+  mutate(across(c("Aeration", 
+                  "Site",
+                  "Time (h)"), ~factor(.))) %>% 
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "Oxic"))) %>% 
+  pivot_longer(cols = c(-"Number", -"Code", -"Aeration", -"Site", -"Time (h)"), names_to = "Organic acid", values_to = "C (µmol g-1)") %>% 
+  replace(is.na(.), 0) %>% 
+  identity() ->
+  Organics
+```
+
+```{r plot org C, cache=T}
+Organics %>% # the names of the new data frame and the data frame to be summarised
+  filter(`Organic acid` != "OAtot") %>% 
+  group_by(Site, Aeration,  `Time (h)`, `Organic acid`) %>%   # the grouping variable
+  summarise(`Mean C (µmol g-1)` = mean(`C (µmol g-1)`),
+            sd_C = sd(`C (µmol g-1)`), # calculates the standard deviation of each group
+            n_C = n(),  # calculates the sample size per group
+            SE_C = sd(`C (µmol g-1)`)/sqrt(n())) %>% 
+  arrange(desc(`Organic acid`)) %>% 
+  mutate(stackedY = cumsum(`Mean C (µmol g-1)`)) -> 
+  Organics_means
+
+Organics_bar <- ggplot(data = Organics_means, aes(x = `Time (h)`,
+                                                  y = `Mean C (µmol g-1)`,
+                                                  fill = `Organic acid`)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(inherit.aes = FALSE,
+                aes(x = `Time (h)`,
+                    ymin = stackedY - SE_C,
+                    ymax = stackedY + SE_C),
+                width = 0.2,
+                alpha = 2/4) +
+  facet_grid(Site ~ Aeration, scales = "free_x") +
+  labs(y = "C (&mu;mol g<sup>-1</sup>)") +
+  theme(axis.title.y = element_markdown()) +
+  # scale_fill_scico_d(palette = "fes") 
+  scale_fill_manual(values = (colorRampPalette(ggpomological:::pomological_palette)(12)))
+Organics_bar
+```
+
+```{r combine_resp_biomass_Cpart_OA, cache=F, fig.width=18, fig.asp=.6}
+C_part_e_bar <- readRDS(file = "C_part_e_bar.Rds") # from C_partitioning.Rmd
+(C_part_e_bar + theme(legend.position = "bottom") + 
+    Organics_bar) /
+  (respiration + 
+     theme(legend.position = "none") + 
+     tot_fumigation + theme(legend.position = "top")) +
+  
+  
+  plot_annotation(tag_levels = 'A')
+```
+
+## Oxygen
+```{r oxygen, cache=T, fig.width=8, fig.asp=.6}
+read_delim("./Chem_isotope_data/O2.csv", delim = ";" ) %>%
+  mutate(across(c("Site"),
+                ~factor(.))) %>% 
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(`O2 (%)` = `O2 in the headspace (ppmv)`/10000) %>% 
+  identity() ->
+  Oxygen
+
+ggplot(data = Oxygen, aes(x = `Time (h)`, 
+                          y = `O2 (%)`,
+                          colour = Site)) + 
+  geom_point2(size = 4, alpha = 1/3) +
+  geom_smooth(method = "lm", alpha = .15, aes(fill = Site)) +
+  labs(y = "Headspace O<sub>2</sub> (%)") +
+  theme(legend.text = element_markdown(),
+        axis.title.y = element_markdown()) +
+  scale_y_continuous(limits=c(0, 22)) + 
+  scale_colour_pomological() +
+  scale_fill_pomological()
+```
+
+## Biomass change
+```{r load biomass, cache=T}
+read_delim("./Chem_isotope_data/New_biomass.csv", delim = ";" ) %>%
+  filter(`Time (h)` != 0.5) %>%  
+  mutate(across(c("Aeration", 
+                  "Site",
+                  `Time (h)`), ~factor(.))) %>% 
+  mutate(across(Site, ~fct_relevel(., "Plešné"))) %>% 
+  mutate(across(Aeration, ~fct_relevel(., "Oxic"))) %>% 
+  mutate(across(Method, ~recode(., d13C = "&delta;<sup>13</sup>C", d2H = "&delta;<sup>2</sup>H", Fum = "Chloroform fumigation"))) ->
+  Biomass
+```
+
+```{r plot biomass, cache=T}
+Biomass_bar <- ggplot(data = Biomass, aes(x = `Time (h)`,
+                                          y = `New biomass`,
+                                          fill = `Method`)) +
+  geom_bar(position = position_dodge(),  
+           stat = "identity") +
+  geom_errorbar(aes(group = `Method`,
+                    ymin = `New biomass` - SEM,
+                    ymax = `New biomass` + SEM),
+                position=position_dodge(0.9),
+                width = 0.2,
+                alpha = 2/4) +
+  facet_grid(Aeration ~ Site, scales = "free") +
+  labs(y = "New biomass (&mu;mol g<sup>-1</sup>)") +
+  theme(axis.title.y = element_markdown(),
+        legend.text = element_markdown()) +
+  scale_fill_manual(values = rev(pom5[1:3])) +
+  scale_y_continuous(
+    trans = scales::pseudo_log_trans(sigma = 10^(-4)), 
+    breaks = trans_breaks("log10", function(x) 10^x,)(c(0.01, 1, 10, 100)),
+    labels = trans_format("log10", math_format(10^.x)))
+# scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+#               labels = trans_format("log10", math_format(10^.x)))
+Biomass_bar
+```
+
+```{r colophon, eval=T}
+sessioninfo::session_info() %>%
+  details::details(
+    summary = 'Current session info',
+    open    = TRUE
+  )
+```
+
+## References
+

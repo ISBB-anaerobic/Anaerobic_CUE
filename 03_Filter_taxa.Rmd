@@ -316,7 +316,12 @@ plot_lib_size(Ps_obj_SIP_merged, x = "Fraction.no.", fill = "Oxygen", facet1 = "
 
 I will test now the effect of library size and all other experimental factors on the community composition and also plot 
 ```{r mod abundance 1, cache=T}
-(mod1 <- adonis(vegdist(otu_table(Ps_obj_SIP_merged), method = "bray") ~ Site * Oxygen * Hours + Lib.size,
+(mod1 <- adonis2(vegdist(otu_table(Ps_obj_SIP_merged), method = "bray") ~ Lib.size,
+  data = as(sample_data(Ps_obj_SIP_merged), "data.frame"),
+  permutations = 999
+))
+
+(mod2 <- adonis(vegdist(otu_table(Ps_obj_SIP_merged), method = "bray") ~ Site * Oxygen * Hours + Lib.size,
   data = as(sample_data(Ps_obj_SIP_merged), "data.frame"),
   permutations = 999
 ))
@@ -326,7 +331,7 @@ plot_read_dist(Ps_obj_SIP_merged)
 plot_mean_SD(Ps_obj_SIP_merged)
 ```
 
-Modelling library size shows a significant effect of read depth on the community structure, but explaining only `r percent(mod1$aov.tab$R2[4])` of the variance.
+Modelling library size shows a significant effect of read depth on the community structure, but explaining only `r percent(mod1$R2[1])` of the variance.
 The reads histogram shows as expected a highly sparse and skewed sequence matrix.
 The mean vs SD also shows as expected large dependency of SD on the mean reads of a sequence across all samples.
 
@@ -383,7 +388,7 @@ Summary_pruned %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F)
 ```
 
-Removed `r percent(Summary_pruned$Seqs.removed[Summary_pruned$Level == "Order"] / sum(sample_sums(Ps_obj_SIP_merged)), accuracy = 0.0001)` of the sequences.
+Removed `r percent((Summary_pruned$Seqs.removed[Summary_pruned$Level == "Order"] + Summary_pruned$Seqs.removed[Summary_pruned$Level == "Family"]) / sum(sample_sums(Ps_obj_SIP_merged)), accuracy = 0.0001)` of the sequences.
 
 Now let's explore the prevalence of different taxa in the database.
 Prevalence is the number of samples in which a taxa appears at least once. So "Mean prevalence" refers to in how many samples does a sequence belonging to the phylum appears on average, and "Sum prevalence" is the sum of all samples where any sequence from the taxon appears.
@@ -433,7 +438,7 @@ print(Ps_obj_SIP_merged_filt)
 print(Ps_obj_SIP_merged_filt2)
 ```
 
-This removed `r ntaxa(Ps_obj_SIP_merged_filt) - ntaxa(Ps_obj_SIP_merged_filt2)` or `r percent(1 - (ntaxa(Ps_obj_SIP_merged_filt2) /  ntaxa(Ps_obj_SIP_merged_filt)))` of the ESVs, and `r percent(1 - (sum(otu_table(Ps_obj_SIP_merged_filt2)) /  sum(otu_table(Ps_obj_SIP_merged_filt))), accuracy = 0.001)` of the reads.
+This removed `r ntaxa(Ps_obj_SIP_merged_filt) - ntaxa(Ps_obj_SIP_merged_filt2)` or `r percent(1 - (ntaxa(Ps_obj_SIP_merged_filt2) /  ntaxa(Ps_obj_SIP_merged_filt)))` of the ASVs, and `r percent(1 - (sum(otu_table(Ps_obj_SIP_merged_filt2)) /  sum(otu_table(Ps_obj_SIP_merged_filt))), accuracy = 0.001)` of the reads.
 
 Plot general prevalence features of the phyla
 ```{r prevalence phylum, cahce=T, fig.height=10, fig.width=10}
