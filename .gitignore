@@ -17,3 +17,10 @@ run_knitr.sh
 DADA2_pseudo/Tree/DADA2.Seqs_decontam_filtered.filtered.align.model.gz
 05_Diff_abund_files
 NTI.RData
+02_Decontamination.html
+02_Decontamination.md
+03_Filter_taxa.md
+AnCUE_Metadata_bak.csv
+05_Diff_abund.md
+05_Diff_abund.html
+03_Filter_taxa.html
