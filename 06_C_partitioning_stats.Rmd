@@ -7,8 +7,8 @@ author:
   date: "`r Sys.Date()`"
   affiliation: "University of South Bohemia"
   email: "capekp00@prf.jcu.cz"
-bibliography: references.bib
-link-citations: yes
+
+
 csl: fems-microbiology-ecology.csl
 output:
   rmarkdown::html_document:
