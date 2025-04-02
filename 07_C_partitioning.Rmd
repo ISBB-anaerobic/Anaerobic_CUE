@@ -154,10 +154,6 @@ C_part_bar <- ggplot(data = C_part, aes(x = `Time (h)`, y = `Fraction (%)`, fill
 # scale_fill_pomological()
 C_part_bar
 ```
-**Comments:**
-1. The original figure had a red line at about 110% and the caption said "Red line denotes amount of added C and the difference between columns and line show proportion of C lost into non extractable C pool" But why not at 100%?
-
-2. We might get criticised for not providing errors here, but because these are all derived values one would have to propagate errors here and that's time consuming
 
 ## C pools total
 ```{r load C bulk data, cache=T}
@@ -205,10 +201,6 @@ C_bulk_bar <- ggplot(data = C_bulk_means, aes(x = `Time (h)`,
   scale_fill_manual(values = pom5)
 C_bulk_bar
 ```
-
-**Comments:**
-1. Why is this graph needed?
-2. Missing values but they appear in the original graph (means)
 
 ## Organic acids
 ```{r load org C, cache=T}

@@ -87,7 +87,7 @@ theme_min<-theme(axis.text.x=element_text(vjust=0.2, size=18, colour="black"),
 
 ## Uploading data
 ```{r load C_part_statistics.xlsx, cache=T}
-read.xlsx("./Chem_isotope_data/IncubationExperimetData_final.xlsx", 2) %>%
+read.xlsx("./Chem_isotope_data/IncubationExperimentData_final.xlsx", 2) %>%
   mutate(across(c("Aeration", 
                   "Site"), ~factor(.))) %>% 
   mutate(across(Site, ~fct_relevel(., "PL"))) %>% 
