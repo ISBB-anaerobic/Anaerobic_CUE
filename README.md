@@ -1,7 +1,7 @@
 Aeration and mineral composition of soil determine microbial CUE and OM retention
 ========
 
-[![Twitter Follow](https://img.shields.io/twitter/follow/espadrine.svg?style=social&label=Follow)](https://twitter.com/RoeyAngel)   ![license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square) [![DOI](https://zenodo.org/badge/304836305.svg)](https://zenodo.org/badge/latestdoi/304836305)
+[![Twitter Follow](https://img.shields.io/twitter/follow/espadrine.svg?style=social&label=Follow)](https://twitter.com/RoeyAngel)   ![license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square) [![DOI](https://zenodo.org/badge/805074245.svg)](https://doi.org/10.5281/zenodo.16091959)
 
 
 
